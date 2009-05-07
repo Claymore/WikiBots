@@ -27,7 +27,7 @@ namespace Claymore.NullEditWikiBot
             parameters.Add("eititle", "Шаблон:Deleteslow");
             parameters.Add("eilimit", "max");
             parameters.Add("einamespace", "0");
-            XmlDocument doc = wiki.Enumerate(parameters, false);
+            XmlDocument doc = wiki.Enumerate(parameters, true);
             XmlNodeList pages = doc.SelectNodes("/api/query/embeddedin/ei");
             int index = 0;
             wiki.SleepBetweenEdits = 10;
