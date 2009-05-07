@@ -16,9 +16,19 @@ namespace Claymore.NullEditWikiBot
                 Console.Out.WriteLine("Please add login and password to the configuration file.");
                 return;
             }
+
             Console.Out.WriteLine("Logging in as " + Settings.Default.Login + "...");
-            wiki.Login(Settings.Default.Login, Settings.Default.Password);
+            try
+            {
+                wiki.Login(Settings.Default.Login, Settings.Default.Password);
+            }
+            catch (WikiException e)
+            {
+                Console.Out.WriteLine(e.Message);
+                return;
+            }
             Console.Out.WriteLine("Logged in as " + Settings.Default.Login + ".");
+
             ParameterCollection parameters = new ParameterCollection();
             parameters.Add("generator", "embeddedin");
             parameters.Add("geititle", "Шаблон:Deleteslow");
@@ -27,9 +37,9 @@ namespace Claymore.NullEditWikiBot
             parameters.Add("prop", "categories");
             parameters.Add("clcategories", "Категория:Википедия:К быстрому удалению");
             XmlDocument doc = wiki.Enumerate(parameters, true);
+            
             XmlNodeList pages = doc.SelectNodes("/api/query/pages/page");
             int index = 1;
-            wiki.SleepBetweenEdits = 10;
             foreach (XmlNode page in pages)
             {
                 XmlNode category = page.SelectSingleNode("categories/cl");
@@ -42,12 +52,15 @@ namespace Claymore.NullEditWikiBot
                     pageTitle, index++, pages.Count));
                 try
                 {
-                    wiki.SavePage(pageTitle, "", "\n\n", "Сброс кеша нулевой правкой",
-                        MinorFlags.None, CreateFlags.NoCreate, WatchFlags.Watch, SaveFlags.Append);
+                    wiki.AppendTextToPage(pageTitle,
+                        "\n\n",
+                        "Сброс кеша нулевой правкой",
+                        MinorFlags.None,
+                        WatchFlags.Watch);
                 }
                 catch (WikiException e)
                 {
-                    Console.Out.WriteLine(string.Format("Caught error: {0}."), e.Message);
+                    Console.Out.WriteLine(e.Message);
                 }
             }
             Console.Out.WriteLine("Done.");
