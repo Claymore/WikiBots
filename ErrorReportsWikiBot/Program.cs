@@ -299,20 +299,21 @@ namespace Claymore.ErrorReportsWikiBot
                 period = string.Format("{0} — {1}",
                     start.ToString("d MMMM yyy"), end.ToString("d MMMM yyyy"));
             }
+            DateTime realEnd = end.AddDays(1);
             int processedTotal = messages.Count(m => m.Opened &&
                 m.Closed &&
                 m.ClosedAt >= start &&
-                m.ClosedAt <= end);
+                m.ClosedAt < realEnd);
             int newMessagesCount = messages.Count(m => m.Opened &&
                     m.OpenedAt >= start &&
-                    m.OpenedAt <= end &&
+                    m.OpenedAt < realEnd &&
                     ((m.Archived && m.Closed) || !m.Archived));
             int processedMessagesCount = messages.Count(m => m.Opened &&
                     m.OpenedAt >= start &&
-                    m.OpenedAt <= end &&
+                    m.OpenedAt < realEnd &&
                     m.Closed &&
                     m.ClosedAt >= start &&
-                    m.ClosedAt <= end);
+                    m.ClosedAt < realEnd);
 
             streamWriter.WriteLine("|" + period);
             streamWriter.WriteLine("|" + processedTotal);
