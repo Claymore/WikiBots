@@ -38,7 +38,7 @@ namespace Claymore.ErrorReportsWikiBot
             string timeString = DateTime.Now.ToUniversalTime().ToString("HH:mm, d MMMM yyyy (UTC)");
             ParameterCollection parameters = new ParameterCollection();
             parameters.Add("prop", "info");
-            XmlDocument doc = wiki.Query(QueryBy.Titles, parameters, pages.Keys, 40);
+            XmlDocument doc = wiki.Query(QueryBy.Titles, parameters, pages.Keys);
             XmlNodeList nodes = doc.SelectNodes("/api/query/pages/page");
             foreach (XmlNode node in nodes)
             {
