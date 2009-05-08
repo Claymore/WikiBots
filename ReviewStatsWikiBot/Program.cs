@@ -42,7 +42,7 @@ namespace Claymore.ReviewStatsWikiBot
             parameters.Add("list", "allusers");
             parameters.Add("augroup", "editor");
             parameters.Add("aulimit", "max");
-            wiki.SleepBetweenQueries = 10;
+            wiki.SleepBetweenQueries = 3;
             XmlDocument doc = wiki.Enumerate(parameters, true);
             XmlNodeList editors = doc.SelectNodes("//u[@name]");
             
@@ -57,7 +57,7 @@ namespace Claymore.ReviewStatsWikiBot
                 parameters.Add("list", "logevents");
                 parameters.Add("letype", "review");
                 parameters.Add("lestart", start);
-                parameters.Add("lestop", stop);
+                parameters.Add("leend", stop);
                 parameters.Add("ledir", "newer");
                 parameters.Add("lelimit", "max");
                 parameters.Add("leuser", username);
@@ -101,7 +101,7 @@ namespace Claymore.ReviewStatsWikiBot
                         new StreamWriter("output.txt", false))
             {
                 sw.WriteLine("== " + previousMonth.ToString("MMMM") + " ==");
-                sw.WriteLine("В скобках указано количество действий в пространстве имён: статей, категорий, шаблонов и файлов.\n");
+                sw.WriteLine("В скобках указано количество действий в пространствах имён: статей, категорий, шаблонов и файлов.\n");
                 sw.WriteLine("<div style=\"-moz-column-count:2; column-count:2; -webkit-column-count:2\">");
                 for (int i = 0; i < users.Count; ++i)
                 {
@@ -125,14 +125,14 @@ namespace Claymore.ReviewStatsWikiBot
                 sw.WriteLine("</div>");
                 sw.WriteLine("\n— ~~~~");
             }
-            /*Console.Out.WriteLine("Updating the wiki page...");
+            Console.Out.WriteLine("Updating the wiki page...");
             using (TextReader sr =
                         new StreamReader("output.txt"))
             {
                 string text = sr.ReadToEnd();
                 string period = previousMonth.ToString("MMMM yyyy");
                 wiki.SavePage("User:Claymore/Sandbox", text, "Статистика патрулирования за " + period[0].ToString().ToLower() + period.Substring(1));
-            }*/
+            }
             Console.Out.WriteLine("Done.");
             wiki.Logout();
         }
