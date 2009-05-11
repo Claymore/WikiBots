@@ -5,6 +5,7 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
+using System.Linq;
 using Claymore.SharpMediaWiki;
 using TalkCleanupWikiBot.Properties;
 using System.Net;
@@ -34,9 +35,21 @@ namespace Claymore.TalkCleanupWikiBot
             UpdateProposedMerges(wiki);*/
 
             ProcessRequestedMoves(wiki);
+            UpdateRequestedMoves(wiki);
                         
             wiki.Logout();
             Console.Out.WriteLine("Done.");
+        }
+
+        private static void UpdateRequestedMoves(Wiki wiki)
+        {
+            Console.Out.WriteLine("Updating requested moves...");
+            using (TextReader sr =
+                        new StreamReader("move.txt"))
+            {
+                string text = sr.ReadToEnd();
+                wiki.SavePage("Википедия:К переименованию", text, "Обновление списка обсуждаемых страниц");
+            }
         }
 
         private static void ProcessRequestedMoves(Wiki wiki)
@@ -119,28 +132,126 @@ namespace Claymore.TalkCleanupWikiBot
             using (StreamWriter sw =
                         new StreamWriter("move.txt"))
             {
-                sw.WriteLine("== Текущие обсуждения ==\n");
+                sw.WriteLine("{{/Шапка}}\n");
                 sw.WriteLine("{{Переименование статей/Статьи, вынесенные на переименование}}\n");
+
+                Regex wikiLinkRE = new Regex(@"^==\s*(<s>)?\s*\[{2}([^\]]+)\]{2}\s*");
+                Regex wikiLink2RE = new Regex(@"^===\s*(<s>)?\s*\[{2}([^\]]+)\]{2}\s*");
 
                 foreach (Day day in days)
                 {
                     sw.Write("{{Переименование статей/День|" + day.Date.ToString("yyyy-M-d") + "|");
                     List<string> titles = new List<string>();
                     foreach (Candidate candidate in day.Candidates)
-                    {
+                    {                        
+                        Match m = wikiLinkRE.Match(candidate.RawTitle);
+                        if (m.Success)
+                        {
+                            string link = m.Groups[2].Value;
+                            if (candidate.hasVerdict)
+                            {
+                                string movedTo;
+                                bool moved = MovedTo(wiki, link, day.Date, out movedTo);
+                                string result;
+                                if (moved)
+                                {
+                                    result = string.Format(" ''(переименовано в «[[{0}]]»)''", movedTo);
+                                }
+                                else
+                                {
+                                    result = " ''(не переименовано)''";
+                                }
+                                titles.Add(candidate.ToString() + result);
+                                continue;
+                            }
+                        }
                         titles.Add(candidate.ToString());
+                        foreach (Candidate subsection in candidate.SubSections)
+                        {
+                            m = wikiLink2RE.Match(subsection.RawTitle);
+                            if (m.Success)
+                            {
+                                string link = m.Groups[2].Value;
+                                if (candidate.hasVerdict ||
+                                    candidate.StrikenOut ||
+                                    subsection.hasVerdict ||
+                                    subsection.StrikenOut)
+                                {
+                                    string movedTo;
+                                    bool moved = MovedTo(wiki, link, day.Date, out movedTo);
+                                    string result;
+                                    if (moved)
+                                    {
+                                        result = string.Format(" ''(переименовано в «[[{0}]]»)''", movedTo);
+                                    }
+                                    else
+                                    {
+                                        result = " ''(не переименовано)''";
+                                    }
+                                    titles.Add("*" + subsection.ToString() + result);
+                                    continue;
+                                }
+                                titles.Add("*" + subsection.ToString());
+                            }
+                        }
                     }
-                    StringBuilder line = new StringBuilder(string.Join("\n* ", titles.ConvertAll(c => c).ToArray()));
+                    StringBuilder line = new StringBuilder(string.Join("\n*", titles.ConvertAll(c => c).ToArray()));
                     if (titles.Count > 0)
                     {
-                        line.Insert(0, "\n* ");
+                        line.Insert(0, "\n*");
                     }
                     sw.Write(line.ToString());
                     sw.Write("}}\n\n");
                 }
 
-                sw.WriteLine("|}");
+                sw.WriteLine("|}\n");
+                sw.WriteLine("{{/Окончание}}");
             }
+        }
+
+        private static bool MovedTo(Wiki wiki, string title, DateTime start, out string movedTo)
+        {
+            ParameterCollection parameters = new ParameterCollection();
+            parameters.Add("prop", "revisions");
+            parameters.Add("titles", title);
+            parameters.Add("rvlimit", "max");
+            parameters.Add("rvstart", start.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"));
+            parameters.Add("rvdir", "newer");
+            parameters.Add("rvprop", "comment|timestamp");
+            XmlDocument doc = wiki.Enumerate(parameters, true);
+
+            XmlNodeList revisions = doc.SelectNodes("//rev[@comment]");
+            Regex movedToRE = new Regex(@"переименовал «\[{2}([^\]]+)\]{2}» в «\[{2}([^\]]+)\]{2}»");
+            Regex movedFromRE = new Regex(@"«\[{2}([^\]]+)\]{2}» переименована в «\[{2}([^\]]+)\]{2}»");
+            foreach (XmlNode revision in revisions)
+            {
+                string comment = revision.Attributes["comment"].Value;
+                Match toM = movedToRE.Match(comment);
+                Match fromM = movedFromRE.Match(comment);
+                if (toM.Success)
+                {
+                    if (toM.Groups[1].Value == title)
+                    {
+                        movedTo = toM.Groups[2].Value;
+                        return true;
+                    }
+                }
+                else if (fromM.Success)
+                {
+                    if (fromM.Groups[1].Value == title)
+                    {
+                        movedTo = fromM.Groups[2].Value;
+                        return true;
+                    }
+                    else
+                    {
+                        movedTo = "";
+                        return false;
+                    }
+                }
+            }
+            movedTo = "";
+            return false;
         }
 
         private static void UpdateProposedMerges(Wiki wiki)
