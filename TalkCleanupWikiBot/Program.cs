@@ -28,11 +28,11 @@ namespace Claymore.TalkCleanupWikiBot
             wiki.Login(Settings.Default.Login, Settings.Default.Password);
             Console.Out.WriteLine("Logged in as " + Settings.Default.Login + ".");
 
-            /*ProcessArticlesForDeletion(wiki);
+            ProcessArticlesForDeletion(wiki);
             UpdateArticlesForDeletion(wiki);
 
             ProcessProposedMerges(wiki);
-            UpdateProposedMerges(wiki);*/
+            UpdateProposedMerges(wiki);
 
             ProcessRequestedMoves(wiki);
             UpdateRequestedMoves(wiki);
@@ -490,9 +490,32 @@ namespace Claymore.TalkCleanupWikiBot
 
         private static void ProcessArticlesForDeletion(Wiki wiki)
         {
+            ArticlesForDeletionLocalization l10i = new ArticlesForDeletionLocalization();
+            l10i.Category = "Категория:Википедия:Незакрытые обсуждения удаления страниц";
+            l10i.Culture = "ru-RU";
+            l10i.Prefix = "Википедия:К удалению/";
+            l10i.Template = "Удаление статей";
+            l10i.TopTemplate = "/Заголовок";
+            l10i.BottomTemplate = "/Подвал";
+            ProcessArticlesForDeletion(wiki, l10i);
+        }
+
+        struct ArticlesForDeletionLocalization
+        {
+            public string Category;
+            public string Prefix;
+            public string Culture;
+            public string Template;
+            public string TopTemplate;
+            public string BottomTemplate;
+        }
+
+        private static void ProcessArticlesForDeletion(Wiki wiki,
+            ArticlesForDeletionLocalization l10i)
+        {
             ParameterCollection parameters = new ParameterCollection();
             parameters.Add("generator", "categorymembers");
-            parameters.Add("gcmtitle", "Категория:Википедия:Незакрытые обсуждения удаления страниц");
+            parameters.Add("gcmtitle", l10i.Category);
             parameters.Add("gcmlimit", "max");
             parameters.Add("gcmnamespace", "4");
             parameters.Add("prop", "info");
@@ -504,11 +527,13 @@ namespace Claymore.TalkCleanupWikiBot
             foreach (XmlNode page in pages)
             {
                 string pageName = page.Attributes["title"].Value;
-                string date = pageName.Substring("Википедия:К удалению/".Length);
+                string date = pageName.Substring(l10i.Prefix.Length);
                 Day day = new Day();
                 try
                 {
-                    day.Date = DateTime.Parse(date, CultureInfo.CreateSpecificCulture("ru-RU"), System.Globalization.DateTimeStyles.AssumeUniversal);
+                    day.Date = DateTime.Parse(date,
+                        CultureInfo.CreateSpecificCulture(l10i.Culture),
+                        System.Globalization.DateTimeStyles.AssumeUniversal);
                 }
                 catch (FormatException)
                 {
@@ -516,9 +541,9 @@ namespace Claymore.TalkCleanupWikiBot
                 }
                 Console.Out.WriteLine("Processing " + pageName + "...");
                 string text = "";
-                if (File.Exists("cache\\" + date + ".txt"))
+                if (File.Exists("cache\\" + l10i.Culture + "\\" + date + ".txt"))
                 {
-                    using (TextReader sr = new StreamReader("cache\\" + date + ".txt"))
+                    using (TextReader sr = new StreamReader("cache\\" + l10i.Culture + "\\" + date + ".txt"))
                     {
                         string revid = sr.ReadLine();
                         if (revid == page.Attributes["lastrevid"].Value)
@@ -531,7 +556,7 @@ namespace Claymore.TalkCleanupWikiBot
                 {
                     text = wiki.LoadPage(pageName);
                     using (StreamWriter sw =
-                        new StreamWriter("cache\\" + date + ".txt"))
+                        new StreamWriter("cache\\" + l10i.Culture + "\\" + date + ".txt"))
                     {
                         sw.Write(page.Attributes["lastrevid"].Value);
                         sw.Write(text);
@@ -564,13 +589,13 @@ namespace Claymore.TalkCleanupWikiBot
 
             days.Sort(CompareDays);
             using (StreamWriter sw =
-                        new StreamWriter("main.txt"))
+                        new StreamWriter("main-" + l10i.Culture + ".txt"))
             {
-                sw.WriteLine("{{/Заголовок}}\n");
+                sw.WriteLine("{{" + l10i.TopTemplate + "}}\n");
 
                 foreach (Day day in days)
                 {
-                    sw.Write("{{Удаление статей|" + day.Date.ToString("yyyy-M-d") + "|");
+                    sw.Write("{{" + "Удаление статей" + "|" + day.Date.ToString("yyyy-M-d") + "|");
                     List<string> titles = new List<string>();
                     foreach (Candidate candidate in day.Candidates)
                     {
@@ -580,7 +605,7 @@ namespace Claymore.TalkCleanupWikiBot
                     sw.Write("}}\n\n");
                 }
 
-                sw.WriteLine("{{/Подвал}}");
+                sw.WriteLine("{{" + l10i.BottomTemplate + "}}");
             }
 
             days.Clear();
@@ -588,7 +613,7 @@ namespace Claymore.TalkCleanupWikiBot
             DateTime start = currentMonth.AddMonths(-1);
             while (start < currentMonth)
             {
-                string pageName = "Википедия:К удалению/" + start.ToString("d MMMM yyyy");
+                string pageName = l10i.Prefix + start.ToString("d MMMM yyyy");
                 if (doc.SelectSingleNode("//page[@title=\"" + pageName + "\"]") != null)
                 {
                     start = start.AddDays(1);
@@ -599,9 +624,9 @@ namespace Claymore.TalkCleanupWikiBot
                 day.Date = start;
                 Console.Out.WriteLine("Processing " + pageName + "...");
                 string text = "";
-                if (File.Exists("cache\\" + start.ToString("d MMMM yyyy") + ".txt"))
+                if (File.Exists("cache\\" + l10i.Culture + "\\" + start.ToString("d MMMM yyyy") + ".txt"))
                 {
-                    using (TextReader sr = new StreamReader("cache\\" + start.ToString("d MMMM yyyy") + ".txt"))
+                    using (TextReader sr = new StreamReader("cache\\" + l10i.Culture + "\\" + start.ToString("d MMMM yyyy") + ".txt"))
                     {
                         text = sr.ReadToEnd();
                     }
@@ -610,7 +635,7 @@ namespace Claymore.TalkCleanupWikiBot
                 {
                     text = wiki.LoadPage(pageName);
                     using (StreamWriter sw =
-                        new StreamWriter("cache\\" + start.ToString("d MMMM yyyy") + ".txt"))
+                        new StreamWriter("cache\\" + l10i.Culture + "\\" + start.ToString("d MMMM yyyy") + ".txt"))
                     {
                         sw.Write(text);
                     }
@@ -624,7 +649,7 @@ namespace Claymore.TalkCleanupWikiBot
             days.Sort(CompareDays);
 
             using (StreamWriter sw =
-                        new StreamWriter("archive.txt"))
+                        new StreamWriter("archive-" + l10i.Culture + ".txt"))
             {
                 sw.WriteLine("{| class=standard");
                 sw.WriteLine("|-");
