@@ -28,13 +28,13 @@ namespace Claymore.TalkCleanupWikiBot
             wiki.Login(Settings.Default.Login, Settings.Default.Password);
             Console.Out.WriteLine("Logged in as " + Settings.Default.Login + ".");
 
-            ProcessArticlesForDeletion(wiki);
+            /*ProcessArticlesForDeletion(wiki);
             UpdateArticlesForDeletion(wiki);
 
             ProcessProposedMerges(wiki);
-            UpdateProposedMerges(wiki);
+            UpdateProposedMerges(wiki);*/
 
-            ProcessRequestedMoves(wiki);
+            //ProcessRequestedMoves(wiki);
             UpdateRequestedMoves(wiki);
                         
             wiki.Logout();
@@ -54,6 +54,7 @@ namespace Claymore.TalkCleanupWikiBot
 
         private static void ProcessRequestedMoves(Wiki wiki)
         {
+            Directory.CreateDirectory("moves-cache");
             ParameterCollection parameters = new ParameterCollection();
             parameters.Add("generator", "categorymembers");
             parameters.Add("gcmtitle", "Категория:Википедия:Незакрытые обсуждения переименования страниц");
@@ -153,7 +154,11 @@ namespace Claymore.TalkCleanupWikiBot
                                 string movedTo;
                                 bool moved = MovedTo(wiki, link, day.Date, out movedTo);
                                 string result;
-                                if (moved)
+                                if (moved && string.IsNullOrEmpty(movedTo))
+                                {
+                                    result = " ''(переименовано)''";
+                                }
+                                else if (moved)
                                 {
                                     result = string.Format(" ''(переименовано в «[[{0}]]»)''", movedTo);
                                 }
@@ -169,18 +174,23 @@ namespace Claymore.TalkCleanupWikiBot
                         foreach (Candidate subsection in candidate.SubSections)
                         {
                             m = wikiLink2RE.Match(subsection.RawTitle);
+                            if (subsection.RawTitle.Contains("=== [[Халкидики (ном)]] → [[Халкидики]] ==="))
+                            {
+                            }
                             if (m.Success)
                             {
                                 string link = m.Groups[2].Value;
                                 if (candidate.hasVerdict ||
-                                    candidate.StrikenOut ||
-                                    subsection.hasVerdict ||
-                                    subsection.StrikenOut)
+                                    subsection.hasVerdict)
                                 {
                                     string movedTo;
                                     bool moved = MovedTo(wiki, link, day.Date, out movedTo);
                                     string result;
-                                    if (moved)
+                                    if (moved && string.IsNullOrEmpty(movedTo))
+                                    {
+                                        result = " ''(переименовано)''";
+                                    }
+                                    else if (moved)
                                     {
                                         result = string.Format(" ''(переименовано в «[[{0}]]»)''", movedTo);
                                     }
@@ -211,6 +221,9 @@ namespace Claymore.TalkCleanupWikiBot
 
         private static bool MovedTo(Wiki wiki, string title, DateTime start, out string movedTo)
         {
+            if (title == "ЧПУ")
+            {
+            }
             ParameterCollection parameters = new ParameterCollection();
             parameters.Add("prop", "revisions");
             parameters.Add("titles", title);
@@ -219,15 +232,26 @@ namespace Claymore.TalkCleanupWikiBot
             parameters.Add("rvdir", "newer");
             parameters.Add("rvprop", "comment|timestamp");
             XmlDocument doc = wiki.Enumerate(parameters, true);
-
+            XmlNode missing = doc.SelectSingleNode("//page[@missing]");
+            if (missing != null)
+            {
+                movedTo = "";
+                return true;
+            }
             XmlNodeList revisions = doc.SelectNodes("//rev[@comment]");
-            Regex movedToRE = new Regex(@"переименовал «\[{2}([^\]]+)\]{2}» в «\[{2}([^\]]+)\]{2}»");
-            Regex movedFromRE = new Regex(@"«\[{2}([^\]]+)\]{2}» переименована в «\[{2}([^\]]+)\]{2}»");
+            List<Revision> revs = new List<Revision>();
             foreach (XmlNode revision in revisions)
             {
-                string comment = revision.Attributes["comment"].Value;
-                Match toM = movedToRE.Match(comment);
-                Match fromM = movedFromRE.Match(comment);
+                revs.Add(new Revision(revision.Attributes["comment"].Value,
+                    revision.Attributes["timestamp"].Value));
+            }
+            revs.Sort(CompareRevisions);
+            Regex movedToRE = new Regex(@"переименовал «\[{2}([^\]]+)\]{2}» в «\[{2}([^\]]+)\]{2}»");
+            Regex movedFromRE = new Regex(@"«\[{2}([^\]]+)\]{2}» переименована в «\[{2}([^\]]+)\]{2}»");
+            foreach (Revision revision in revs)
+            {
+                Match toM = movedToRE.Match(revision.Comment);
+                Match fromM = movedFromRE.Match(revision.Comment);
                 if (toM.Success)
                 {
                     if (toM.Groups[1].Value == title)
@@ -252,6 +276,18 @@ namespace Claymore.TalkCleanupWikiBot
             }
             movedTo = "";
             return false;
+        }
+
+        struct Revision
+        {
+            public string Comment;
+            public DateTime Time;
+
+            public Revision(string comment, string time)
+            {
+                Comment = comment;
+                Time = DateTime.Parse(time, null, DateTimeStyles.AssumeUniversal);
+            }
         }
 
         private static void UpdateProposedMerges(Wiki wiki)
@@ -285,6 +321,7 @@ namespace Claymore.TalkCleanupWikiBot
 
         private static void ProcessProposedMerges(Wiki wiki)
         {
+            Directory.CreateDirectory("union-cache");
             ParameterCollection parameters = new ParameterCollection();
             parameters.Add("generator", "categorymembers");
             parameters.Add("gcmtitle", "Категория:Википедия:Незакрытые обсуждения объединения страниц");
@@ -474,13 +511,13 @@ namespace Claymore.TalkCleanupWikiBot
             DateTime today = DateTime.Today;
             DateTime currentMonth = new DateTime(today.Year, today.Month, 1);
             using (TextReader sr =
-                        new StreamReader("main.txt"))
+                        new StreamReader("main-ru-RU.txt"))
             {
                 string text = sr.ReadToEnd();
                 wiki.SavePage("Википедия:К удалению", text, "Обновление списка обсуждаемых страниц");
             }
             using (TextReader sr =
-                        new StreamReader("archive.txt"))
+                        new StreamReader("archive-ru-RU.txt"))
             {
                 string page = currentMonth.AddMonths(-1).ToString("yyyy-MM");
                 string text = sr.ReadToEnd();
@@ -513,6 +550,7 @@ namespace Claymore.TalkCleanupWikiBot
         private static void ProcessArticlesForDeletion(Wiki wiki,
             ArticlesForDeletionLocalization l10i)
         {
+            Directory.CreateDirectory("cache\\" + l10i.Culture);
             ParameterCollection parameters = new ParameterCollection();
             parameters.Add("generator", "categorymembers");
             parameters.Add("gcmtitle", l10i.Category);
@@ -693,7 +731,7 @@ namespace Claymore.TalkCleanupWikiBot
             string[] lines = text.Split(new char[] { '\n' });
             List<Candidate> messages = new List<Candidate>();
             StringBuilder message = new StringBuilder();
-            Regex sectionRE = new Regex(@"^={2}[^=]+={2}\s*$");
+            Regex sectionRE = new Regex(@"^={2}[^=].+={2}\s*$");
             bool skip = true;
             foreach (string line in lines)
             {
@@ -703,7 +741,7 @@ namespace Claymore.TalkCleanupWikiBot
                     skip = false;
                     if (message.Length > 0)
                     {
-                        messages.Add(Candidate.ParseCandidate(message.ToString(), 2));
+                        messages.Add(Candidate.Parse(message.ToString(), 2));
                         message = new StringBuilder();
                     }
                     message.Append(line + "\n");
@@ -715,7 +753,7 @@ namespace Claymore.TalkCleanupWikiBot
             }
             if (!skip && message.Length > 0)
             {
-                messages.Add(Candidate.ParseCandidate(message.ToString(), 2));
+                messages.Add(Candidate.Parse(message.ToString(), 2));
             }
             return messages;
         }
@@ -723,6 +761,11 @@ namespace Claymore.TalkCleanupWikiBot
         static int CompareDays(Day x, Day y)
         {
             return y.Date.CompareTo(x.Date);
+        }
+
+        static int CompareRevisions(Revision x, Revision y)
+        {
+            return y.Time.CompareTo(x.Time);
         }
     }
 }
