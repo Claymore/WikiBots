@@ -31,11 +31,11 @@ namespace Claymore.TalkCleanupWikiBot
             /*ProcessArticlesForDeletion(wiki);
             UpdateArticlesForDeletion(wiki);*/
 
-            ProcessProposedMerges(wiki);
-            UpdateProposedMerges(wiki);
+            /*ProcessProposedMerges(wiki);
+            UpdateProposedMerges(wiki);*/
 
-            /*ProcessRequestedMoves(wiki);
-            UpdateRequestedMoves(wiki);*/
+            ProcessRequestedMoves(wiki);
+            UpdateRequestedMoves(wiki);
 
             wiki.Logout();
             Console.Out.WriteLine("Done.");
@@ -68,7 +68,8 @@ namespace Claymore.TalkCleanupWikiBot
         private static void RemoveStrikeOut(WikiPageSection section)
         {
             section.ForEach(RemoveStrikeOut);
-            if (section.Subsections.Count(s => s.Title.Trim() == "Итог") == 0)
+            if (section.Subsections.Count(s => s.Title.Trim() == "Итог") == 0 &&
+                section.Subsections.Count(s => s.Title.Trim() == "Общий итог") == 0)
             {
                 if (section.Title.Contains("<s>"))
                 {
@@ -110,7 +111,7 @@ namespace Claymore.TalkCleanupWikiBot
                 string text = sr.ReadToEnd();
                 wiki.SavePage("Википедия:К переименованию", text, "обновление");
             }
-            /*
+            
             Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
             Regex timeRE = new Regex(@"(\d{2}:\d{2}\, \d\d? [а-я]+ \d{4}) \(UTC\)");
 
@@ -125,6 +126,7 @@ namespace Claymore.TalkCleanupWikiBot
             XmlNodeList pages = doc.SelectNodes("//page");
             foreach (XmlNode page in pages)
             {
+                int results = 0;
                 string pageName = page.Attributes["title"].Value;
                 string date = pageName.Substring("Википедия:К переименованию/".Length);
                 Day day = new Day();
@@ -164,9 +166,11 @@ namespace Claymore.TalkCleanupWikiBot
                 day.Page = WikiPage.Parse(pageName, text);
                 foreach (WikiPageSection section in day.Page.Sections)
                 {
+                    RemoveStrikeOut(section);
                     section.ForEach(RemoveStrikeOut);
                     section.ForEach(StrikeOutSection);
-                    if (section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0)
+                    if (section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0 ||
+                        section.Subsections.Count(s => s.Title.Trim() == "Общий итог") > 0)
                     {
                         if (!section.Title.Contains("<s>"))
                         {
@@ -218,21 +222,26 @@ namespace Claymore.TalkCleanupWikiBot
                                     section.Level + 1,
                                     message);
                                 section.AddSubsection(verdict);
+                                ++results;
                             }
                         }
                     }
                 }
                 string newText = day.Page.Text;
+                if (newText.Trim() == text.Trim())
+                {
+                    continue;
+                }
                 try
                 {
                     wiki.SavePage(pageName,
                         newText,
-                        "Зачёркивание заголовков, сообщение об итогах");
+                        "зачёркивание заголовков" + (results > 0 ? ", сообщение об итогах" : ""));
                 }
                 catch (WikiException)
                 {
                 }
-            }*/
+            }
         }
 
         private static void ProcessRequestedMoves(Wiki wiki)
@@ -329,8 +338,11 @@ namespace Claymore.TalkCleanupWikiBot
                     {
                         string filler = "";
                         string result = "";
+                        RemoveStrikeOut(section);
+                        section.ForEach(RemoveStrikeOut);
                         section.ForEach(StrikeOutSection);
                         if (section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0 ||
+                            section.Subsections.Count(s => s.Title.Trim() == "Общий итог") > 0 ||
                             section.Title.Contains("<s>"))
                         {
                             if (!section.Title.Contains("<s>"))
@@ -442,112 +454,41 @@ namespace Claymore.TalkCleanupWikiBot
             out DateTime movedAt)
         {
             ParameterCollection parameters = new ParameterCollection();
-            parameters.Add("prop", "revisions");
-            parameters.Add("titles", title);
-            parameters.Add("rvlimit", "max");
-            parameters.Add("rvstart", start.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"));
-            parameters.Add("rvdir", "newer");
-            parameters.Add("rvprop", "comment|timestamp|user");
+            parameters.Add("list", "logevents");
+            parameters.Add("letitle", title);
+            parameters.Add("letype", "move");
+            parameters.Add("lestart", start.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"));
+            parameters.Add("ledir", "newer");
+            parameters.Add("lelimit", "max");
             XmlDocument doc = wiki.Enumerate(parameters, true);
-            XmlNode missing = doc.SelectSingleNode("//page[@missing]");
-            if (missing != null)
+            XmlNodeList moved = doc.SelectNodes("//move");
+            List<Revision> revs = new List<Revision>();
+            foreach (XmlNode revision in moved)
             {
-                parameters.Add("list", "logevents");
-                parameters.Add("letitle", title);
-                parameters.Add("letype", "move");
-                parameters.Add("lestart", start.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"));
-                parameters.Add("ledir", "newer");
-                parameters.Add("lelimit", "max");
-                doc = wiki.Enumerate(parameters, true);
-                XmlNode node = doc.SelectSingleNode("//move");
-                if (node != null)
+                revs.Add(new Revision(revision.Attributes["new_title"].Value,
+                    revision.ParentNode.Attributes["comment"].Value,
+                    revision.ParentNode.Attributes["timestamp"].Value,
+                    revision.ParentNode.Attributes["user"].Value));
+            }
+            revs.Sort(CompareRevisions);
+            if (revs.Count > 0)
+            {
+                bool result = MovedTo(wiki,
+                    revs[0].MovedTo,
+                    revs[0].Time,
+                    out movedTo,
+                    out movedBy,
+                    out movedAt);
+                if (result)
                 {
-                    start = DateTime.Parse(node.ParentNode.Attributes["timestamp"].Value,
-                            null,
-                            DateTimeStyles.AssumeUniversal);
-                    bool result = MovedTo(wiki,
-                        node.Attributes["new_title"].Value,
-                        start,
-                        out movedTo,
-                        out movedBy,
-                        out movedAt);
-                    if (result)
-                    {
-                        return true;
-                    }
-                    else
-                    {
-                        movedTo = node.Attributes["new_title"].Value;
-                        movedBy = node.ParentNode.Attributes["user"].Value;
-                        movedAt = DateTime.Parse(node.ParentNode.Attributes["timestamp"].Value,
-                            null,
-                            DateTimeStyles.AssumeUniversal);
-                    }
-                    return true;
+                    return movedTo != title;
                 }
                 else
                 {
-                    movedTo = "";
-                    movedBy = "";
-                    movedAt = new DateTime();
-                    return false;
-                }
-            }
-            XmlNodeList revisions = doc.SelectNodes("//rev[@comment]");
-            List<Revision> revs = new List<Revision>();
-            foreach (XmlNode revision in revisions)
-            {
-                revs.Add(new Revision(revision.Attributes["comment"].Value,
-                    revision.Attributes["timestamp"].Value,
-                    revision.Attributes["user"].Value));
-            }
-            revs.Sort(CompareRevisions);
-            Regex movedToRE = new Regex(@"переименовал «\[{2}([^\]]+)\]{2}» в «\[{2}([^\]]+)\]{2}»");
-            Regex movedFromRE = new Regex(@"«\[{2}([^\]]+)\]{2}» переименована в «\[{2}([^\]]+)\]{2}»");
-            foreach (Revision revision in revs)
-            {
-                Match toM = movedToRE.Match(revision.Comment);
-                Match fromM = movedFromRE.Match(revision.Comment);
-                if (toM.Success)
-                {
-                    if (toM.Groups[1].Value == title)
-                    {
-                        start = revision.Time;
-                        bool result = MovedTo(wiki,
-                        toM.Groups[2].Value,
-                        start,
-                        out movedTo,
-                        out movedBy,
-                        out movedAt);
-                        if (result)
-                        {
-                            return true;
-                        }
-                        else
-                        {
-                            movedTo = toM.Groups[2].Value;
-                            movedAt = revision.Time;
-                            movedBy = revision.User;
-                            return true;
-                        }
-                    }
-                }
-                else if (fromM.Success)
-                {
-                    if (fromM.Groups[1].Value == title)
-                    {
-                        movedTo = fromM.Groups[2].Value;
-                        movedAt = revision.Time;
-                        movedBy = revision.User;
-                        return true;
-                    }
-                    else
-                    {
-                        movedTo = "";
-                        movedAt = revision.Time;
-                        movedBy = "";
-                        return false;
-                    }
+                    movedTo = revs[0].MovedTo;
+                    movedBy = revs[0].User;
+                    movedAt = revs[0].Time;
+                    return movedTo != title;
                 }
             }
             movedTo = "";
@@ -561,9 +502,11 @@ namespace Claymore.TalkCleanupWikiBot
             public string Comment;
             public DateTime Time;
             public string User;
+            public string MovedTo;
 
-            public Revision(string comment, string time, string user)
+            public Revision(string movedTo, string comment, string time, string user)
             {
+                MovedTo = movedTo;
                 Comment = comment;
                 Time = DateTime.Parse(time, null, DateTimeStyles.AssumeUniversal);
                 User = user;
@@ -595,7 +538,7 @@ namespace Claymore.TalkCleanupWikiBot
 
                 string page = currentMonth.AddMonths(-1).ToString("yyyy-MM");
                 string text = sr.ReadToEnd();
-                wiki.SavePage("Википедия:Архив запросов на объединение/" + page, text, "Обновление списка обсуждаемых страниц");
+                wiki.SavePage("Википедия:Архив запросов на объединение/" + page, text, "обновление");
             }
         }
 
