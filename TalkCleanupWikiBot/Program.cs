@@ -34,8 +34,8 @@ namespace Claymore.TalkCleanupWikiBot
             ProcessProposedMerges(wiki);
             UpdateProposedMerges(wiki);
 
-            ProcessRequestedMoves(wiki);
-            UpdateRequestedMoves(wiki);
+            /*ProcessRequestedMoves(wiki);
+            UpdateRequestedMoves(wiki);*/
 
             wiki.Logout();
             Console.Out.WriteLine("Done.");
@@ -108,7 +108,7 @@ namespace Claymore.TalkCleanupWikiBot
                         new StreamReader("move.txt"))
             {
                 string text = sr.ReadToEnd();
-                wiki.SavePage("Википедия:К переименованию", text, "Обновление списка обсуждаемых страниц");
+                wiki.SavePage("Википедия:К переименованию", text, "обновление");
             }
             /*
             Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
@@ -580,7 +580,7 @@ namespace Claymore.TalkCleanupWikiBot
                 wiki.SavePage("Википедия:К объединению",
                     "1",
                     text,
-                    "Обновление списка обсуждаемых страниц",
+                    "обновление",
                     MinorFlags.Minor,
                     CreateFlags.NoCreate,
                     WatchFlags.Watch,
@@ -658,7 +658,7 @@ namespace Claymore.TalkCleanupWikiBot
                 if (m.Success || m2.Success)
                 {
                     text = text.Replace("{{ВПКОБ-Навигация}}", "{{ВПКОБ-Навигация|nocat=1}}");
-                    wiki.SavePage(pageName, text, "Обсуждение закрыто, убираем страницу из категории.");
+                    wiki.SavePage(pageName, text, "обсуждение закрыто, убираем страницу из категории");
                     continue;
                 }
                 day.Candidates = new List<Candidate>(GetCandidatesFromPage(text, false));
@@ -794,17 +794,17 @@ namespace Claymore.TalkCleanupWikiBot
                         new StreamReader("main-ru-RU.txt"))
             {
                 string text = sr.ReadToEnd();
-                wiki.SavePage("Википедия:К удалению", text, "Обновление");
+                wiki.SavePage("Википедия:К удалению", text, "обновление");
             }
             using (TextReader sr =
                         new StreamReader("archive-ru-RU.txt"))
             {
                 string page = currentMonth.AddMonths(-1).ToString("yyyy-MM");
                 string text = sr.ReadToEnd();
-                wiki.SavePage("Википедия:Архив запросов на удаление/" + page, text, "Обновление");
+                wiki.SavePage("Википедия:Архив запросов на удаление/" + page, text, "обновление");
             }
 
-            /*ArticlesForDeletionLocalization l10i = new ArticlesForDeletionLocalization();
+            ArticlesForDeletionLocalization l10i = new ArticlesForDeletionLocalization();
             l10i.Category = "Категория:Википедия:Незакрытые обсуждения удаления страниц";
             l10i.Culture = "ru-RU";
             l10i.Prefix = "Википедия:К удалению/";
@@ -827,6 +827,7 @@ namespace Claymore.TalkCleanupWikiBot
             XmlNodeList pages = doc.SelectNodes("//page");
             foreach (XmlNode page in pages)
             {
+                int results = 0;
                 string pageName = page.Attributes["title"].Value;
                 string date = pageName.Substring(l10i.Prefix.Length);
                 Day day = new Day();
@@ -866,13 +867,22 @@ namespace Claymore.TalkCleanupWikiBot
                 day.Page = WikiPage.Parse(pageName, text);
                 foreach (WikiPageSection section in day.Page.Sections)
                 {
-                    //section.ForEach(RemoveStrikeOut);
-                    section.ForEach(StrikeOutSection);
-                    if (section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0)
+                    section.ForEach(RemoveStrikeOut);
+                    if (section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0 ||
+                        section.Subsections.Count(s => s.Title.Trim() == "Общий итог") > 0)
                     {
                         if (!section.Title.Contains("<s>"))
                         {
                             section.Title = string.Format("<s>{0}</s>", section.Title.Trim());
+                        }
+
+                        foreach (WikiPageSection subsection in section.Subsections)
+                        {
+                            Match m = wikiLinkRE.Match(subsection.Title);
+                            if (m.Success && !subsection.Title.Contains("<s>"))
+                            {
+                                subsection.Title = string.Format(" <s>{0}</s> ", subsection.Title.Trim());
+                            }
                         }
                     }
                     else
@@ -923,28 +933,45 @@ namespace Claymore.TalkCleanupWikiBot
                         events.Sort(CompareDeleteLogEvents);
                         if (events.Count > 0 && events[0].Deleted)
                         {
-                            string message = string.Format("Страница была удалена администратором [[User:{0}|]] {1}. Была указана следующая причина: «{2}». Данное сообщение было автоматически сгенерировано ботом [[User:ClaymoreBot|]]. — ~~~~\n",
+                            Regex commentRE = new Regex(@"(.+?):&#32;(.+)");
+                            m = commentRE.Match(events[0].Comment);
+                            string comment;
+                            if (m.Success)
+                            {
+                                comment = m.Groups[1].Value;
+                            }
+                            else
+                            {
+                                comment = "<nowiki>" + events[0].Comment + "</nowiki>";
+                            }
+                            string message = string.Format("Страница была удалена {1} администратором [[User:{0}|]]. Была указана следующая причина: «{2}». Данное сообщение было автоматически сгенерировано ботом ~~~~.\n",
                                 events[0].User,
                                 events[0].Timestamp.ToUniversalTime().ToString("HH:mm, d MMMM yyyy (UTC)"),
-                                events[0].Comment);
+                                comment);
                             WikiPageSection verdict = new WikiPageSection(" Итог ",
                                 section.Level + 1,
                                 message);
                             section.AddSubsection(verdict);
+                            ++results;
                         }
                     }
+                    section.ForEach(StrikeOutSection);
                 }
                 string newText = day.Page.Text;
+                if (newText.Trim() == text.Trim())
+                {
+                    continue;
+                }
                 try
                 {
                     wiki.SavePage(pageName,
                         newText,
-                        "Зачёркивание заголовков, сообщение об итогах");
+                        "зачёркивание заголовков" + (results > 0 ? " и подведение итогов" : ""));
                 }
                 catch (WikiException)
                 {
                 }
-            }*/
+            }
         }
 
         struct DeleteLogEvent
