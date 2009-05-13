@@ -28,29 +28,41 @@ namespace Claymore.TalkCleanupWikiBot
             wiki.Login(Settings.Default.Login, Settings.Default.Password);
             Console.Out.WriteLine("Logged in as " + Settings.Default.Login + ".");
 
-            ProcessArticlesForDeletion(wiki);
-            UpdateArticlesForDeletion(wiki);
+            /*ProcessArticlesForDeletion(wiki);
+            UpdateArticlesForDeletion(wiki);*/
 
             ProcessProposedMerges(wiki);
             UpdateProposedMerges(wiki);
 
             ProcessRequestedMoves(wiki);
             UpdateRequestedMoves(wiki);
-                        
+
             wiki.Logout();
             Console.Out.WriteLine("Done.");
         }
 
         private static void StrikeOutSection(WikiPageSection section)
         {
-            section.ForEach(StrikeOutSection);
-            if (section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0)
+            Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
+
+            if (section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0 ||
+                section.Subsections.Count(s => s.Title.Trim() == "Общий итог") > 0)
             {
                 if (!section.Title.Contains("<s>"))
                 {
-                    section.Title = string.Format("<s>{0}</s>", section.Title.Trim());
+                    section.Title = string.Format(" <s>{0}</s> ", section.Title.Trim());
+                }
+
+                foreach (WikiPageSection subsection in section.Subsections)
+                {
+                    Match m = wikiLinkRE.Match(subsection.Title);
+                    if (m.Success && !subsection.Title.Contains("<s>"))
+                    {
+                        subsection.Title = string.Format(" <s>{0}</s> ", subsection.Title.Trim());
+                    }
                 }
             }
+            section.ForEach(StrikeOutSection);
         }
 
         private static void RemoveStrikeOut(WikiPageSection section)
@@ -71,12 +83,22 @@ namespace Claymore.TalkCleanupWikiBot
             Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
             Match m = wikiLinkRE.Match(section.Title);
             if (m.Success)
-            //if (section.Title.Contains("[["))
             {
                 aggregator = aggregator + " • " + section.Title.Trim();
             }
             aggregator = section.Reduce(aggregator, SubsectionsList);
             return aggregator;
+        }
+
+        private static List<WikiPageSection> SubsectionsList2(WikiPageSection section, List<WikiPageSection> aggregator)
+        {
+            Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
+            Match m = wikiLinkRE.Match(section.Title);
+            if (m.Success)
+            {
+                aggregator.Add(section);
+            }
+            return section.Reduce(aggregator, SubsectionsList2);
         }
 
         private static void UpdateRequestedMoves(Wiki wiki)
@@ -88,6 +110,129 @@ namespace Claymore.TalkCleanupWikiBot
                 string text = sr.ReadToEnd();
                 wiki.SavePage("Википедия:К переименованию", text, "Обновление списка обсуждаемых страниц");
             }
+            /*
+            Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
+            Regex timeRE = new Regex(@"(\d{2}:\d{2}\, \d\d? [а-я]+ \d{4}) \(UTC\)");
+
+            ParameterCollection parameters = new ParameterCollection();
+            parameters.Add("generator", "categorymembers");
+            parameters.Add("gcmtitle", "Категория:Википедия:Незакрытые обсуждения переименования страниц");
+            parameters.Add("gcmlimit", "max");
+            parameters.Add("gcmnamespace", "4");
+            parameters.Add("prop", "info");
+            XmlDocument doc = wiki.Enumerate(parameters, true);
+
+            XmlNodeList pages = doc.SelectNodes("//page");
+            foreach (XmlNode page in pages)
+            {
+                string pageName = page.Attributes["title"].Value;
+                string date = pageName.Substring("Википедия:К переименованию/".Length);
+                Day day = new Day();
+                try
+                {
+                    day.Date = DateTime.Parse(date,
+                        CultureInfo.CreateSpecificCulture("ru-RU"),
+                        System.Globalization.DateTimeStyles.AssumeUniversal);
+                }
+                catch (FormatException)
+                {
+                    continue;
+                }
+                Console.Out.WriteLine("Updating " + pageName + "...");
+                string text = "";
+                if (File.Exists("moves-cache\\" + date + ".txt"))
+                {
+                    using (TextReader sr = new StreamReader("moves-cache\\" + date + ".txt"))
+                    {
+                        string revid = sr.ReadLine();
+                        if (revid == page.Attributes["lastrevid"].Value)
+                        {
+                            text = sr.ReadToEnd();
+                        }
+                    }
+                }
+                if (string.IsNullOrEmpty(text))
+                {
+                    text = wiki.LoadPage(pageName);
+                    using (StreamWriter sw =
+                        new StreamWriter("moves-cache\\" + date + ".txt"))
+                    {
+                        sw.WriteLine(page.Attributes["lastrevid"].Value);
+                        sw.Write(text);
+                    }
+                }
+                day.Page = WikiPage.Parse(pageName, text);
+                foreach (WikiPageSection section in day.Page.Sections)
+                {
+                    section.ForEach(RemoveStrikeOut);
+                    section.ForEach(StrikeOutSection);
+                    if (section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0)
+                    {
+                        if (!section.Title.Contains("<s>"))
+                        {
+                            section.Title = string.Format("<s>{0}</s>", section.Title.Trim());
+                        }
+
+                        foreach (WikiPageSection subsection in section.Subsections)
+                        {
+                            Match m = wikiLinkRE.Match(subsection.Title);
+                            if (m.Success && !subsection.Title.Contains("<s>"))
+                            {
+                                subsection.Title = string.Format(" <s>{0}</s> ", subsection.Title.Trim());
+                            }
+                        }
+                    }
+                    else if (section.Subsections.Count(s => s.Title.Trim() == "Оспоренный итог") == 0)
+                    {
+                        Match m = wikiLinkRE.Match(section.Title);
+                        if (m.Success)
+                        {
+                            string link = m.Groups[1].Value;
+                            string movedTo;
+                            string movedBy;
+                            DateTime movedAt;
+
+                            DateTime start = day.Date;
+                            m = timeRE.Match(section.Text);
+                            if (m.Success)
+                            {
+                                start = DateTime.Parse(m.Groups[1].Value,
+                                    CultureInfo.CreateSpecificCulture("ru-RU"),
+                                    DateTimeStyles.AssumeUniversal);
+                            }
+
+                            bool moved = MovedTo(wiki,
+                                link,
+                                start,
+                                out movedTo,
+                                out movedBy,
+                                out movedAt);
+
+                            if (moved && !string.IsNullOrEmpty(movedTo))
+                            {
+                                string message = string.Format("Страница была переименована {2} в «[[{0}]]» участником [[User:{1}|]]. Данное сообщение было автоматически сгенерировано ботом ~~~~.\n",
+                                movedTo,
+                                movedBy,
+                                movedAt.ToUniversalTime().ToString("HH:mm, d MMMM yyyy (UTC)"));
+                                WikiPageSection verdict = new WikiPageSection(" Итог ",
+                                    section.Level + 1,
+                                    message);
+                                section.AddSubsection(verdict);
+                            }
+                        }
+                    }
+                }
+                string newText = day.Page.Text;
+                try
+                {
+                    wiki.SavePage(pageName,
+                        newText,
+                        "Зачёркивание заголовков, сообщение об итогах");
+                }
+                catch (WikiException)
+                {
+                }
+            }*/
         }
 
         private static void ProcessRequestedMoves(Wiki wiki)
@@ -162,7 +307,7 @@ namespace Claymore.TalkCleanupWikiBot
                     }
                     continue;
                 }
-                day.Candidates = new List<Candidate>(GetCandidatesFromPage(text, false));
+                day.Page = WikiPage.Parse(pageName, text);
                 days.Add(day);
             }
 
@@ -174,24 +319,31 @@ namespace Claymore.TalkCleanupWikiBot
                 sw.WriteLine("{{/Шапка}}\n");
                 sw.WriteLine("{{Переименование статей/Статьи, вынесенные на переименование}}\n");
 
-                Regex wikiLinkRE = new Regex(@"^==\s*(<s>)?\s*\[{2}([^\]]+)\]{2}\s*");
-                Regex wikiLink2RE = new Regex(@"^===\s*(<s>)?\s*\[{2}([^\]]+)\]{2}\s*");
+                Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
 
                 foreach (Day day in days)
                 {
-                    sw.Write("{{Переименование статей/День|" + day.Date.ToString("yyyy-M-d") + "|");
+                    sw.Write("{{Переименование статей/День|" + day.Date.ToString("yyyy-M-d") + "|\n");
                     List<string> titles = new List<string>();
-                    foreach (Candidate candidate in day.Candidates)
-                    {                        
-                        Match m = wikiLinkRE.Match(candidate.RawTitle);
-                        if (m.Success)
+                    foreach (WikiPageSection section in day.Page.Sections)
+                    {
+                        string filler = "";
+                        string result = "";
+                        section.ForEach(StrikeOutSection);
+                        if (section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0 ||
+                            section.Title.Contains("<s>"))
                         {
-                            string link = m.Groups[2].Value;
-                            if (candidate.hasVerdict)
+                            if (!section.Title.Contains("<s>"))
                             {
+                                section.Title = string.Format("<s>{0}</s>", section.Title.Trim());
+                            }
+                            Match m = wikiLinkRE.Match(section.Title);
+                            if (m.Success)
+                            {
+                                string link = m.Groups[1].Value;
                                 string movedTo;
                                 bool moved = MovedTo(wiki, link, day.Date, out movedTo);
-                                string result;
+                                
                                 if (moved && string.IsNullOrEmpty(movedTo))
                                 {
                                     result = " ''(переименовано)''";
@@ -204,26 +356,39 @@ namespace Claymore.TalkCleanupWikiBot
                                 {
                                     result = " ''(не переименовано)''";
                                 }
-                                titles.Add(candidate.ToString() + result);
-                                continue;
+                            }
+
+                            foreach (WikiPageSection subsection in section.Subsections)
+                            {
+                                m = wikiLinkRE.Match(subsection.Title);
+                                if (m.Success && !subsection.Title.Contains("<s>"))
+                                {
+                                    subsection.Title = string.Format(" <s>{0}</s> ", subsection.Title.Trim());
+                                }
                             }
                         }
-                        titles.Add(candidate.ToString());
-                        foreach (Candidate subsection in candidate.SubSections)
+                        
+                        for (int i = 0; i < section.Level - 1; ++i)
                         {
-                            m = wikiLink2RE.Match(subsection.RawTitle);
-                            if (subsection.RawTitle.Contains("=== [[Халкидики (ном)]] → [[Халкидики]] ==="))
+                            filler += "*";
+                        }
+                        titles.Add(filler + " " + section.Title.Trim() + result);
+                        
+                        List<WikiPageSection> sections = new List<WikiPageSection>();
+                        section.Reduce(sections, SubsectionsList2);
+                        foreach (WikiPageSection subsection in sections)
+                        {
+                            result = "";
+                            if (subsection.Subsections.Count(s => s.Title.Trim() == "Итог") > 0 ||
+                                subsection.Title.Contains("<s>"))
                             {
-                            }
-                            if (m.Success)
-                            {
-                                string link = m.Groups[2].Value;
-                                if (candidate.hasVerdict ||
-                                    subsection.hasVerdict)
+                                Match m = wikiLinkRE.Match(subsection.Title);
+                                if (m.Success)
                                 {
+                                    string link = m.Groups[1].Value;
                                     string movedTo;
                                     bool moved = MovedTo(wiki, link, day.Date, out movedTo);
-                                    string result;
+
                                     if (moved && string.IsNullOrEmpty(movedTo))
                                     {
                                         result = " ''(переименовано)''";
@@ -236,19 +401,21 @@ namespace Claymore.TalkCleanupWikiBot
                                     {
                                         result = " ''(не переименовано)''";
                                     }
-                                    titles.Add("*" + subsection.ToString() + result);
-                                    continue;
                                 }
-                                titles.Add("*" + subsection.ToString());
                             }
+                            filler = "";
+                            for (int i = 0; i < subsection.Level - 1; ++i)
+                            {
+                                filler += "*";
+                            }
+                            titles.Add(filler + " " + subsection.Title.Trim() + result);
                         }
                     }
-                    StringBuilder line = new StringBuilder(string.Join("\n*", titles.ConvertAll(c => c).ToArray()));
-                    if (titles.Count > 0)
+                    if (titles.Count(s => s.Contains("=")) > 0)
                     {
-                        line.Insert(0, "\n*");
+                        titles[0] = "2=<li>" + titles[0].Substring(2) + "</li>";
                     }
-                    sw.Write(line.ToString());
+                    sw.Write(string.Join("\n", titles.ConvertAll(c => c).ToArray()));
                     sw.Write("}}\n\n");
                 }
 
@@ -257,31 +424,82 @@ namespace Claymore.TalkCleanupWikiBot
             }
         }
 
-        private static bool MovedTo(Wiki wiki, string title, DateTime start, out string movedTo)
+        private static bool MovedTo(Wiki wiki,
+            string title,
+            DateTime start,
+            out string movedTo)
         {
-            if (title == "ЧПУ")
-            {
-            }
+            string movedBy;
+            DateTime movedAt;
+            return MovedTo(wiki, title, start, out movedTo, out movedBy, out movedAt);
+        }
+
+        private static bool MovedTo(Wiki wiki,
+            string title,
+            DateTime start,
+            out string movedTo,
+            out string movedBy,
+            out DateTime movedAt)
+        {
             ParameterCollection parameters = new ParameterCollection();
             parameters.Add("prop", "revisions");
             parameters.Add("titles", title);
             parameters.Add("rvlimit", "max");
             parameters.Add("rvstart", start.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"));
             parameters.Add("rvdir", "newer");
-            parameters.Add("rvprop", "comment|timestamp");
+            parameters.Add("rvprop", "comment|timestamp|user");
             XmlDocument doc = wiki.Enumerate(parameters, true);
             XmlNode missing = doc.SelectSingleNode("//page[@missing]");
             if (missing != null)
             {
-                movedTo = "";
-                return true;
+                parameters.Add("list", "logevents");
+                parameters.Add("letitle", title);
+                parameters.Add("letype", "move");
+                parameters.Add("lestart", start.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"));
+                parameters.Add("ledir", "newer");
+                parameters.Add("lelimit", "max");
+                doc = wiki.Enumerate(parameters, true);
+                XmlNode node = doc.SelectSingleNode("//move");
+                if (node != null)
+                {
+                    start = DateTime.Parse(node.ParentNode.Attributes["timestamp"].Value,
+                            null,
+                            DateTimeStyles.AssumeUniversal);
+                    bool result = MovedTo(wiki,
+                        node.Attributes["new_title"].Value,
+                        start,
+                        out movedTo,
+                        out movedBy,
+                        out movedAt);
+                    if (result)
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        movedTo = node.Attributes["new_title"].Value;
+                        movedBy = node.ParentNode.Attributes["user"].Value;
+                        movedAt = DateTime.Parse(node.ParentNode.Attributes["timestamp"].Value,
+                            null,
+                            DateTimeStyles.AssumeUniversal);
+                    }
+                    return true;
+                }
+                else
+                {
+                    movedTo = "";
+                    movedBy = "";
+                    movedAt = new DateTime();
+                    return false;
+                }
             }
             XmlNodeList revisions = doc.SelectNodes("//rev[@comment]");
             List<Revision> revs = new List<Revision>();
             foreach (XmlNode revision in revisions)
             {
                 revs.Add(new Revision(revision.Attributes["comment"].Value,
-                    revision.Attributes["timestamp"].Value));
+                    revision.Attributes["timestamp"].Value,
+                    revision.Attributes["user"].Value));
             }
             revs.Sort(CompareRevisions);
             Regex movedToRE = new Regex(@"переименовал «\[{2}([^\]]+)\]{2}» в «\[{2}([^\]]+)\]{2}»");
@@ -294,8 +512,24 @@ namespace Claymore.TalkCleanupWikiBot
                 {
                     if (toM.Groups[1].Value == title)
                     {
-                        movedTo = toM.Groups[2].Value;
-                        return true;
+                        start = revision.Time;
+                        bool result = MovedTo(wiki,
+                        toM.Groups[2].Value,
+                        start,
+                        out movedTo,
+                        out movedBy,
+                        out movedAt);
+                        if (result)
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            movedTo = toM.Groups[2].Value;
+                            movedAt = revision.Time;
+                            movedBy = revision.User;
+                            return true;
+                        }
                     }
                 }
                 else if (fromM.Success)
@@ -303,16 +537,22 @@ namespace Claymore.TalkCleanupWikiBot
                     if (fromM.Groups[1].Value == title)
                     {
                         movedTo = fromM.Groups[2].Value;
+                        movedAt = revision.Time;
+                        movedBy = revision.User;
                         return true;
                     }
                     else
                     {
                         movedTo = "";
+                        movedAt = revision.Time;
+                        movedBy = "";
                         return false;
                     }
                 }
             }
             movedTo = "";
+            movedBy = "";
+            movedAt = new DateTime();
             return false;
         }
 
@@ -320,11 +560,13 @@ namespace Claymore.TalkCleanupWikiBot
         {
             public string Comment;
             public DateTime Time;
+            public string User;
 
-            public Revision(string comment, string time)
+            public Revision(string comment, string time, string user)
             {
                 Comment = comment;
                 Time = DateTime.Parse(time, null, DateTimeStyles.AssumeUniversal);
+                User = user;
             }
         }
 
@@ -562,7 +804,7 @@ namespace Claymore.TalkCleanupWikiBot
                 wiki.SavePage("Википедия:Архив запросов на удаление/" + page, text, "Обновление");
             }
 
-            ArticlesForDeletionLocalization l10i = new ArticlesForDeletionLocalization();
+            /*ArticlesForDeletionLocalization l10i = new ArticlesForDeletionLocalization();
             l10i.Category = "Категория:Википедия:Незакрытые обсуждения удаления страниц";
             l10i.Culture = "ru-RU";
             l10i.Prefix = "Википедия:К удалению/";
@@ -702,7 +944,7 @@ namespace Claymore.TalkCleanupWikiBot
                 catch (WikiException)
                 {
                 }
-            }
+            }*/
         }
 
         struct DeleteLogEvent
@@ -738,6 +980,8 @@ namespace Claymore.TalkCleanupWikiBot
         private static void ProcessArticlesForDeletion(Wiki wiki,
             ArticlesForDeletionLocalization l10i)
         {
+            Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
+
             Directory.CreateDirectory("cache\\" + l10i.Culture);
             ParameterCollection parameters = new ParameterCollection();
             parameters.Add("generator", "categorymembers");
@@ -805,14 +1049,24 @@ namespace Claymore.TalkCleanupWikiBot
                     
                     foreach (WikiPageSection section in day.Page.Sections)
                     {
-                        section.ForEach(StrikeOutSection);
-                        if (section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0)
+                        if (section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0 ||
+                            section.Subsections.Count(s => s.Title.Trim() == "Общий итог") > 0)
                         {
                             if (!section.Title.Contains("<s>"))
                             {
                                 section.Title = string.Format("<s>{0}</s>", section.Title.Trim());
                             }
+
+                            foreach (WikiPageSection subsection in section.Subsections)
+                            {
+                                Match m = wikiLinkRE.Match(subsection.Title);
+                                if (m.Success && !subsection.Title.Contains("<s>"))
+                                {
+                                    subsection.Title = string.Format(" <s>{0}</s> ", subsection.Title.Trim());
+                                }
+                            }
                         }
+                        section.ForEach(StrikeOutSection);
                         string result = section.Reduce("", SubsectionsList);
                         if (result.Length > 0)
                         {
