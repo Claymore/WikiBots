@@ -44,24 +44,40 @@ namespace Claymore.TalkCleanupWikiBot
             l10i.EmptyArchive = "обговорення не розпочато";
             l10i.Processor = RemoveVotes;
             l10i.StrikeOutComment = "закреслення заголовків";
-            l10i.AutoResultMessage = "Сторінка була вилучена адміністратором [[User:{0}|]]. Була вказана наступна причина: «{2}». Це повідомлення було автоматично згенеровано ботом ~~~~.\n";
+            l10i.AutoResultMessage = "Сторінка була вилучена {2} адміністратором [[User:{0}|]]. Була вказана наступна причина: «{2}». Це повідомлення було автоматично згенеровано ботом ~~~~.\n";
+            l10i.DateFormat = "d MMMM yyyy";
+            l10i.AutoResultComment = ", підбиття підсумків";*/
+
+            ArticlesForDeletionLocalization l10i = new ArticlesForDeletionLocalization();
+            l10i.Category = "Категория:Википедия:Незакрытые обсуждения удаления страниц";
+            l10i.Culture = "ru-RU";
+            l10i.MainPage = "Википедия:К удалению";
+            l10i.Template = "Удаление статей";
+            l10i.TopTemplate = "/Заголовок";
+            l10i.BottomTemplate = "/Подвал";
+            l10i.Result = "Итог";
+            l10i.Language = "ru";
+            l10i.MainPageUpdateComment = "обновление";
+            l10i.ArchiveTemplate = "Статьи, вынесенные на удаление";
+            l10i.ArchivePage = "Википедия:Архив запросов на удаление/";
+            l10i.EmptyArchive = "нет обсуждений";
+            l10i.Processor = null;
+            l10i.StrikeOutComment = "зачёркивание заголовков";
+            l10i.AutoResultMessage = "Страница была удалена {1} администратором [[User:{0}|]]. Была указана следующая причина: «{2}». Данное сообщение было автоматически сгенерировано ботом ~~~~.\n";
             l10i.DateFormat = "d MMMM yyyy в HH:mm (UTC)";
-            l10i.AutoResultComment = ", підбиття підсумків";
+            l10i.AutoResultComment = " и подведение итогов";
 
             ArticlesForDeletion afd = new ArticlesForDeletion(l10i);
             afd.Analyse(wiki);
             afd.UpdateMainPage(wiki);
             afd.UpdateArchive(wiki);
-            afd.UpdatePages(wiki);*/
+            afd.UpdatePages(wiki);
 
-            ProcessArticlesForDeletion(wiki);
-            UpdateArticlesForDeletion(wiki);
-
-            ProcessProposedMerges(wiki);
+            /*ProcessProposedMerges(wiki);
             UpdateProposedMerges(wiki);
 
             ProcessRequestedMoves(wiki);
-            UpdateRequestedMoves(wiki);
+            UpdateRequestedMoves(wiki);*/
 
             wiki.Logout();
             Console.Out.WriteLine("Done.");
@@ -103,18 +119,6 @@ namespace Claymore.TalkCleanupWikiBot
                     section.Title = section.Title.Replace("</s>", "");
                 }
             }
-        }
-
-        private static string SubsectionsList(WikiPageSection section, string aggregator)
-        {
-            Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
-            Match m = wikiLinkRE.Match(section.Title);
-            if (m.Success)
-            {
-                aggregator = aggregator + " • " + section.Title.Trim();
-            }
-            aggregator = section.Reduce(aggregator, SubsectionsList);
-            return aggregator;
         }
 
         private static List<WikiPageSection> SubsectionsList2(WikiPageSection section, List<WikiPageSection> aggregator)
@@ -871,390 +875,6 @@ namespace Claymore.TalkCleanupWikiBot
             }
         }
 
-        private static void UpdateArticlesForDeletion(Wiki wiki)
-        {
-            Console.Out.WriteLine("Updating articles for deletion...");
-            DateTime today = DateTime.Today;
-            DateTime currentMonth = new DateTime(today.Year, today.Month, 1);
-            using (TextReader sr =
-                        new StreamReader("main-ru-RU.txt"))
-            {
-                string text = sr.ReadToEnd();
-                wiki.SavePage("Википедия:К удалению", text, "обновление");
-            }
-            using (TextReader sr =
-                        new StreamReader("archive-ru-RU.txt"))
-            {
-                string page = currentMonth.AddMonths(-1).ToString("yyyy-MM");
-                string text = sr.ReadToEnd();
-                wiki.SavePage("Википедия:Архив запросов на удаление/" + page, text, "обновление");
-            }
-
-            ArticlesForDeletionLocalization l10i = new ArticlesForDeletionLocalization();
-            l10i.Category = "Категория:Википедия:Незакрытые обсуждения удаления страниц";
-            l10i.Culture = "ru-RU";
-            l10i.MainPage = "Википедия:К удалению/";
-            l10i.Template = "Удаление статей";
-            l10i.TopTemplate = "/Заголовок";
-            l10i.BottomTemplate = "/Подвал";
-
-            Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
-            Regex re = new Regex(@"<s>\[{2}(.+?)(\|.+?)?]{2}</s>");
-            Regex timeRE = new Regex(@"(\d{2}:\d{2}\, \d\d? [а-я]+ \d{4}) \(UTC\)");
-
-            ParameterCollection parameters = new ParameterCollection();
-            parameters.Add("generator", "categorymembers");
-            parameters.Add("gcmtitle", l10i.Category);
-            parameters.Add("gcmlimit", "max");
-            parameters.Add("gcmnamespace", "4");
-            parameters.Add("prop", "info");
-            XmlDocument doc = wiki.Enumerate(parameters, true);
-
-            XmlNodeList pages = doc.SelectNodes("//page");
-            foreach (XmlNode page in pages)
-            {
-                int results = 0;
-                string pageName = page.Attributes["title"].Value;
-                string date = pageName.Substring(l10i.MainPage.Length);
-                Day day = new Day();
-                try
-                {
-                    day.Date = DateTime.Parse(date,
-                        CultureInfo.CreateSpecificCulture(l10i.Culture),
-                        System.Globalization.DateTimeStyles.AssumeUniversal);
-                }
-                catch (FormatException)
-                {
-                    continue;
-                }
-                Console.Out.WriteLine("Updating " + pageName + "...");
-                string text = "";
-                if (File.Exists("cache\\" + l10i.Culture + "\\" + date + ".txt"))
-                {
-                    using (TextReader sr = new StreamReader("cache\\" + l10i.Culture + "\\" + date + ".txt"))
-                    {
-                        string revid = sr.ReadLine();
-                        if (revid == page.Attributes["lastrevid"].Value)
-                        {
-                            text = sr.ReadToEnd();
-                        }
-                    }
-                }
-                if (string.IsNullOrEmpty(text))
-                {
-                    text = wiki.LoadPage(pageName);
-                    using (StreamWriter sw =
-                        new StreamWriter("cache\\" + l10i.Culture + "\\" + date + ".txt"))
-                    {
-                        sw.Write(page.Attributes["lastrevid"].Value);
-                        sw.Write(text);
-                    }
-                }
-                day.Page = WikiPage.Parse(pageName, text);
-                foreach (WikiPageSection section in day.Page.Sections)
-                {
-                    section.ForEach(RemoveStrikeOut);
-                    if (section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0 ||
-                        section.Subsections.Count(s => s.Title.Trim() == "Общий итог") > 0)
-                    {
-                        if (!section.Title.Contains("<s>"))
-                        {
-                            section.Title = string.Format("<s>{0}</s>", section.Title.Trim());
-                        }
-
-                        foreach (WikiPageSection subsection in section.Subsections)
-                        {
-                            Match m = wikiLinkRE.Match(subsection.Title);
-                            if (m.Success && !subsection.Title.Contains("<s>"))
-                            {
-                                subsection.Title = string.Format(" <s>{0}</s> ", subsection.Title.Trim());
-                            }
-                        }
-                    }
-                    else
-                    {
-                        DateTime start = day.Date;
-                        string title = "";
-                        Match m = re.Match(section.Title);
-                        if (m.Success)
-                        {
-                            title = m.Groups[1].Value.Trim();
-                        }
-                        else
-                        {
-                            m = wikiLinkRE.Match(section.Title);
-                            if (m.Success)
-                            {
-                                title = m.Groups[1].Value.Trim();
-                            }
-                        }
-                        m = timeRE.Match(section.Text);
-                        if (m.Success)
-                        {
-                            start = DateTime.Parse(m.Groups[1].Value,
-                                CultureInfo.CreateSpecificCulture("ru-RU"),
-                                DateTimeStyles.AssumeUniversal);
-                        }
-                        parameters.Clear();
-                        parameters.Add("list", "logevents");
-                        parameters.Add("letype", "delete");
-                        parameters.Add("lemlimit", "max");
-                        parameters.Add("lestart", start.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"));
-                        parameters.Add("ledir", "newer");
-                        parameters.Add("letitle", title);
-                        XmlDocument xml = wiki.Enumerate(parameters, true);
-                        XmlNodeList items = xml.SelectNodes("//item");
-                        List<DeleteLogEvent> events = new List<DeleteLogEvent>();
-                        foreach (XmlNode item in items)
-                        {
-                            DeleteLogEvent ev = new DeleteLogEvent();
-                            ev.Comment = item.Attributes["comment"].Value;
-                            ev.Deleted = item.Attributes["action"].Value == "delete";
-                            ev.User = item.Attributes["user"].Value;
-                            ev.Timestamp = DateTime.Parse(item.Attributes["timestamp"].Value,
-                                null,
-                                DateTimeStyles.AssumeUniversal);
-                            events.Add(ev);
-                        }
-                        events.Sort(CompareDeleteLogEvents);
-                        if (events.Count > 0 && events[0].Deleted)
-                        {
-                            Regex commentRE = new Regex(@"(.+?):&#32;(.+)");
-                            m = commentRE.Match(events[0].Comment);
-                            string comment;
-                            if (m.Success)
-                            {
-                                comment = m.Groups[1].Value;
-                            }
-                            else
-                            {
-                                comment = events[0].Comment;
-                            }
-                            string message = string.Format("Страница была удалена {1} администратором [[User:{0}|]]. Была указана следующая причина: «{2}». Данное сообщение было автоматически сгенерировано ботом ~~~~.\n",
-                                events[0].User,
-                                events[0].Timestamp.ToUniversalTime().ToString("d MMMM yyyy в HH:mm (UTC)"),
-                                comment);
-                            WikiPageSection verdict = new WikiPageSection(" Итог ",
-                                section.Level + 1,
-                                message);
-                            section.AddSubsection(verdict);
-                            ++results;
-                        }
-                    }
-                    section.ForEach(StrikeOutSection);
-                }
-                string newText = day.Page.Text;
-                if (newText.Trim() == text.Trim())
-                {
-                    continue;
-                }
-                try
-                {
-                    wiki.SavePage(pageName,
-                        newText,
-                        "зачёркивание заголовков" + (results > 0 ? " и подведение итогов" : ""));
-                }
-                catch (WikiException)
-                {
-                }
-            }
-        }
-
-        
-
-        private static void ProcessArticlesForDeletion(Wiki wiki)
-        {
-            ArticlesForDeletionLocalization l10i = new ArticlesForDeletionLocalization();
-            l10i.Category = "Категория:Википедия:Незакрытые обсуждения удаления страниц";
-            l10i.Culture = "ru-RU";
-            l10i.MainPage = "Википедия:К удалению/";
-            l10i.Template = "Удаление статей";
-            l10i.TopTemplate = "/Заголовок";
-            l10i.BottomTemplate = "/Подвал";
-            ProcessArticlesForDeletion(wiki, l10i);
-        }
-
-        private static void ProcessArticlesForDeletion(Wiki wiki,
-            ArticlesForDeletionLocalization l10i)
-        {
-            Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
-
-            Directory.CreateDirectory("cache\\" + l10i.Culture);
-            ParameterCollection parameters = new ParameterCollection();
-            parameters.Add("generator", "categorymembers");
-            parameters.Add("gcmtitle", l10i.Category);
-            parameters.Add("gcmlimit", "max");
-            parameters.Add("gcmnamespace", "4");
-            parameters.Add("prop", "info");
-            XmlDocument doc = wiki.Enumerate(parameters, true);
-
-            XmlNodeList pages = doc.SelectNodes("//page");
-            List<Day> days = new List<Day>();
-            DateTime today = DateTime.Now;
-            foreach (XmlNode page in pages)
-            {
-                string pageName = page.Attributes["title"].Value;
-                string date = pageName.Substring(l10i.MainPage.Length);
-                Day day = new Day();
-                try
-                {
-                    day.Date = DateTime.Parse(date,
-                        CultureInfo.CreateSpecificCulture(l10i.Culture),
-                        System.Globalization.DateTimeStyles.AssumeUniversal);
-                }
-                catch (FormatException)
-                {
-                    continue;
-                }
-                Console.Out.WriteLine("Processing " + pageName + "...");
-                string text = "";
-                if (File.Exists("cache\\" + l10i.Culture + "\\" + date + ".txt"))
-                {
-                    using (TextReader sr = new StreamReader("cache\\" + l10i.Culture + "\\" + date + ".txt"))
-                    {
-                        string revid = sr.ReadLine();
-                        if (revid == page.Attributes["lastrevid"].Value)
-                        {
-                            text = sr.ReadToEnd();
-                        }
-                    }
-                }
-                if (string.IsNullOrEmpty(text))
-                {
-                    text = wiki.LoadPage(pageName);
-                    using (StreamWriter sw =
-                        new StreamWriter("cache\\" + l10i.Culture + "\\" + date + ".txt"))
-                    {
-                        sw.Write(page.Attributes["lastrevid"].Value);
-                        sw.Write(text);
-                    }
-                }
-                day.Page = WikiPage.Parse(pageName, text);
-                days.Add(day);
-            }
-
-            days.Sort(CompareDays);
-            using (StreamWriter sw =
-                        new StreamWriter("main-" + l10i.Culture + ".txt"))
-            {
-                sw.WriteLine("{{" + l10i.TopTemplate + "}}\n");
-
-                foreach (Day day in days)
-                {
-                    sw.Write("{{" + "Удаление статей" + "|" + day.Date.ToString("yyyy-M-d") + "|");
-                    List<string> titles = new List<string>();
-                    
-                    foreach (WikiPageSection section in day.Page.Sections)
-                    {
-                        if (section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0 ||
-                            section.Subsections.Count(s => s.Title.Trim() == "Общий итог") > 0)
-                        {
-                            if (!section.Title.Contains("<s>"))
-                            {
-                                section.Title = string.Format("<s>{0}</s>", section.Title.Trim());
-                            }
-
-                            foreach (WikiPageSection subsection in section.Subsections)
-                            {
-                                Match m = wikiLinkRE.Match(subsection.Title);
-                                if (m.Success && !subsection.Title.Contains("<s>"))
-                                {
-                                    subsection.Title = string.Format(" <s>{0}</s> ", subsection.Title.Trim());
-                                }
-                            }
-                        }
-                        section.ForEach(StrikeOutSection);
-                        string result = section.Reduce("", SubsectionsList);
-                        if (result.Length > 0)
-                        {
-                            result = " • <small>" + result.Substring(3) + "</small>";
-                        }
-                        titles.Add(section.Title.Trim() + result);
-                    }
-                    sw.Write(string.Join(" • ", titles.ConvertAll(c => c).ToArray()));
-                    sw.Write("}}\n\n");
-                }
-
-                sw.WriteLine("{{" + l10i.BottomTemplate + "}}");
-            }
-
-            days.Clear();
-            DateTime currentMonth = new DateTime(today.Year, today.Month, 1);
-            DateTime start = currentMonth.AddMonths(-1);
-            while (start < currentMonth)
-            {
-                string pageName = l10i.MainPage + start.ToString("d MMMM yyyy");
-                if (doc.SelectSingleNode("//page[@title=\"" + pageName + "\"]") != null)
-                {
-                    start = start.AddDays(1);
-                    continue;
-                }
-
-                Day day = new Day();
-                day.Date = start;
-                Console.Out.WriteLine("Processing " + pageName + "...");
-                string text = "";
-                if (File.Exists("cache\\" + l10i.Culture + "\\" + start.ToString("d MMMM yyyy") + ".txt"))
-                {
-                    using (TextReader sr = new StreamReader("cache\\" + l10i.Culture + "\\" + start.ToString("d MMMM yyyy") + ".txt"))
-                    {
-                        text = sr.ReadToEnd();
-                    }
-                }
-                else
-                {
-                    text = wiki.LoadPage(pageName);
-                    using (StreamWriter sw =
-                        new StreamWriter("cache\\" + l10i.Culture + "\\" + start.ToString("d MMMM yyyy") + ".txt"))
-                    {
-                        sw.Write(text);
-                    }
-                }
-                day.Page = WikiPage.Parse(pageName, text);
-                days.Add(day);
-
-                start = start.AddDays(1);
-            }
-
-            days.Sort(CompareDays);
-
-            using (StreamWriter sw =
-                        new StreamWriter("archive-" + l10i.Culture + ".txt"))
-            {
-                sw.WriteLine("{| class=standard");
-                sw.WriteLine("|-");
-                sw.WriteLine("!| Дата");
-                sw.WriteLine("!| Статьи, вынесенные на удаление");
-                sw.WriteLine("|-\n");
-
-                StringBuilder sb = new StringBuilder();
-                foreach (Day day in days)
-                {
-                    sb.Append("{{Удаление статей|" + day.Date.ToString("yyyy-M-d") + "|");
-                    List<string> titles = new List<string>();
-                    foreach (WikiPageSection section in day.Page.Sections)
-                    {
-                        string result = section.Reduce("", SubsectionsList);
-                        if (result.Length > 0)
-                        {
-                            result = " • <small>" + result.Substring(3) + "</small>";
-                        }
-                        titles.Add(section.Title.Trim() + result);
-                    }
-                    sb.Append(string.Join(" • ", titles.ConvertAll(c => c).ToArray()));
-                    sb.Append("}}\n\n");
-                }
-                sb.Replace("<s>", "");
-                sb.Replace("</s>", "");
-                sb.Replace("<strike>", "");
-                sb.Replace("</strike>", "");
-
-                sw.Write(sb.ToString());
-
-                sw.WriteLine("|}");
-            }
-        }
-
         internal static int CompareDays(Day x, Day y)
         {
             return y.Date.CompareTo(x.Date);
@@ -1263,11 +883,6 @@ namespace Claymore.TalkCleanupWikiBot
         static int CompareRevisions(Revision x, Revision y)
         {
             return y.Time.CompareTo(x.Time);
-        }
-
-        static int CompareDeleteLogEvents(DeleteLogEvent x, DeleteLogEvent y)
-        {
-            return y.Timestamp.CompareTo(x.Timestamp);
         }
 
         static string RemoveVotes(WikiPageSection section)
