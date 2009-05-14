@@ -28,11 +28,30 @@ namespace Claymore.TalkCleanupWikiBot
             wiki.Login(Settings.Default.Login, Settings.Default.Password);
             Console.Out.WriteLine("Logged in as " + Settings.Default.Login + ".");
 
-            /*ProcessArticlesForDeletion(wiki);
-            UpdateArticlesForDeletion(wiki);*/
+            /*ArticlesForDeletionLocalization l10i = new ArticlesForDeletionLocalization();
+            l10i.Category = "Категорія:Незавершені обговорення вилучення сторінок";
+            l10i.Culture = "uk-UA";
+            l10i.MainPage = "Вікіпедія:Статті-кандидати на вилучення";
+            l10i.Template = "Вилучення статей";
+            l10i.TopTemplate = "/шапка";
+            l10i.BottomTemplate = "/низ";
+            l10i.Result = "Підсумок";
+            l10i.Language = "uk";
+            l10i.MainPageUpdateComment = "оновлення даних";
+            l10i.ArchiveTemplate = "Статті, винесені на вилучення";
+            l10i.ArchivePage = "Вікіпедія:Архів запитів на вилучення/";
+            l10i.EmptyArchive = "обговорення не розпочато";
 
-            /*ProcessProposedMerges(wiki);
-            UpdateProposedMerges(wiki);*/
+            ArticlesForDeletion afd = new ArticlesForDeletion(l10i);
+            afd.Analyse(wiki);
+            afd.UpdateMainPage(wiki);
+            afd.UpdateArchive(wiki);*/
+
+            ProcessArticlesForDeletion(wiki);
+            UpdateArticlesForDeletion(wiki);
+
+            ProcessProposedMerges(wiki);
+            UpdateProposedMerges(wiki);
 
             ProcessRequestedMoves(wiki);
             UpdateRequestedMoves(wiki);
@@ -540,6 +559,80 @@ namespace Claymore.TalkCleanupWikiBot
                 string text = sr.ReadToEnd();
                 wiki.SavePage("Википедия:Архив запросов на объединение/" + page, text, "обновление");
             }
+
+            ParameterCollection parameters = new ParameterCollection();
+            parameters.Add("generator", "categorymembers");
+            parameters.Add("gcmtitle", "Категория:Википедия:Незакрытые обсуждения объединения страниц");
+            parameters.Add("gcmlimit", "max");
+            parameters.Add("gcmnamespace", "4");
+            parameters.Add("prop", "info");
+            XmlDocument doc = wiki.Enumerate(parameters, true);
+
+            XmlNodeList pages = doc.SelectNodes("//page");
+
+            List<Day> days = new List<Day>();
+            DateTime start = DateTime.Today;
+            Regex closedRE = new Regex(@"{{ВПКОБ-Навигация}}\s*{{(Закрыто|Closed|закрыто|closed)}}");
+            Regex closed2RE = new Regex(@"{{(Закрыто|Closed|закрыто|closed)}}\s*{{ВПКОБ-Навигация}}");
+
+            foreach (XmlNode page in pages)
+            {
+                string pageName = page.Attributes["title"].Value;
+                string date = pageName.Substring("Википедия:К объединению/".Length);
+                Day day = new Day();
+                try
+                {
+                    day.Date = DateTime.Parse(date, CultureInfo.CreateSpecificCulture("ru-RU"), System.Globalization.DateTimeStyles.AssumeUniversal);
+                }
+                catch (FormatException)
+                {
+                    continue;
+                }
+                Console.Out.WriteLine("Updating " + pageName + "...");
+                string text = "";
+                if (File.Exists("union-cache\\" + date + ".txt"))
+                {
+                    using (TextReader sr = new StreamReader("union-cache\\" + date + ".txt"))
+                    {
+                        string revid = sr.ReadLine();
+                        if (revid == page.Attributes["lastrevid"].Value)
+                        {
+                            text = sr.ReadToEnd();
+                        }
+                    }
+                }
+                if (string.IsNullOrEmpty(text))
+                {
+                    text = wiki.LoadPage(pageName);
+                    using (StreamWriter sw =
+                        new StreamWriter("union-cache\\" + date + ".txt"))
+                    {
+                        sw.WriteLine(page.Attributes["lastrevid"].Value);
+                        sw.Write(text);
+                    }
+                }
+                day.Page = WikiPage.Parse(pageName, text);
+                foreach (WikiPageSection section in day.Page.Sections)
+                {
+                    RemoveStrikeOut(section);
+                    section.ForEach(RemoveStrikeOut);
+                    StrikeOutSection(section);
+                    section.ForEach(StrikeOutSection);
+                }
+                
+                string newText = day.Page.Text;
+                if (newText.Trim() == text.Trim())
+                {
+                    continue;
+                }
+                try
+                {
+                    wiki.SavePage(pageName, newText, "зачёркивание заголовков");
+                }
+                catch (WikiException)
+                {
+                }
+            }
         }
 
         private static void ProcessProposedMerges(Wiki wiki)
@@ -604,7 +697,7 @@ namespace Claymore.TalkCleanupWikiBot
                     wiki.SavePage(pageName, text, "обсуждение закрыто, убираем страницу из категории");
                     continue;
                 }
-                day.Candidates = new List<Candidate>(GetCandidatesFromPage(text, false));
+                day.Page = WikiPage.Parse(pageName, text);
                 days.Add(day);
             }
 
@@ -618,18 +711,40 @@ namespace Claymore.TalkCleanupWikiBot
 
                 foreach (Day day in days)
                 {
-                    sw.Write("{{Объединение статей/День|" + day.Date.ToString("yyyy-M-d") + "|");
+                    sw.Write("{{Объединение статей/День|" + day.Date.ToString("yyyy-M-d") + "|\n");
+
                     List<string> titles = new List<string>();
-                    foreach (Candidate candidate in day.Candidates)
+                    foreach (WikiPageSection section in day.Page.Sections)
                     {
-                        titles.Add(candidate.ToString());
+                        string filler = "";
+                        RemoveStrikeOut(section);
+                        section.ForEach(RemoveStrikeOut);
+                        StrikeOutSection(section);
+                        section.ForEach(StrikeOutSection);
+
+                        for (int i = 0; i < section.Level - 1; ++i)
+                        {
+                            filler += "*";
+                        }
+                        titles.Add(filler + " " + section.Title.Trim());
+                        
+                        List<WikiPageSection> sections = new List<WikiPageSection>();
+                        section.Reduce(sections, SubsectionsList2);
+                        foreach (WikiPageSection subsection in sections)
+                        {
+                            filler = "";
+                            for (int i = 0; i < subsection.Level - 1; ++i)
+                            {
+                                filler += "*";
+                            }
+                            titles.Add(filler + " " + subsection.Title.Trim());
+                        }
                     }
-                    StringBuilder line = new StringBuilder(string.Join("\n* ", titles.ConvertAll(c => c).ToArray()));
-                    if (titles.Count > 0)
+                    if (titles.Count(s => s.Contains("=")) > 0)
                     {
-                        line.Insert(0, "\n* ");
+                        titles[0] = "2=<li>" + titles[0].Substring(2) + "</li>";
                     }
-                    sw.Write(line.ToString());
+                    sw.Write(string.Join("\n", titles.ConvertAll(c => c).ToArray()));
                     sw.Write("}}\n\n");
                 }
 
@@ -678,7 +793,7 @@ namespace Claymore.TalkCleanupWikiBot
                         sw.Write(text);
                     }
                 }
-                day.Candidates = new List<Candidate>(GetCandidatesFromPage(text, archived));
+                day.Page = WikiPage.Parse(pageName, text);
                 days.Add(day);
 
                 start = start.AddDays(1);
@@ -698,7 +813,7 @@ namespace Claymore.TalkCleanupWikiBot
                 StringBuilder sb = new StringBuilder();
                 foreach (Day day in days)
                 {
-                    sb.Append("{{Объединение статей/День|" + day.Date.ToString("yyyy-M-d") + "|");
+                    sb.Append("{{Объединение статей/День|" + day.Date.ToString("yyyy-M-d") + "|\n");
                     if (!day.Archived && day.Exists)
                     {
                         sb.Append("''обсуждение не завершено''}}\n\n");
@@ -710,11 +825,32 @@ namespace Claymore.TalkCleanupWikiBot
                         continue;
                     }
                     List<string> titles = new List<string>();
-                    foreach (Candidate candidate in day.Candidates)
+                    foreach (WikiPageSection section in day.Page.Sections)
                     {
-                        titles.Add(candidate.ToString() + candidate.SubsectionsToString());
+                        string filler = "";
+                        for (int i = 0; i < section.Level - 1; ++i)
+                        {
+                            filler += "*";
+                        }
+                        titles.Add(filler + " " + section.Title.Trim());
+
+                        List<WikiPageSection> sections = new List<WikiPageSection>();
+                        section.Reduce(sections, SubsectionsList2);
+                        foreach (WikiPageSection subsection in sections)
+                        {
+                            filler = "";
+                            for (int i = 0; i < subsection.Level - 1; ++i)
+                            {
+                                filler += "*";
+                            }
+                            titles.Add(filler + " " + subsection.Title.Trim());
+                        }
                     }
-                    sb.Append("\n* " + string.Join("\n* ", titles.ConvertAll(c => c).ToArray()));
+                    if (titles.Count(s => s.Contains("=")) > 0)
+                    {
+                        titles[0] = "2=<li>" + titles[0].Substring(2) + "</li>";
+                    }
+                    sb.Append(string.Join("\n", titles.ConvertAll(c => c).ToArray()));
                     sb.Append("}}\n\n");
                 }
                 sb.Replace("<s>", "");
@@ -750,7 +886,7 @@ namespace Claymore.TalkCleanupWikiBot
             ArticlesForDeletionLocalization l10i = new ArticlesForDeletionLocalization();
             l10i.Category = "Категория:Википедия:Незакрытые обсуждения удаления страниц";
             l10i.Culture = "ru-RU";
-            l10i.Prefix = "Википедия:К удалению/";
+            l10i.MainPage = "Википедия:К удалению/";
             l10i.Template = "Удаление статей";
             l10i.TopTemplate = "/Заголовок";
             l10i.BottomTemplate = "/Подвал";
@@ -772,7 +908,7 @@ namespace Claymore.TalkCleanupWikiBot
             {
                 int results = 0;
                 string pageName = page.Attributes["title"].Value;
-                string date = pageName.Substring(l10i.Prefix.Length);
+                string date = pageName.Substring(l10i.MainPage.Length);
                 Day day = new Day();
                 try
                 {
@@ -930,21 +1066,11 @@ namespace Claymore.TalkCleanupWikiBot
             ArticlesForDeletionLocalization l10i = new ArticlesForDeletionLocalization();
             l10i.Category = "Категория:Википедия:Незакрытые обсуждения удаления страниц";
             l10i.Culture = "ru-RU";
-            l10i.Prefix = "Википедия:К удалению/";
+            l10i.MainPage = "Википедия:К удалению/";
             l10i.Template = "Удаление статей";
             l10i.TopTemplate = "/Заголовок";
             l10i.BottomTemplate = "/Подвал";
             ProcessArticlesForDeletion(wiki, l10i);
-        }
-
-        struct ArticlesForDeletionLocalization
-        {
-            public string Category;
-            public string Prefix;
-            public string Culture;
-            public string Template;
-            public string TopTemplate;
-            public string BottomTemplate;
         }
 
         private static void ProcessArticlesForDeletion(Wiki wiki,
@@ -967,7 +1093,7 @@ namespace Claymore.TalkCleanupWikiBot
             foreach (XmlNode page in pages)
             {
                 string pageName = page.Attributes["title"].Value;
-                string date = pageName.Substring(l10i.Prefix.Length);
+                string date = pageName.Substring(l10i.MainPage.Length);
                 Day day = new Day();
                 try
                 {
@@ -1056,7 +1182,7 @@ namespace Claymore.TalkCleanupWikiBot
             DateTime start = currentMonth.AddMonths(-1);
             while (start < currentMonth)
             {
-                string pageName = l10i.Prefix + start.ToString("d MMMM yyyy");
+                string pageName = l10i.MainPage + start.ToString("d MMMM yyyy");
                 if (doc.SelectSingleNode("//page[@title=\"" + pageName + "\"]") != null)
                 {
                     start = start.AddDays(1);
@@ -1128,48 +1254,7 @@ namespace Claymore.TalkCleanupWikiBot
             }
         }
 
-        struct Day
-        {
-            public List<Candidate> Candidates;
-            public WikiPage Page;
-            public DateTime Date;
-            public bool Archived;
-            public bool Exists;
-        }
-
-        static IEnumerable<Candidate> GetCandidatesFromPage(string text, bool archive)
-        {
-            string[] lines = text.Split(new char[] { '\n' });
-            List<Candidate> messages = new List<Candidate>();
-            StringBuilder message = new StringBuilder();
-            Regex sectionRE = new Regex(@"^={2}[^=].+={2}\s*$");
-            bool skip = true;
-            foreach (string line in lines)
-            {
-                Match m = sectionRE.Match(line);
-                if (m.Success)
-                {
-                    skip = false;
-                    if (message.Length > 0)
-                    {
-                        messages.Add(Candidate.Parse(message.ToString(), 2));
-                        message = new StringBuilder();
-                    }
-                    message.Append(line + "\n");
-                }
-                else if (!skip)
-                {
-                    message.Append(line + "\n");
-                }
-            }
-            if (!skip && message.Length > 0)
-            {
-                messages.Add(Candidate.Parse(message.ToString(), 2));
-            }
-            return messages;
-        }
-
-        static int CompareDays(Day x, Day y)
+        internal static int CompareDays(Day x, Day y)
         {
             return y.Date.CompareTo(x.Date);
         }
@@ -1183,5 +1268,29 @@ namespace Claymore.TalkCleanupWikiBot
         {
             return y.Timestamp.CompareTo(x.Timestamp);
         }
+    }
+
+    internal struct Day
+    {
+        public WikiPage Page;
+        public DateTime Date;
+        public bool Archived;
+        public bool Exists;
+    }
+
+    internal struct ArticlesForDeletionLocalization
+    {
+        public string Language;
+        public string Category;
+        public string MainPage;
+        public string Culture;
+        public string Template;
+        public string TopTemplate;
+        public string BottomTemplate;
+        public string Result;
+        public string MainPageUpdateComment;
+        public string ArchiveTemplate;
+        public string ArchivePage;
+        public string EmptyArchive;
     }
 }
