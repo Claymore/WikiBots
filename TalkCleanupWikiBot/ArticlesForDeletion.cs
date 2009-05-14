@@ -22,11 +22,6 @@ namespace Claymore.TalkCleanupWikiBot
             _cacheDir = "Cache\\" + _l10i.Language + "\\ArticlesForDeletion\\";
         }
 
-        public void AnalyseArchivedPages(Wiki wiki)
-        {
-            
-        }
-
         public void Analyse(Wiki wiki)
         {
             Directory.CreateDirectory(_cacheDir);
@@ -112,7 +107,16 @@ namespace Claymore.TalkCleanupWikiBot
                         {
                             result = " • <small>" + result.Substring(3) + "</small>";
                         }
-                        titles.Add(section.Title.Trim() + result);
+                        string title;
+                        if (_l10i.Processor != null)
+                        {
+                            title = _l10i.Processor(section).Trim();
+                        }
+                        else
+                        {
+                            title = section.Title.Trim();
+                        }
+                        titles.Add(title + result);
                     }
                     sw.Write(string.Join(" • ", titles.ConvertAll(c => c).ToArray()));
                     sw.Write("}}\n\n");
@@ -143,34 +147,16 @@ namespace Claymore.TalkCleanupWikiBot
                     day.Date = start;
                     Console.Out.WriteLine("Processing " + pageName + "...");
                     string text = "";
-                    if (File.Exists(fileName))
+                    try
                     {
-                        using (FileStream fs = new FileStream(fileName, FileMode.Open))
-                        using (GZipStream gs = new GZipStream(fs, CompressionMode.Decompress))
-                        using (TextReader sr = new StreamReader(gs))
-                        {
-                            text = sr.ReadToEnd();
-                        }
+                        text = wiki.LoadPage(pageName);
                     }
-                    else
+                    catch (WikiPageNotFound)
                     {
-                        try
-                        {
-                            text = wiki.LoadPage(pageName);
-                        }
-                        catch (WikiPageNotFound)
-                        {
-                            day.Exists = false;
-                            days.Add(day);
-                            start = start.AddDays(1);
-                            continue;
-                        }
-                        using (FileStream fs = new FileStream(fileName, FileMode.Create))
-                        using (GZipStream gs = new GZipStream(fs, CompressionMode.Compress))
-                        using (StreamWriter sw = new StreamWriter(gs))
-                        {
-                            sw.Write(text);
-                        }
+                        day.Exists = false;
+                        days.Add(day);
+                        start = start.AddDays(1);
+                        continue;
                     }
                     day.Exists = true;
                     day.Page = WikiPage.Parse(pageName, text);
@@ -207,7 +193,16 @@ namespace Claymore.TalkCleanupWikiBot
                             {
                                 result = " • <small>" + result.Substring(3) + "</small>";
                             }
-                            titles.Add(section.Title.Trim() + result);
+                            string title;
+                            if (_l10i.Processor != null)
+                            {
+                                title = _l10i.Processor(section).Trim();
+                            }
+                            else
+                            {
+                                title = section.Title.Trim();
+                            }
+                            titles.Add(title + result);
                         }
                         sb.Append(string.Join(" • ", titles.ConvertAll(c => c).ToArray()));
                         sb.Append("}}\n\n");
@@ -256,6 +251,168 @@ namespace Claymore.TalkCleanupWikiBot
             }
         }
 
+        public void UpdatePages(Wiki wiki)
+        {
+            Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
+            Regex re = new Regex(@"<s>\[{2}(.+?)(\|.+?)?]{2}</s>");
+            Regex timeRE = new Regex(@"(\d{2}:\d{2}\, \d\d? [а-я]+ \d{4}) \(UTC\)");
+
+            ParameterCollection parameters = new ParameterCollection();
+            parameters.Add("generator", "categorymembers");
+            parameters.Add("gcmtitle", _l10i.Category);
+            parameters.Add("gcmlimit", "max");
+            parameters.Add("gcmnamespace", "4");
+            parameters.Add("prop", "info");
+            XmlDocument doc = wiki.Enumerate(parameters, true);
+
+            XmlNodeList pages = doc.SelectNodes("//page");
+            foreach (XmlNode page in pages)
+            {
+                int results = 0;
+                string prefix = _l10i.MainPage + "/";
+                string pageName = page.Attributes["title"].Value;
+                string date = pageName.Substring(prefix.Length);
+                Day day = new Day();
+                try
+                {
+                    day.Date = DateTime.Parse(date,
+                        CultureInfo.CreateSpecificCulture(_l10i.Culture),
+                        DateTimeStyles.AssumeUniversal);
+                }
+                catch (FormatException)
+                {
+                    continue;
+                }
+                Console.Out.WriteLine("Updating " + pageName + "...");
+                string text = "";
+                string fileName = _cacheDir + date + ".bin";
+                if (File.Exists(fileName))
+                {
+                    using (FileStream fs = new FileStream(fileName, FileMode.Open))
+                    using (GZipStream gs = new GZipStream(fs, CompressionMode.Decompress))
+                    using (TextReader sr = new StreamReader(gs))
+                    {
+                        string revid = sr.ReadLine();
+                        if (revid == page.Attributes["lastrevid"].Value)
+                        {
+                            text = sr.ReadToEnd();
+                        }
+                    }
+                }
+                if (string.IsNullOrEmpty(text))
+                {
+                    try
+                    {
+                        text = wiki.LoadPage(pageName);
+                    }
+                    catch (WikiPageNotFound)
+                    {
+                        continue;
+                    }
+                    using (FileStream fs = new FileStream(fileName, FileMode.Create))
+                    using (GZipStream gs = new GZipStream(fs, CompressionMode.Compress))
+                    using (StreamWriter sw = new StreamWriter(gs))
+                    {
+                        sw.Write(page.Attributes["lastrevid"].Value);
+                        sw.Write(text);
+                    }
+                }
+
+                day.Page = WikiPage.Parse(pageName, text);
+                foreach (WikiPageSection section in day.Page.Sections)
+                {
+                    RemoveStrikeOut(section);
+                    StrikeOutSection(section);
+                    if (section.Subsections.Count(s => _l10i.Processor != null
+                        ? _l10i.Processor(s).Trim() == _l10i.Result
+                        : s.Title.Trim() == _l10i.Result) == 0)
+                    {
+                        DateTime start = day.Date;
+                        string title = "";
+                        Match m = re.Match(section.Title);
+                        if (m.Success)
+                        {
+                            title = m.Groups[1].Value.Trim();
+                        }
+                        else
+                        {
+                            m = wikiLinkRE.Match(section.Title);
+                            if (m.Success)
+                            {
+                                title = m.Groups[1].Value.Trim();
+                            }
+                        }
+                        m = timeRE.Match(section.Text);
+                        if (m.Success)
+                        {
+                            start = DateTime.Parse(m.Groups[1].Value,
+                                CultureInfo.CreateSpecificCulture(_l10i.Culture),
+                                DateTimeStyles.AssumeUniversal);
+                        }
+                        parameters.Clear();
+                        parameters.Add("list", "logevents");
+                        parameters.Add("letype", "delete");
+                        parameters.Add("lemlimit", "max");
+                        parameters.Add("lestart", start.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"));
+                        parameters.Add("ledir", "newer");
+                        parameters.Add("letitle", title);
+                        XmlDocument xml = wiki.Enumerate(parameters, true);
+                        XmlNodeList items = xml.SelectNodes("//item");
+                        List<DeleteLogEvent> events = new List<DeleteLogEvent>();
+                        foreach (XmlNode item in items)
+                        {
+                            DeleteLogEvent ev = new DeleteLogEvent();
+                            ev.Comment = item.Attributes["comment"].Value;
+                            ev.Deleted = item.Attributes["action"].Value == "delete";
+                            ev.User = item.Attributes["user"].Value;
+                            ev.Timestamp = DateTime.Parse(item.Attributes["timestamp"].Value,
+                                null,
+                                DateTimeStyles.AssumeUniversal);
+                            events.Add(ev);
+                        }
+                        events.Sort(CompareDeleteLogEvents);
+                        if (events.Count > 0 && events[0].Deleted)
+                        {
+                            Regex commentRE = new Regex(@"(.+?):&#32;(.+)");
+                            m = commentRE.Match(events[0].Comment);
+                            string comment;
+                            if (m.Success)
+                            {
+                                comment = m.Groups[1].Value;
+                            }
+                            else
+                            {
+                                comment = events[0].Comment;
+                            }
+                            string message = string.Format(_l10i.AutoResultMessage,
+                                events[0].User,
+                                events[0].Timestamp.ToUniversalTime().ToString(_l10i.DateFormat),
+                                comment);
+                            WikiPageSection verdict = new WikiPageSection(" " + _l10i.Result +" ",
+                                section.Level + 1,
+                                message);
+                            section.AddSubsection(verdict);
+                            ++results;
+                        }
+                    }
+                }
+                string newText = day.Page.Text;
+                if (newText.Trim() == text.Trim())
+                {
+                    continue;
+                }
+                try
+                {
+                    wiki.SavePage(pageName,
+                        newText,
+                        _l10i.StrikeOutComment + (results > 0 ? _l10i.AutoResultComment : ""));
+                }
+                catch (WikiException)
+                {
+                }
+            }
+        }
+
         internal static int CompareDays(Day x, Day y)
         {
             return y.Date.CompareTo(x.Date);
@@ -265,7 +422,9 @@ namespace Claymore.TalkCleanupWikiBot
         {
             Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
 
-            if (section.Subsections.Count(s => s.Title.Trim() == _l10i.Result) > 0)
+            if (section.Subsections.Count(s => _l10i.Processor != null
+                        ? _l10i.Processor(s).Trim() == _l10i.Result
+                        : s.Title.Trim() == _l10i.Result) > 0)
             {
                 if (!section.Title.Contains("<s>"))
                 {
@@ -288,7 +447,9 @@ namespace Claymore.TalkCleanupWikiBot
 
         private void RemoveStrikeOut(WikiPageSection section)
         {
-            if (section.Subsections.Count(s => s.Title.Trim() == _l10i.Result) == 0)
+            if (section.Subsections.Count(s => _l10i.Processor != null
+                        ? _l10i.Processor(s).Trim() == _l10i.Result
+                        : s.Title.Trim() == _l10i.Result) == 0)
             {
                 if (section.Title.Contains("<s>"))
                 {
@@ -299,17 +460,31 @@ namespace Claymore.TalkCleanupWikiBot
             section.ForEach(RemoveStrikeOut);
         }
 
-        private static string SubsectionsList(WikiPageSection section,
+        private string SubsectionsList(WikiPageSection section,
             string aggregator)
         {
             Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
             Match m = wikiLinkRE.Match(section.Title);
             if (m.Success)
             {
-                aggregator = aggregator + " • " + section.Title.Trim();
+                if (_l10i.Processor != null)
+                {
+                    aggregator = aggregator + " • " + _l10i.Processor(section).Trim();
+                }
+                else
+                {
+                    aggregator = aggregator + " • " + section.Title.Trim();
+                }
             }
             aggregator = section.Reduce(aggregator, SubsectionsList);
             return aggregator;
+        }
+
+        public delegate string TitleProcessor(WikiPageSection section);
+
+        static int CompareDeleteLogEvents(DeleteLogEvent x, DeleteLogEvent y)
+        {
+            return y.Timestamp.CompareTo(x.Timestamp);
         }
     }
 }

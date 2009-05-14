@@ -17,6 +17,7 @@ namespace Claymore.TalkCleanupWikiBot
         static void Main(string[] args)
         {
             Wiki wiki = new Wiki("http://ru.wikipedia.org");
+            //Wiki wiki = new Wiki("http://uk.wikipedia.org");
             wiki.SleepBetweenQueries = 2;
             if (string.IsNullOrEmpty(Settings.Default.Login) ||
                 string.IsNullOrEmpty(Settings.Default.Password))
@@ -41,11 +42,17 @@ namespace Claymore.TalkCleanupWikiBot
             l10i.ArchiveTemplate = "Статті, винесені на вилучення";
             l10i.ArchivePage = "Вікіпедія:Архів запитів на вилучення/";
             l10i.EmptyArchive = "обговорення не розпочато";
+            l10i.Processor = RemoveVotes;
+            l10i.StrikeOutComment = "закреслення заголовків";
+            l10i.AutoResultMessage = "Сторінка була вилучена адміністратором [[User:{0}|]]. Була вказана наступна причина: «{2}». Це повідомлення було автоматично згенеровано ботом ~~~~.\n";
+            l10i.DateFormat = "d MMMM yyyy в HH:mm (UTC)";
+            l10i.AutoResultComment = ", підбиття підсумків";
 
             ArticlesForDeletion afd = new ArticlesForDeletion(l10i);
             afd.Analyse(wiki);
             afd.UpdateMainPage(wiki);
-            afd.UpdateArchive(wiki);*/
+            afd.UpdateArchive(wiki);
+            afd.UpdatePages(wiki);*/
 
             ProcessArticlesForDeletion(wiki);
             UpdateArticlesForDeletion(wiki);
@@ -236,7 +243,7 @@ namespace Claymore.TalkCleanupWikiBot
                                 string message = string.Format("Страница была переименована {2} в «[[{0}]]» участником [[User:{1}|]]. Данное сообщение было автоматически сгенерировано ботом ~~~~.\n",
                                 movedTo,
                                 movedBy,
-                                movedAt.ToUniversalTime().ToString("HH:mm, d MMMM yyyy (UTC)"));
+                                movedAt.ToUniversalTime().ToString("d MMMM yyyy в HH:mm (UTC)"));
                                 WikiPageSection verdict = new WikiPageSection(" Итог ",
                                     section.Level + 1,
                                     message);
@@ -1021,11 +1028,11 @@ namespace Claymore.TalkCleanupWikiBot
                             }
                             else
                             {
-                                comment = "<nowiki>" + events[0].Comment + "</nowiki>";
+                                comment = events[0].Comment;
                             }
                             string message = string.Format("Страница была удалена {1} администратором [[User:{0}|]]. Была указана следующая причина: «{2}». Данное сообщение было автоматически сгенерировано ботом ~~~~.\n",
                                 events[0].User,
-                                events[0].Timestamp.ToUniversalTime().ToString("HH:mm, d MMMM yyyy (UTC)"),
+                                events[0].Timestamp.ToUniversalTime().ToString("d MMMM yyyy в HH:mm (UTC)"),
                                 comment);
                             WikiPageSection verdict = new WikiPageSection(" Итог ",
                                 section.Level + 1,
@@ -1053,13 +1060,7 @@ namespace Claymore.TalkCleanupWikiBot
             }
         }
 
-        struct DeleteLogEvent
-        {
-            public string Comment;
-            public string User;
-            public bool Deleted;
-            public DateTime Timestamp;
-        }
+        
 
         private static void ProcessArticlesForDeletion(Wiki wiki)
         {
@@ -1268,6 +1269,12 @@ namespace Claymore.TalkCleanupWikiBot
         {
             return y.Timestamp.CompareTo(x.Timestamp);
         }
+
+        static string RemoveVotes(WikiPageSection section)
+        {
+            Regex re = new Regex(@"\s+\d{1,3}—\d{1,3}(—\d{1,3})?\s*(</s>)?\s*$");
+            return re.Replace(section.Title, "$2");
+        }
     }
 
     internal struct Day
@@ -1276,6 +1283,14 @@ namespace Claymore.TalkCleanupWikiBot
         public DateTime Date;
         public bool Archived;
         public bool Exists;
+    }
+
+    internal struct DeleteLogEvent
+    {
+        public string Comment;
+        public string User;
+        public bool Deleted;
+        public DateTime Timestamp;
     }
 
     internal struct ArticlesForDeletionLocalization
@@ -1292,5 +1307,10 @@ namespace Claymore.TalkCleanupWikiBot
         public string ArchiveTemplate;
         public string ArchivePage;
         public string EmptyArchive;
+        public ArticlesForDeletion.TitleProcessor Processor;
+        public string StrikeOutComment;
+        public string AutoResultMessage;
+        public string DateFormat;
+        public string AutoResultComment;
     }
 }
