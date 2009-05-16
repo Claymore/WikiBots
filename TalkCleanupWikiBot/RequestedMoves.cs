@@ -140,7 +140,7 @@ namespace Claymore.TalkCleanupWikiBot
                             section.Title.Contains("<s>"))
                         {
                             Match m = wikiLinkRE.Match(section.Title);
-                            if (m.Success)
+                            if (m.Success && !m.Groups[1].Value.StartsWith(":Категория:"))
                             {
                                 string link = m.Groups[1].Value;
                                 string movedTo;
@@ -176,7 +176,7 @@ namespace Claymore.TalkCleanupWikiBot
                                 subsection.Title.Contains("<s>"))
                             {
                                 Match m = wikiLinkRE.Match(subsection.Title);
-                                if (m.Success)
+                                if (m.Success && !m.Groups[1].Value.StartsWith(":Категория:"))
                                 {
                                     string link = m.Groups[1].Value;
                                     string movedTo;
@@ -238,15 +238,20 @@ namespace Claymore.TalkCleanupWikiBot
             parameters.Add("gcmtitle", "Категория:Википедия:Незакрытые обсуждения переименования страниц");
             parameters.Add("gcmlimit", "max");
             parameters.Add("gcmnamespace", "4");
-            parameters.Add("prop", "info");
+            parameters.Add("prop", "info|revisions");
+            parameters.Add("intoken", "edit");
             XmlDocument doc = wiki.Enumerate(parameters, true);
-
+            string queryTimestamp = DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ");
             XmlNodeList pages = doc.SelectNodes("//page");
             foreach (XmlNode page in pages)
             {
                 int results = 0;
                 string pageName = page.Attributes["title"].Value;
                 string date = pageName.Substring("Википедия:К переименованию/".Length);
+                string starttimestamp = queryTimestamp;
+                string basetimestamp = page.FirstChild.FirstChild.Attributes["timestamp"].Value;
+                string editToken = page.Attributes["edittoken"].Value;
+
                 Day day = new Day();
                 try
                 {
@@ -279,7 +284,7 @@ namespace Claymore.TalkCleanupWikiBot
                 {
                     Console.Out.WriteLine("Downloading " + pageName + "...");
                     text = wiki.LoadPage(pageName);
-
+                    starttimestamp = DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ");
                     using (FileStream fs = new FileStream(fileName, FileMode.Create))
                     using (GZipStream gs = new GZipStream(fs, CompressionMode.Compress))
                     using (StreamWriter sw = new StreamWriter(gs))
@@ -294,46 +299,50 @@ namespace Claymore.TalkCleanupWikiBot
                 {
                     RemoveStrikeOut(section);
                     StrikeOutSection(section);
-                    if (section.Subsections.Count(s => s.Title.Trim() == "Оспоренный итог") == 0 &&
-                        section.Subsections.Count(s => s.Title.Trim() == "Итог") == 0)
+
+                    Match m = wikiLinkRE.Match(section.Title);
+                    if (m.Success && !m.Groups[1].Value.StartsWith(":Категория:"))
                     {
-                        Match m = wikiLinkRE.Match(section.Title);
+                        string link = m.Groups[1].Value;
+                        string movedTo;
+                        string movedBy;
+                        DateTime movedAt;
+
+                        DateTime start = day.Date;
+                        m = timeRE.Match(section.SectionText);
                         if (m.Success)
                         {
-                            string link = m.Groups[1].Value;
-                            string movedTo;
-                            string movedBy;
-                            DateTime movedAt;
+                            start = DateTime.Parse(m.Groups[1].Value,
+                                CultureInfo.CreateSpecificCulture("ru-RU"),
+                                DateTimeStyles.AssumeUniversal);
+                        }
 
-                            DateTime start = day.Date;
-                            m = timeRE.Match(section.Text);
-                            if (m.Success)
-                            {
-                                start = DateTime.Parse(m.Groups[1].Value,
-                                    CultureInfo.CreateSpecificCulture("ru-RU"),
-                                    DateTimeStyles.AssumeUniversal);
-                            }
+                        bool moved = MovedTo(wiki,
+                            link,
+                            start,
+                            out movedTo,
+                            out movedBy,
+                            out movedAt);
 
-                            bool moved = MovedTo(wiki,
-                                link,
-                                start,
-                                out movedTo,
-                                out movedBy,
-                                out movedAt);
-
-                            if (moved && !string.IsNullOrEmpty(movedTo))
-                            {
-                                string message = string.Format("Страница была переименована {2} в «[[{0}]]» участником [[User:{1}|]]. Данное сообщение было автоматически сгенерировано ботом ~~~~.\n",
+                        if (section.Subsections.Count(s => s.Title.Trim() == "Оспоренный итог") == 0 &&
+                            section.Subsections.Count(s => s.Title.Trim() == "Итог") == 0 &&
+                            moved && !string.IsNullOrEmpty(movedTo))
+                        {
+                            string message = string.Format("Страница была переименована {2} в «[[{0}]]» участником [[User:{1}|]]. Данное сообщение было автоматически сгенерировано ботом ~~~~.\n",
                                     movedTo,
                                     movedBy,
                                     movedAt.ToUniversalTime().ToString("d MMMM yyyy в HH:mm (UTC)"));
-                                WikiPageSection verdict = new WikiPageSection(" Итог ",
-                                    section.Level + 1,
-                                    message);
-                                section.AddSubsection(verdict);
-                                StrikeOutSection(section);
-                                ++results;
-                            }
+                            WikiPageSection verdict = new WikiPageSection(" Итог ",
+                                section.Level + 1,
+                                message);
+                            section.AddSubsection(verdict);
+                            StrikeOutSection(section);
+                            ++results;
+                        }
+
+                        if (section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0)
+                        {
+                            PutNotifications(wiki, link, movedTo, date);
                         }
                     }
                 }
@@ -346,8 +355,16 @@ namespace Claymore.TalkCleanupWikiBot
                 {
                     Console.Out.WriteLine("Updating " + pageName + "...");
                     string revid = wiki.SavePage(pageName,
+                        "",
                         newText,
-                        "зачёркивание заголовков" + (results > 0 ? ", сообщение об итогах" : ""));
+                        "зачёркивание заголовков" + (results > 0 ? ", сообщение об итогах" : ""),
+                        MinorFlags.Minor,
+                        CreateFlags.NoCreate,
+                        WatchFlags.None,
+                        SaveFlags.Replace,
+                        basetimestamp,
+                        starttimestamp,
+                        editToken);
 
                     using (FileStream fs = new FileStream(fileName, FileMode.Create))
                     using (GZipStream gs = new GZipStream(fs, CompressionMode.Compress))
@@ -360,6 +377,78 @@ namespace Claymore.TalkCleanupWikiBot
                 catch (WikiException)
                 {
                 }
+            }
+        }
+
+        private void PutNotifications(Wiki wiki, string link, string movedTo, string date)
+        {
+            Regex re = new Regex(@"{{(к переименованию|К переименованию|ana|rename)\|" + date + @"(\|.+?)?}}");
+            string title = string.IsNullOrEmpty(movedTo) ? link : movedTo;
+            Regex templateRE = new Regex(@"^(Шаблон:|Template:)(.+)$");
+            Match m = templateRE.Match(title);
+            string talkPageTitle;
+            if (m.Success)
+            {
+                talkPageTitle = "Обсуждение шаблона:" + m.Groups[2].Value;
+            }
+            else
+            {
+                talkPageTitle = "Обсуждение:" + title;
+            }
+            List<string> titles = new List<string>();
+            titles.Add(title);
+            titles.Add(talkPageTitle);
+            string talkPageTemplate;
+            if (string.IsNullOrEmpty(movedTo))
+            {
+                talkPageTemplate = "{{Не переименовано|" + date + "|" + link + "}}\n";
+            }
+            else
+            {
+                talkPageTemplate = "{{Переименовано|" + date + "|" + link +
+                    "|" + movedTo + "}}\n";
+            }
+
+            ParameterCollection parameters = new ParameterCollection();
+            parameters.Add("prop", "templates");
+            XmlDocument doc = wiki.Query(QueryBy.Titles, parameters, titles);
+            XmlNode page = doc.SelectSingleNode("//page[@title=\"" + titles[0] + "\"]");
+            if (page.Attributes["missing"] != null)
+            {
+                return;
+            }
+            else if (page.SelectSingleNode("//tl[@title=\"Шаблон:К переименованию\"]") != null)
+            {
+                string text = wiki.LoadPage(titles[0]);
+                text = re.Replace(text, "");
+                Console.Out.WriteLine("Updating " + titles[0] + "...");
+                wiki.SavePage(titles[0], text, "есть итог");
+            }
+            XmlNode talkPage = doc.SelectSingleNode("//page[@title=\"" + titles[1] + "\"]");
+            if (talkPage.Attributes["missing"] != null)
+            {
+                Console.Out.WriteLine("Creating " + titles[1] + "...");
+                wiki.SavePage(titles[1],
+                    "",
+                    talkPageTemplate,
+                    "итог переименования",
+                    MinorFlags.Minor,
+                    CreateFlags.CreateOnly,
+                    WatchFlags.None,
+                    SaveFlags.Replace);
+            }
+            else if (talkPage.SelectSingleNode("//tl[@title=\"Шаблон:Переименовано\"]") == null &&
+                     talkPage.SelectSingleNode("//tl[@title=\"Шаблон:Не переименовано\"]") == null)
+            {
+                Console.Out.WriteLine("Updating " + titles[1] + "...");
+                wiki.SavePage(titles[1],
+                    "",
+                    talkPageTemplate,
+                    "итог переименования",
+                    MinorFlags.Minor,
+                    CreateFlags.None,
+                    WatchFlags.None,
+                    SaveFlags.Prepend);
             }
         }
 

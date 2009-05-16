@@ -314,7 +314,7 @@ namespace Claymore.TalkCleanupWikiBot
         {
             Console.Out.WriteLine("Updating articles for deletion...");
             Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
-            Regex re = new Regex(@"<s>\[{2}(.+?)(\|.+?)?]{2}</s>");
+            //Regex re = new Regex(@"<s>\[{2}(.+?)(\|.+?)?]{2}</s>");
             Regex timeRE = new Regex(@"(\d{2}:\d{2}\, \d\d? [а-я]+ \d{4}) \(UTC\)");
 
             ParameterCollection parameters = new ParameterCollection();
@@ -399,28 +399,20 @@ namespace Claymore.TalkCleanupWikiBot
                         ? _l10i.Processor(s).Trim() == _l10i.Result
                         : s.Title.Trim() == _l10i.Result) == 0)
                     {
-                        string title = "";
-                        Match m = re.Match(section.Title);
+                        Match m = wikiLinkRE.Match(section.Title);
                         if (m.Success)
                         {
-                            title = m.Groups[1].Value.Trim();
-                        }
-                        else
-                        {
-                            m = wikiLinkRE.Match(section.Title);
-                            if (m.Success)
+                            string title = m.Groups[1].Value.Trim();
+                            
+                            if (titles.ContainsKey(title))
                             {
-                                title = m.Groups[1].Value.Trim();
+                                titles[title].Add(section);
                             }
-                        }
-                        if (titles.ContainsKey(title))
-                        {
-                            titles[title].Add(section);
-                        }
-                        else
-                        {
-                            titles.Add(title, new List<WikiPageSection>());
-                            titles[title].Add(section);
+                            else
+                            {
+                                titles.Add(title, new List<WikiPageSection>());
+                                titles[title].Add(section);
+                            }
                         }
                     }
                 }

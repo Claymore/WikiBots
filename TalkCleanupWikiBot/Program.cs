@@ -94,6 +94,7 @@ namespace Claymore.TalkCleanupWikiBot
             pm.Analyze(wiki);
             pm.UpdateMainPage(wiki);
             pm.UpdatePages(wiki);
+            pm.UpdateArchivePages(wiki);
 
             ArticlesForDeletion afd = new ArticlesForDeletion(l10i);
             afd.Analyse(wiki);
