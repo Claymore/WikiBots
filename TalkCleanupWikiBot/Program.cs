@@ -106,6 +106,8 @@ namespace Claymore.TalkCleanupWikiBot
             rm.Analyze(wiki);
             rm.UpdateMainPage(wiki);
             rm.UpdatePages(wiki);
+            //rm.UpdateArchive(wiki, 2009, 2);
+            //rm.UpdateArchive(wiki, 2009, 1);
 
             wiki.Logout();
             Console.Out.WriteLine("Done.");
