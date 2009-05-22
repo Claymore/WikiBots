@@ -371,7 +371,7 @@ namespace Claymore.TalkCleanupWikiBot
                     using (StreamWriter sw = new StreamWriter(gs))
                     {
                         sw.WriteLine(revid);
-                        sw.Write(text);
+                        sw.Write(newText);
                     }
                 }
                 catch (WikiException)
