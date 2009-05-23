@@ -25,7 +25,7 @@ namespace Claymore.TalkCleanupWikiBot
         public void Analyze(Wiki wiki)
         {
             Directory.CreateDirectory(_cacheDir);
-            
+
             ParameterCollection parameters = new ParameterCollection();
             parameters.Add("generator", "categorymembers");
             parameters.Add("gcmtitle", "Категория:Википедия:Незакрытые обсуждения переименования страниц");
@@ -263,7 +263,7 @@ namespace Claymore.TalkCleanupWikiBot
                 {
                     continue;
                 }
-                
+
                 string fileName = _cacheDir + date + ".bin";
                 string text = "";
                 if (File.Exists(fileName))
@@ -294,7 +294,7 @@ namespace Claymore.TalkCleanupWikiBot
                     }
                 }
                 day.Page = WikiPage.Parse(pageName, text);
-                
+
                 foreach (WikiPageSection section in day.Page.Sections)
                 {
                     RemoveStrikeOut(section);
@@ -415,20 +415,27 @@ namespace Claymore.TalkCleanupWikiBot
             ParameterCollection parameters = new ParameterCollection();
             parameters.Add("prop", "templates");
             XmlDocument doc = wiki.Query(QueryBy.Titles, parameters, titles);
-            XmlNode page = doc.SelectSingleNode("//page[@title=\"" + titles[0] + "\"]");
-            if (page.Attributes["missing"] != null)
+            XmlNodeList pages = doc.SelectNodes("//page[@title=\"" + titles[0] + "\"]");
+            if (doc.SelectSingleNode("//page[@title=\"" + titles[0] + "\" and @missing]") != null)
             {
                 return;
             }
-            else if (page.SelectSingleNode("//tl[@title=\"Шаблон:К переименованию\"]") != null)
+            else
             {
-                string text = wiki.LoadPage(titles[0]);
-                text = re.Replace(text, "");
-                Console.Out.WriteLine("Updating " + titles[0] + "...");
-                wiki.SavePage(titles[0], text, "есть итог");
+                foreach (XmlNode page in pages)
+                {
+                    if (page.SelectSingleNode("//tl[@title=\"Шаблон:К переименованию\"]") != null)
+                    {
+                        string text = wiki.LoadPage(titles[0]);
+                        text = re.Replace(text, "");
+                        Console.Out.WriteLine("Updating " + titles[0] + "...");
+                        wiki.SavePage(titles[0], text, "есть итог");
+                        break;
+                    }
+                }
             }
-            XmlNode talkPage = doc.SelectSingleNode("//page[@title=\"" + titles[1] + "\"]");
-            if (talkPage.Attributes["missing"] != null)
+
+            if (doc.SelectSingleNode("//page[@title=\"" + titles[1] + "\" and @missing]") != null)
             {
                 Console.Out.WriteLine("Creating " + titles[1] + "...");
                 wiki.SavePage(titles[1],
@@ -440,24 +447,20 @@ namespace Claymore.TalkCleanupWikiBot
                     WatchFlags.None,
                     SaveFlags.Replace);
             }
-            else if (talkPage.SelectSingleNode("//tl[@title=\"Шаблон:Переименовано\"]") == null &&
-                     talkPage.SelectSingleNode("//tl[@title=\"Шаблон:Не переименовано\"]") == null)
+            else
             {
-                Console.Out.WriteLine("Updating " + titles[1] + "...");
-                wiki.SavePage(titles[1],
-                    "",
-                    talkPageTemplate,
-                    "итог переименования",
-                    MinorFlags.Minor,
-                    CreateFlags.None,
-                    WatchFlags.None,
-                    SaveFlags.Prepend);
-            }
-            else if (talkPage.SelectSingleNode("//tl[@title=\"Шаблон:Переименовано\"]") != null ||
-                     talkPage.SelectSingleNode("//tl[@title=\"Шаблон:Не переименовано\"]") != null)
-            {
-                string text = wiki.LoadPage(titles[1]).ToLower(CultureInfo.CreateSpecificCulture("ru-RU"));
-                if (!text.Contains(prefix))
+                XmlNodeList talkPages = doc.SelectNodes("//page[@title=\"" + titles[1] + "\"]");
+                bool found = false;
+                foreach (XmlNode talkPage in talkPages)
+                {
+                    if (talkPage.SelectSingleNode("//tl[@title=\"Шаблон:Переименовано\"]") != null ||
+                        talkPage.SelectSingleNode("//tl[@title=\"Шаблон:Не переименовано\"]") != null)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
                 {
                     Console.Out.WriteLine("Updating " + titles[1] + "...");
                     wiki.SavePage(titles[1],
@@ -468,6 +471,22 @@ namespace Claymore.TalkCleanupWikiBot
                         CreateFlags.None,
                         WatchFlags.None,
                         SaveFlags.Prepend);
+                }
+                else
+                {
+                    string text = wiki.LoadPage(titles[1]).ToLower(CultureInfo.CreateSpecificCulture("ru-RU"));
+                    if (!text.Contains(prefix))
+                    {
+                        Console.Out.WriteLine("Updating " + titles[1] + "...");
+                        wiki.SavePage(titles[1],
+                            "",
+                            talkPageTemplate,
+                            "итог переименования",
+                            MinorFlags.Minor,
+                            CreateFlags.None,
+                            WatchFlags.None,
+                            SaveFlags.Prepend);
+                    }
                 }
             }
         }
@@ -498,148 +517,112 @@ namespace Claymore.TalkCleanupWikiBot
             using (StreamWriter archiveSW =
                         new StreamWriter(_cacheDir + "Archive-" +
                             year.ToString() + "-" + quarter.ToString() + ".txt"))
-            while (month < end && month < DateTime.Now)
-            {
-                DateTime start = month;
-                DateTime nextMonth = start.AddMonths(1);
-                List<string> titles = new List<string>();
-                while (start < nextMonth)
+                while (month < end && month < DateTime.Now)
                 {
-                    string pageDate = start.ToString("d MMMM yyyy",
-                        CultureInfo.CreateSpecificCulture("ru-RU"));
-                    string prefix = "Википедия:К переименованию/";
-                    string pageName = prefix + pageDate;
-                    titles.Add(pageName);
-
-                    start = start.AddDays(1);
-                }
-
-                ParameterCollection parameters = new ParameterCollection();
-                parameters.Add("prop", "info");
-
-                List<Day> days = new List<Day>();
-                XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, titles);
-                XmlNodeList archives = xml.SelectNodes("//page");
-                foreach (XmlNode page in archives)
-                {
-                    string pageName = page.Attributes["title"].Value;
-                    string dateString = pageName.Substring("Википедия:К переименованию/".Length);
-
-                    string pageFileName = _cacheDir + dateString + ".bin";
-                    Day day = new Day();
-
-                    try
+                    DateTime start = month;
+                    DateTime nextMonth = start.AddMonths(1);
+                    List<string> titles = new List<string>();
+                    while (start < nextMonth)
                     {
-                        day.Date = DateTime.Parse(dateString,
-                            CultureInfo.CreateSpecificCulture("ru-RU"),
-                            DateTimeStyles.AssumeUniversal);
-                    }
-                    catch (FormatException)
-                    {
-                        continue;
+                        string pageDate = start.ToString("d MMMM yyyy",
+                            CultureInfo.CreateSpecificCulture("ru-RU"));
+                        string prefix = "Википедия:К переименованию/";
+                        string pageName = prefix + pageDate;
+                        titles.Add(pageName);
+
+                        start = start.AddDays(1);
                     }
 
-                    if (page.Attributes["missing"] != null)
+                    ParameterCollection parameters = new ParameterCollection();
+                    parameters.Add("prop", "info");
+
+                    List<Day> days = new List<Day>();
+                    XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, titles);
+                    XmlNodeList archives = xml.SelectNodes("//page");
+                    foreach (XmlNode page in archives)
                     {
-                        day.Exists = false;
+                        string pageName = page.Attributes["title"].Value;
+                        string dateString = pageName.Substring("Википедия:К переименованию/".Length);
+
+                        string pageFileName = _cacheDir + dateString + ".bin";
+                        Day day = new Day();
+
+                        try
+                        {
+                            day.Date = DateTime.Parse(dateString,
+                                CultureInfo.CreateSpecificCulture("ru-RU"),
+                                DateTimeStyles.AssumeUniversal);
+                        }
+                        catch (FormatException)
+                        {
+                            continue;
+                        }
+
+                        if (page.Attributes["missing"] != null)
+                        {
+                            day.Exists = false;
+                            days.Add(day);
+                            continue;
+                        }
+
+                        string text = "";
+                        if (File.Exists(pageFileName))
+                        {
+                            using (FileStream fs = new FileStream(pageFileName, FileMode.Open))
+                            using (GZipStream gs = new GZipStream(fs, CompressionMode.Decompress))
+                            using (TextReader sr = new StreamReader(gs))
+                            {
+                                string revid = sr.ReadLine();
+                                if (revid == page.Attributes["lastrevid"].Value)
+                                {
+                                    Console.Out.WriteLine("Loading " + pageName + "...");
+                                    text = sr.ReadToEnd();
+                                }
+                            }
+                        }
+                        if (string.IsNullOrEmpty(text))
+                        {
+                            Console.Out.WriteLine("Downloading " + pageName + "...");
+                            text = wiki.LoadPage(pageName);
+                            using (FileStream fs = new FileStream(pageFileName, FileMode.Create))
+                            using (GZipStream gs = new GZipStream(fs, CompressionMode.Compress))
+                            using (StreamWriter sw = new StreamWriter(gs))
+                            {
+                                sw.WriteLine(page.Attributes["lastrevid"].Value);
+                                sw.Write(text);
+                            }
+                        }
+                        day.Exists = true;
+                        day.Page = WikiPage.Parse(pageName, text);
                         days.Add(day);
-                        continue;
                     }
 
-                    string text = "";
-                    if (File.Exists(pageFileName))
+                    days.Sort(CompareDays);
+
+                    StringBuilder textBuilder = new StringBuilder();
+
+                    textBuilder.AppendLine("== " + month.ToString("MMMM") + " ==");
+                    textBuilder.AppendLine("{{Переименование статей/Статьи, вынесенные на переименование}}");
+
+                    StringBuilder sb = new StringBuilder();
+                    foreach (Day day in days)
                     {
-                        using (FileStream fs = new FileStream(pageFileName, FileMode.Open))
-                        using (GZipStream gs = new GZipStream(fs, CompressionMode.Decompress))
-                        using (TextReader sr = new StreamReader(gs))
+                        sb.Append("{{Переименование статей/День|" + day.Date.ToString("yyyy-M-d") + "|\n");
+                        if (!day.Exists)
                         {
-                            string revid = sr.ReadLine();
-                            if (revid == page.Attributes["lastrevid"].Value)
+                            sb.Append("''нет обсуждений''}}\n\n");
+                            continue;
+                        }
+                        titles.Clear();
+                        Console.Out.WriteLine("Analyzing " + day.Date.ToString("d MMMM yyyy") + "...");
+                        foreach (WikiPageSection section in day.Page.Sections)
+                        {
+                            string filler = "";
+                            string result = "";
+                            if (section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0 ||
+                                section.Title.Contains("<s>"))
                             {
-                                Console.Out.WriteLine("Loading " + pageName + "...");
-                                text = sr.ReadToEnd();
-                            }
-                        }
-                    }
-                    if (string.IsNullOrEmpty(text))
-                    {
-                        Console.Out.WriteLine("Downloading " + pageName + "...");
-                        text = wiki.LoadPage(pageName);
-                        using (FileStream fs = new FileStream(pageFileName, FileMode.Create))
-                        using (GZipStream gs = new GZipStream(fs, CompressionMode.Compress))
-                        using (StreamWriter sw = new StreamWriter(gs))
-                        {
-                            sw.WriteLine(page.Attributes["lastrevid"].Value);
-                            sw.Write(text);
-                        }
-                    }
-                    day.Exists = true;
-                    day.Page = WikiPage.Parse(pageName, text);
-                    days.Add(day);
-                }
-
-                days.Sort(CompareDays);
-
-                StringBuilder textBuilder = new StringBuilder();
-
-                textBuilder.AppendLine("== " + month.ToString("MMMM") + " ==");
-                textBuilder.AppendLine("{{Переименование статей/Статьи, вынесенные на переименование}}");
-
-                StringBuilder sb = new StringBuilder();
-                foreach (Day day in days)
-                {
-                    sb.Append("{{Переименование статей/День|" + day.Date.ToString("yyyy-M-d") + "|\n");
-                    if (!day.Exists)
-                    {
-                        sb.Append("''нет обсуждений''}}\n\n");
-                        continue;
-                    }
-                    titles.Clear();
-                    Console.Out.WriteLine("Analyzing " + day.Date.ToString("d MMMM yyyy") + "...");
-                    foreach (WikiPageSection section in day.Page.Sections)
-                    {
-                        string filler = "";
-                        string result = "";
-                        if (section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0 ||
-                            section.Title.Contains("<s>"))
-                        {
-                            Match m = wikiLinkRE.Match(section.Title);
-                            if (m.Success && !m.Groups[1].Value.StartsWith(":Категория:"))
-                            {
-                                string link = m.Groups[1].Value;
-                                string movedTo;
-                                bool moved = MovedTo(wiki, link, day.Date, out movedTo);
-
-                                if (moved && string.IsNullOrEmpty(movedTo))
-                                {
-                                    result = " ''(переименовано)''";
-                                }
-                                else if (moved)
-                                {
-                                    result = string.Format(" ''(переименовано в «[[{0}]]»)''", movedTo);
-                                }
-                                else
-                                {
-                                    result = " ''(не переименовано)''";
-                                }
-                            }
-                        }
-
-                        for (int i = 0; i < section.Level - 1; ++i)
-                        {
-                            filler += "*";
-                        }
-                        titles.Add(filler + " " + section.Title.Trim() + result);
-
-                        List<WikiPageSection> sections = new List<WikiPageSection>();
-                        section.Reduce(sections, SubsectionsList);
-                        foreach (WikiPageSection subsection in sections)
-                        {
-                            result = "";
-                            if (subsection.Subsections.Count(s => s.Title.Trim() == "Итог") > 0 ||
-                                subsection.Title.Contains("<s>"))
-                            {
-                                Match m = wikiLinkRE.Match(subsection.Title);
+                                Match m = wikiLinkRE.Match(section.Title);
                                 if (m.Success && !m.Groups[1].Value.StartsWith(":Категория:"))
                                 {
                                     string link = m.Groups[1].Value;
@@ -660,33 +643,69 @@ namespace Claymore.TalkCleanupWikiBot
                                     }
                                 }
                             }
-                            filler = "";
-                            for (int i = 0; i < subsection.Level - 1; ++i)
+
+                            for (int i = 0; i < section.Level - 1; ++i)
                             {
                                 filler += "*";
                             }
-                            titles.Add(filler + " " + subsection.Title.Trim() + result);
+                            titles.Add(filler + " " + section.Title.Trim() + result);
+
+                            List<WikiPageSection> sections = new List<WikiPageSection>();
+                            section.Reduce(sections, SubsectionsList);
+                            foreach (WikiPageSection subsection in sections)
+                            {
+                                result = "";
+                                if (subsection.Subsections.Count(s => s.Title.Trim() == "Итог") > 0 ||
+                                    subsection.Title.Contains("<s>"))
+                                {
+                                    Match m = wikiLinkRE.Match(subsection.Title);
+                                    if (m.Success && !m.Groups[1].Value.StartsWith(":Категория:"))
+                                    {
+                                        string link = m.Groups[1].Value;
+                                        string movedTo;
+                                        bool moved = MovedTo(wiki, link, day.Date, out movedTo);
+
+                                        if (moved && string.IsNullOrEmpty(movedTo))
+                                        {
+                                            result = " ''(переименовано)''";
+                                        }
+                                        else if (moved)
+                                        {
+                                            result = string.Format(" ''(переименовано в «[[{0}]]»)''", movedTo);
+                                        }
+                                        else
+                                        {
+                                            result = " ''(не переименовано)''";
+                                        }
+                                    }
+                                }
+                                filler = "";
+                                for (int i = 0; i < subsection.Level - 1; ++i)
+                                {
+                                    filler += "*";
+                                }
+                                titles.Add(filler + " " + subsection.Title.Trim() + result);
+                            }
                         }
+                        if (titles.Count(s => s.Contains("=")) > 0)
+                        {
+                            titles[0] = "2=<li>" + titles[0].Substring(2) + "</li>";
+                        }
+                        sb.Append(string.Join("\n", titles.ConvertAll(c => c).ToArray()));
+                        sb.Append("}}\n\n");
                     }
-                    if (titles.Count(s => s.Contains("=")) > 0)
-                    {
-                        titles[0] = "2=<li>" + titles[0].Substring(2) + "</li>";
-                    }
-                    sb.Append(string.Join("\n", titles.ConvertAll(c => c).ToArray()));
-                    sb.Append("}}\n\n");
+                    sb.Replace("<s>", "");
+                    sb.Replace("</s>", "");
+                    sb.Replace("<strike>", "");
+                    sb.Replace("</strike>", "");
+
+                    textBuilder.Append(sb.ToString());
+                    textBuilder.AppendLine("|}");
+
+                    archiveSW.WriteLine(textBuilder.ToString());
+
+                    month = month.AddMonths(1);
                 }
-                sb.Replace("<s>", "");
-                sb.Replace("</s>", "");
-                sb.Replace("<strike>", "");
-                sb.Replace("</strike>", "");
-
-                textBuilder.Append(sb.ToString());
-                textBuilder.AppendLine("|}");
-
-                archiveSW.WriteLine(textBuilder.ToString());
-
-                month = month.AddMonths(1);
-            }
 
             string archiveName = string.Format("Википедия:К переименованию/Архив/{0}-{1}",
                 year, quarter);
