@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using Claymore.SharpMediaWiki;
 using TalkCleanupWikiBot.Properties;
@@ -52,6 +53,25 @@ namespace Claymore.TalkCleanupWikiBot
             afd.UpdateArchive(wiki);
             afd.UpdatePages(wiki);
 
+            Cleanup.Localization cleanupL10i = new Cleanup.Localization();
+            cleanupL10i.Language = "uk";
+            cleanupL10i.Category = "Категорія:Вікіпедія:Незакриті обговорення поліпшення статей";
+            cleanupL10i.MainPage = "Вікіпедія:Статті, що необхідно поліпшити";
+            cleanupL10i.Culture = CultureInfo.CreateSpecificCulture("uk-UA");
+            cleanupL10i.Template = "Поліпшення статей";
+            cleanupL10i.TopTemplate = "/шапка";
+            cleanupL10i.BottomTemplate = "/низ";
+            cleanupL10i.Processor = RemoveOK;
+            cleanupL10i.MainPageUpdateComment = "оновлення даних";
+            cleanupL10i.closedRE = new Regex(@"({{ВППОЛ-навігація}}\s*({{Закрито|Closed|закрито|closed)}})|({{(Закрито|Closed|закрито|closed)}}\s*{{ВППОЛ-навігація}})");
+            cleanupL10i.CloseComment = "закрито";
+            cleanupL10i.ClosePage = ClosePageUk;
+            cleanupL10i.MainPageSection = "0";
+            
+            Cleanup cleanup = new Cleanup(cleanupL10i);
+            cleanup.Analyze(wiki);
+            cleanup.UpdateMainPage(wiki);
+
             wiki.Logout();
             Console.Out.WriteLine("Done.");
         }
@@ -96,6 +116,26 @@ namespace Claymore.TalkCleanupWikiBot
             pm.UpdatePages(wiki);
             pm.UpdateArchivePages(wiki);
 
+            Cleanup.Localization cleanupL10i = new Cleanup.Localization();
+            cleanupL10i.Language = "ru";
+            cleanupL10i.Category = "Категория:Википедия:Незакрытые обсуждения статей для улучшения";
+            cleanupL10i.MainPage = "Википедия:К улучшению";
+            cleanupL10i.Culture = CultureInfo.CreateSpecificCulture("ru-RU");
+            cleanupL10i.SectionTitle = "К улучшению";
+            cleanupL10i.Template = "Улучшение статей/День";
+            cleanupL10i.TopTemplate = "Улучшение статей/Статьи, вынесенные на улучшение";
+            cleanupL10i.BottomTemplate = "Википедия:К улучшению/Подвал";
+            cleanupL10i.Processor = RemoveOK;
+            cleanupL10i.MainPageUpdateComment = "обновление";
+            cleanupL10i.closedRE = new Regex(@"({{ВПКУЛ-(Н|н)авигация}}\s*{{(Закрыто|Closed|закрыто|closed)}})|({{(Закрыто|Closed|закрыто|closed)}}\s*{{ВПКУЛ-(Н|н)авигация}})");
+            cleanupL10i.CloseComment = "обсуждение закрыто";
+            cleanupL10i.ClosePage = ClosePageRu;
+            cleanupL10i.MainPageSection = "1";
+            
+            Cleanup cleanup = new Cleanup(cleanupL10i);
+            cleanup.Analyze(wiki);
+            cleanup.UpdateMainPage(wiki);
+
             ArticlesForDeletion afd = new ArticlesForDeletion(l10i);
             afd.Analyse(wiki);
             afd.UpdateMainPage(wiki);
@@ -117,6 +157,24 @@ namespace Claymore.TalkCleanupWikiBot
         {
             Regex re = new Regex(@"\s+\d{1,3}—\d{1,3}(—\d{1,3})?\s*(</s>)?\s*$");
             return re.Replace(section.Title, "$2");
+        }
+
+        static string RemoveOK(WikiPageSection section)
+        {
+            Regex re = new Regex(@"(<s>)?\s*{{(ok|OK|Ok|oK|ОК|ок|Ок|оК)}}\s*(.+?)(</s>)?\s*$");
+            return re.Replace(section.Title, "<s>$3</s>");
+        }
+
+        static string ClosePageRu(string text)
+        {
+            string result = text.Replace("{{ВПКУЛ-Навигация}}", "{{ВПКУЛ-Навигация|nocat=1}}");
+            return result.Replace("{{ВПКУЛ-навигация}}", "{{ВПКУЛ-Навигация|nocat=1}}");
+        }
+
+        static string ClosePageUk(string text)
+        {
+            string result = text.Replace("{{ВППОЛ-навігація}}", "{{ВППОЛ-навігація|nocat=1}}");
+            return result;
         }
     }
 
