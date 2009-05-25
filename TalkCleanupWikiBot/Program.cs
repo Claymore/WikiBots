@@ -25,7 +25,15 @@ namespace Claymore.TalkCleanupWikiBot
                 return;
             }
             Console.Out.WriteLine("Logging in as " + Settings.Default.Login + " to " + wiki.Uri + "...");
-            wiki.Login(Settings.Default.Login, Settings.Default.Password);
+            try
+            {
+                wiki.Login(Settings.Default.Login, Settings.Default.Password);
+            }
+            catch (WikiException e)
+            {
+                Console.Out.WriteLine(e.Message);
+                return;
+            }
             Console.Out.WriteLine("Logged in as " + Settings.Default.Login + ".");
 
             ArticlesForDeletionLocalization l10i = new ArticlesForDeletionLocalization();
@@ -88,7 +96,15 @@ namespace Claymore.TalkCleanupWikiBot
                 return;
             }
             Console.Out.WriteLine("Logging in as " + Settings.Default.Login + " to " + wiki.Uri + "...");
-            wiki.Login(Settings.Default.Login, Settings.Default.Password);
+            try
+            {
+                wiki.Login(Settings.Default.Login, Settings.Default.Password);
+            }
+            catch (WikiException e)
+            {
+                Console.Out.WriteLine(e.Message);
+                return;
+            }
             Console.Out.WriteLine("Logged in as " + Settings.Default.Login + ".");
 
             DeletionReview dr = new DeletionReview();
