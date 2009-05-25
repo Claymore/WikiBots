@@ -36,9 +36,18 @@ namespace Claymore.NullEditWikiBot
             parameters.Add("geinamespace", "0");
             parameters.Add("prop", "categories");
             parameters.Add("clcategories", "Категория:Википедия:К быстрому удалению");
-            XmlDocument doc = wiki.Enumerate(parameters, true);
+            XmlDocument doc;
+            try
+            {
+                doc = wiki.Enumerate(parameters, true);
+            }
+            catch (WikiException e)
+            {
+                Console.Out.WriteLine(e.Message);
+                return;
+            }
             
-            XmlNodeList pages = doc.SelectNodes("/api/query/pages/page");
+            XmlNodeList pages = doc.SelectNodes("//page");
             int index = 1;
             foreach (XmlNode page in pages)
             {

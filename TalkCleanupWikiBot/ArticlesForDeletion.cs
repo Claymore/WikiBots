@@ -419,13 +419,28 @@ namespace Claymore.TalkCleanupWikiBot
                 
                 parameters.Clear();
                 parameters.Add("prop", "info");
+                Dictionary<string, string> normalizedTitles = new Dictionary<string, string>();
                 XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, titles.Keys);
+                foreach (XmlNode node in xml.SelectNodes("//n"))
+                {
+                    normalizedTitles.Add(node.Attributes["to"].Value,
+                        node.Attributes["from"].Value);
+                }
                 XmlNodeList missingTitles = xml.SelectNodes("//page[@missing]");
                 foreach (XmlNode node in missingTitles)
                 {
                     string title = node.Attributes["title"].Value;
                     DateTime start = day.Date;
-                    foreach (WikiPageSection section in titles[title])
+                    IEnumerable<WikiPageSection> sections;
+                    if (titles.ContainsKey(title))
+                    {
+                        sections = titles[title];
+                    }
+                    else
+                    {
+                        sections = titles[normalizedTitles[title]];
+                    }
+                    foreach (WikiPageSection section in sections)
                     {
                         Match m = timeRE.Match(section.Text);
                         if (m.Success)
