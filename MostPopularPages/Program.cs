@@ -22,10 +22,22 @@ namespace MostPopularPages
                 Console.Out.WriteLine("Please add login and password to the configuration file.");
                 return;
             }
+
+            Directory.CreateDirectory("input");
+            Directory.CreateDirectory("output");
+            
             WebClient client = new WebClient();
             Wiki wiki = new Wiki("http://ru.wikipedia.org");
             Console.Out.WriteLine("Logging in as " + Settings.Default.Login + "...");
-            wiki.Login(Settings.Default.Login, Settings.Default.Password);
+            try
+            {
+                wiki.Login(Settings.Default.Login, Settings.Default.Password);
+            }
+            catch (WikiException e)
+            {
+                Console.Out.WriteLine(e.Message);
+                return;
+            }
             Console.Out.WriteLine("Logged in as " + Settings.Default.Login + ".");
             DownloadResources(client, wiki);
             Console.Out.WriteLine("Processing tables...");
@@ -41,11 +53,20 @@ namespace MostPopularPages
             ParameterCollection parameters = new ParameterCollection();
             parameters.Add("prop", "flagged");
             parameters.Add("redirects");
-            XmlDocument doc = wiki.Query(QueryBy.Titles, parameters, titles.Distinct(), 50);
+            XmlDocument doc;
+            try
+            {
+                doc = wiki.Query(QueryBy.Titles, parameters, titles.Distinct());
+            }
+            catch (WikiException e)
+            {
+                Console.Out.WriteLine(e.Message);
+                return;
+            }
             Console.Out.WriteLine("Finished quering.");
             Console.Out.WriteLine("Processing data...");
             
-            XmlNodeList nodes = doc.SelectNodes("/api/query/pages/page");
+            XmlNodeList nodes = doc.SelectNodes("//page");
             foreach (XmlNode node in nodes)
             {
                 string key = node.Attributes["title"].Value;
@@ -54,7 +75,7 @@ namespace MostPopularPages
                     currentPages.Remove(key);
                 }
             }
-            XmlNodeList redirects = doc.SelectNodes("/api/query/redirects/r");
+            XmlNodeList redirects = doc.SelectNodes("//r");
             foreach (XmlNode node in redirects)
             {
                 string key = node.Attributes["from"].Value;
@@ -225,11 +246,10 @@ namespace MostPopularPages
             {
                 UploadResults(wiki, !AreTablesEqual(currentPages, tablePages),
                     !AreOldPagesEqual(oldPagesCopy, oldPages));
-                //UploadResults(wiki, true,
-                //    true);
             }
             catch (WikiException e)
             {
+                Console.Out.WriteLine(e.Message);
             }
             wiki.Logout();
             Console.Out.WriteLine("Done.");
@@ -335,8 +355,8 @@ namespace MostPopularPages
         static void UploadResults(Wiki wiki, bool uploadPages, bool uploadOldPages)
         {
             Console.Out.WriteLine("Uploading results...");
-            string comment = "Автоматическое обновление данных ботом";
-            //if (uploadPages)
+            string comment = "обновление";
+            if (uploadPages)
             {
                 using (TextReader sr =
                             new StreamReader("output/Популярные статьи.txt"))
@@ -344,11 +364,9 @@ namespace MostPopularPages
                     string text = sr.ReadToEnd();
                     wiki.SavePage("Википедия:Проект:Патрулирование/Популярные статьи",
                         text, comment);
-                    //wiki.SavePage("User:Claymore/Sandbox",
-                    //    text, comment);
                 }
             }
-            //if (uploadOldPages)
+            if (uploadOldPages)
             {
                 using (TextReader sr =
                             new StreamReader("output/Популярные в прошлом.txt"))

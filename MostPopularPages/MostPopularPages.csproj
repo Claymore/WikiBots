@@ -12,7 +12,8 @@
     <AssemblyName>MostPopularPages</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <TargetFrameworkSubset>Full</TargetFrameworkSubset>
+    <TargetFrameworkSubset>Client</TargetFrameworkSubset>
+    <StartupObject>MostPopularPages.Program</StartupObject>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
