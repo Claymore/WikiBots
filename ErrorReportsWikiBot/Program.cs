@@ -24,7 +24,15 @@ namespace Claymore.ErrorReportsWikiBot
                 return;
             }
             Console.Out.WriteLine("Logging in as " + Settings.Default.Login + "...");
-            wiki.Login(Settings.Default.Login, Settings.Default.Password);
+            try
+            {
+                wiki.Login(Settings.Default.Login, Settings.Default.Password);
+            }
+            catch (WikiException e)
+            {
+                Console.Out.WriteLine(e.Message);
+                return;
+            }
             Console.Out.WriteLine("Logged in as " + Settings.Default.Login + ".");
             DateTime time = new DateTime(2009, 1, 1);
             Dictionary<string, DateTime> pages = new Dictionary<string, DateTime>();
@@ -38,8 +46,17 @@ namespace Claymore.ErrorReportsWikiBot
             string timeString = DateTime.Now.ToUniversalTime().ToString("HH:mm, d MMMM yyyy (UTC)");
             ParameterCollection parameters = new ParameterCollection();
             parameters.Add("prop", "info");
-            XmlDocument doc = wiki.Query(QueryBy.Titles, parameters, pages.Keys);
-            XmlNodeList nodes = doc.SelectNodes("/api/query/pages/page");
+            XmlDocument doc;
+            try
+            {
+                doc = wiki.Query(QueryBy.Titles, parameters, pages.Keys);
+            }
+            catch (WikiException e)
+            {
+                Console.Out.WriteLine(e.Message);
+                return;
+            }
+            XmlNodeList nodes = doc.SelectNodes("//page");
             foreach (XmlNode node in nodes)
             {
                 string title = node.Attributes["title"].Value;
@@ -73,7 +90,15 @@ namespace Claymore.ErrorReportsWikiBot
                     using (GZipStream gs = new GZipStream(fs, CompressionMode.Compress))
                     using (StreamWriter sw = new StreamWriter(gs))
                     {
-                        text = wiki.LoadPage(s);
+                        try
+                        {
+                            text = wiki.LoadPage(s);
+                        }
+                        catch (WikiException e)
+                        {
+                            Console.Out.WriteLine(e.Message);
+                            return;
+                        }
                         sw.WriteLine(timestamp);
                         sw.Write(text);
                         changed = true;
@@ -112,7 +137,17 @@ namespace Claymore.ErrorReportsWikiBot
                             new StreamReader("output.txt"))
                 {
                     string text = sr.ReadToEnd();
-                    wiki.SavePage("User:LEMeZza/Статистика ВП:СО", text, "Обновление статистики обработки [[ВП:СО|сообщений об ошибках]]");
+                    try
+                    {
+                        wiki.SavePage("User:LEMeZza/Статистика ВП:СО",
+                            text,
+                            "обновление статистики обработки [[ВП:СО|сообщений об ошибках]]");
+                    }
+                    catch (WikiException e)
+                    {
+                        Console.Out.WriteLine(e.Message);
+                        return;
+                    }
                 }
             }
             else
