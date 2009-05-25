@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text;
-using Claymore.SharpMediaWiki;
-using System.IO;
-using System.Xml;
 using System.Text.RegularExpressions;
-using System.IO.Compression;
-using System.Globalization;
+using System.Xml;
+using Claymore.SharpMediaWiki;
 
 namespace Claymore.TalkCleanupWikiBot
 {
@@ -96,7 +96,7 @@ namespace Claymore.TalkCleanupWikiBot
                     {
                         string revid = wiki.SavePage(pageName,
                             text,
-                            "обсуждение закрыто, убираем страницу из категории");
+                            "обсуждение закрыто");
 
                         using (FileStream fs = new FileStream(fileName, FileMode.Create))
                         using (GZipStream gs = new GZipStream(fs, CompressionMode.Compress))
