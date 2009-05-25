@@ -43,7 +43,7 @@ namespace Claymore.TalkCleanupWikiBot
             l10i.EmptyArchive = "обговорення не розпочато";
             l10i.Processor = RemoveVotes;
             l10i.StrikeOutComment = "закреслення заголовків";
-            l10i.AutoResultMessage = "Сторінка була вилучена {2} адміністратором [[User:{0}|]]. Була вказана наступна причина: «{2}». Це повідомлення було автоматично згенеровано ботом ~~~~.\n";
+            l10i.AutoResultMessage = "Сторінка була вилучена {1} адміністратором [[User:{0}|]]. Була вказана наступна причина: «{2}». Це повідомлення було автоматично згенеровано ботом ~~~~.\n";
             l10i.DateFormat = "d MMMM yyyy";
             l10i.AutoResultComment = ", підбиття підсумків";
 
