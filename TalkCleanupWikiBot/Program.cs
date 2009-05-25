@@ -91,30 +91,13 @@ namespace Claymore.TalkCleanupWikiBot
             wiki.Login(Settings.Default.Login, Settings.Default.Password);
             Console.Out.WriteLine("Logged in as " + Settings.Default.Login + ".");
 
-            ArticlesForDeletionLocalization l10i = new ArticlesForDeletionLocalization();
-            l10i.Category = "Категория:Википедия:Незакрытые обсуждения удаления страниц";
-            l10i.Culture = "ru-RU";
-            l10i.MainPage = "Википедия:К удалению";
-            l10i.Template = "Удаление статей";
-            l10i.TopTemplate = "/Заголовок";
-            l10i.BottomTemplate = "/Подвал";
-            l10i.Result = "Итог";
-            l10i.Language = "ru";
-            l10i.MainPageUpdateComment = "обновление";
-            l10i.ArchiveTemplate = "Статьи, вынесенные на удаление";
-            l10i.ArchivePage = "Википедия:Архив запросов на удаление/";
-            l10i.EmptyArchive = "нет обсуждений";
-            l10i.Processor = null;
-            l10i.StrikeOutComment = "зачёркивание заголовков";
-            l10i.AutoResultMessage = "Страница была удалена {1} администратором [[User:{0}|]]. Была указана следующая причина: «{2}». Данное сообщение было автоматически сгенерировано ботом ~~~~.\n";
-            l10i.DateFormat = "d MMMM yyyy в HH:mm (UTC)";
-            l10i.AutoResultComment = " и подведение итогов";
+            DeletionReview dr = new DeletionReview();
+            dr.Analyze(wiki);
+            dr.UpdateMainPage(wiki);
 
-            ProposedMerges pm = new ProposedMerges();
-            pm.Analyze(wiki);
-            pm.UpdateMainPage(wiki);
-            pm.UpdatePages(wiki);
-            pm.UpdateArchivePages(wiki);
+            ProposedSplits ps = new ProposedSplits();
+            ps.Analyze(wiki);
+            ps.UpdateMainPage(wiki);
 
             Cleanup.Localization cleanupL10i = new Cleanup.Localization();
             cleanupL10i.Language = "ru";
@@ -136,11 +119,36 @@ namespace Claymore.TalkCleanupWikiBot
             cleanup.Analyze(wiki);
             cleanup.UpdateMainPage(wiki);
 
+            ProposedMerges pm = new ProposedMerges();
+            pm.UpdatePages(wiki);
+            pm.Analyze(wiki);
+            pm.UpdateMainPage(wiki);
+            pm.UpdateArchivePages(wiki);
+
+            ArticlesForDeletionLocalization l10i = new ArticlesForDeletionLocalization();
+            l10i.Category = "Категория:Википедия:Незакрытые обсуждения удаления страниц";
+            l10i.Culture = "ru-RU";
+            l10i.MainPage = "Википедия:К удалению";
+            l10i.Template = "Удаление статей";
+            l10i.TopTemplate = "/Заголовок";
+            l10i.BottomTemplate = "/Подвал";
+            l10i.Result = "Итог";
+            l10i.Language = "ru";
+            l10i.MainPageUpdateComment = "обновление";
+            l10i.ArchiveTemplate = "Статьи, вынесенные на удаление";
+            l10i.ArchivePage = "Википедия:Архив запросов на удаление/";
+            l10i.EmptyArchive = "нет обсуждений";
+            l10i.Processor = null;
+            l10i.StrikeOutComment = "зачёркивание заголовков";
+            l10i.AutoResultMessage = "Страница была удалена {1} администратором [[User:{0}|]]. Была указана следующая причина: «{2}». Данное сообщение было автоматически сгенерировано ботом ~~~~.\n";
+            l10i.DateFormat = "d MMMM yyyy в HH:mm (UTC)";
+            l10i.AutoResultComment = " и подведение итогов";
+
             ArticlesForDeletion afd = new ArticlesForDeletion(l10i);
+            afd.UpdatePages(wiki);
             afd.Analyse(wiki);
             afd.UpdateMainPage(wiki);
             afd.UpdateArchive(wiki);
-            afd.UpdatePages(wiki);
 
             RequestedMoves rm = new RequestedMoves();
             rm.Analyze(wiki);
@@ -148,10 +156,6 @@ namespace Claymore.TalkCleanupWikiBot
             rm.UpdatePages(wiki);
             //rm.UpdateArchive(wiki, 2009, 2);
             //rm.UpdateArchive(wiki, 2009, 1);
-
-            DeletionReview dr = new DeletionReview();
-            dr.Analyze(wiki);
-            dr.UpdateMainPage(wiki);
 
             wiki.Logout();
             Console.Out.WriteLine("Done.");
