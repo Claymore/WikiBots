@@ -131,7 +131,7 @@ namespace Claymore.TalkCleanupWikiBot
             cleanupL10i.CloseComment = "обсуждение закрыто";
             cleanupL10i.ClosePage = ClosePageRu;
             cleanupL10i.MainPageSection = "1";
-            
+
             Cleanup cleanup = new Cleanup(cleanupL10i);
             cleanup.Analyze(wiki);
             cleanup.UpdateMainPage(wiki);
@@ -148,6 +148,10 @@ namespace Claymore.TalkCleanupWikiBot
             rm.UpdatePages(wiki);
             //rm.UpdateArchive(wiki, 2009, 2);
             //rm.UpdateArchive(wiki, 2009, 1);
+
+            DeletionReview dr = new DeletionReview();
+            dr.Analyze(wiki);
+            dr.UpdateMainPage(wiki);
 
             wiki.Logout();
             Console.Out.WriteLine("Done.");
