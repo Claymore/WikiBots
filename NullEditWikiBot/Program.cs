@@ -20,7 +20,14 @@ namespace Claymore.NullEditWikiBot
             Console.Out.WriteLine("Logging in as " + Settings.Default.Login + "...");
             try
             {
-                wiki.Login(Settings.Default.Login, Settings.Default.Password);
+                if (!wiki.LoadCookies())
+                {
+                    if (wiki.Login(Settings.Default.Login, Settings.Default.Password) ==
+                        LoginResult.Success)
+                    {
+                        wiki.CacheCookies();
+                    }
+                }
             }
             catch (WikiException e)
             {
@@ -36,6 +43,7 @@ namespace Claymore.NullEditWikiBot
             parameters.Add("geinamespace", "0");
             parameters.Add("prop", "categories");
             parameters.Add("clcategories", "Категория:Википедия:К быстрому удалению");
+
             XmlDocument doc;
             try
             {
@@ -73,7 +81,6 @@ namespace Claymore.NullEditWikiBot
                 }
             }
             Console.Out.WriteLine("Done.");
-            wiki.Logout();
         }
     }
 }
