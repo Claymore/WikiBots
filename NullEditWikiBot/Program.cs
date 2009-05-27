@@ -5,7 +5,7 @@ using Claymore.SharpMediaWiki;
 
 namespace Claymore.NullEditWikiBot
 {
-    class Program
+    internal class Program
     {
         static void Main(string[] args)
         {
@@ -22,11 +22,8 @@ namespace Claymore.NullEditWikiBot
             {
                 if (!wiki.LoadCookies())
                 {
-                    if (wiki.Login(Settings.Default.Login, Settings.Default.Password) ==
-                        LoginResult.Success)
-                    {
-                        wiki.CacheCookies();
-                    }
+                    wiki.Login(Settings.Default.Login, Settings.Default.Password);
+                    wiki.CacheCookies();
                 }
             }
             catch (WikiException e)
