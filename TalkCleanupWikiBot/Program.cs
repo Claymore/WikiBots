@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using Claymore.SharpMediaWiki;
 using TalkCleanupWikiBot.Properties;
+using System.IO;
 
 namespace Claymore.TalkCleanupWikiBot
 {
@@ -27,7 +28,23 @@ namespace Claymore.TalkCleanupWikiBot
             Console.Out.WriteLine("Logging in as " + Settings.Default.Login + " to " + wiki.Uri + "...");
             try
             {
-                wiki.Login(Settings.Default.Login, Settings.Default.Password);
+                Directory.CreateDirectory(@"Cache\uk");
+                string cookieFile = @"Cache\uk\cookie.jar";
+                if (!wiki.LoadCookies(cookieFile))
+                {
+                    wiki.Login(Settings.Default.Login, Settings.Default.Password);
+                    wiki.CacheCookies(cookieFile);
+                }
+                else
+                {
+                    wiki.Login();
+                    if (!wiki.IsBot)
+                    {
+                        wiki.Logout();
+                        wiki.Login(Settings.Default.Login, Settings.Default.Password);
+                        wiki.CacheCookies(cookieFile);
+                    }
+                }
             }
             catch (WikiException e)
             {
@@ -80,7 +97,6 @@ namespace Claymore.TalkCleanupWikiBot
             cleanup.Analyze(wiki);
             cleanup.UpdateMainPage(wiki);
 
-            wiki.Logout();
             Console.Out.WriteLine("Done.");
         }
 
@@ -98,7 +114,23 @@ namespace Claymore.TalkCleanupWikiBot
             Console.Out.WriteLine("Logging in as " + Settings.Default.Login + " to " + wiki.Uri + "...");
             try
             {
-                wiki.Login(Settings.Default.Login, Settings.Default.Password);
+                Directory.CreateDirectory(@"Cache\ru");
+                string cookieFile = @"Cache\ru\cookie.jar";
+                if (!wiki.LoadCookies(cookieFile))
+                {
+                    wiki.Login(Settings.Default.Login, Settings.Default.Password);
+                    wiki.CacheCookies(cookieFile);
+                }
+                else
+                {
+                    wiki.Login();
+                    if (!wiki.IsBot)
+                    {
+                        wiki.Logout();
+                        wiki.Login(Settings.Default.Login, Settings.Default.Password);
+                        wiki.CacheCookies(cookieFile);
+                    }
+                }
             }
             catch (WikiException e)
             {
@@ -173,7 +205,6 @@ namespace Claymore.TalkCleanupWikiBot
             //rm.UpdateArchive(wiki, 2009, 2);
             //rm.UpdateArchive(wiki, 2009, 1);
 
-            wiki.Logout();
             Console.Out.WriteLine("Done.");
         }
 
