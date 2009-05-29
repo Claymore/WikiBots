@@ -175,7 +175,7 @@ namespace Claymore.TalkCleanupWikiBot
             DateTime currentMonth = new DateTime(DateTime.Today.Year,
                 DateTime.Today.Month, 1);
             DateTime start = minDate;
-            while (start < currentMonth)
+            while (start <= currentMonth)
             {
                 string date = start.ToString("yyyy-MM");
                 string pageName = "Википедия:Архив запросов на объединение/" + date;
