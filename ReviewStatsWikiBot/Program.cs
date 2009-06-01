@@ -43,9 +43,18 @@ namespace Claymore.ReviewStatsWikiBot
             parameters.Add("augroup", "editor");
             parameters.Add("aulimit", "max");
             wiki.SleepBetweenQueries = 3;
-            XmlDocument doc = wiki.Enumerate(parameters, true);
+            XmlDocument doc;
+            try
+            {
+                doc = wiki.Enumerate(parameters, true);
+            }
+            catch (WikiException e)
+            {
+                Console.Out.WriteLine(e.Message);
+                return;
+            }
             XmlNodeList editors = doc.SelectNodes("//u[@name]");
-            
+
             List<User> users = new List<User>();
             int index = 1;
             foreach (XmlNode user in editors)
@@ -62,7 +71,16 @@ namespace Claymore.ReviewStatsWikiBot
                 parameters.Add("lelimit", "max");
                 parameters.Add("leuser", username);
 
-                XmlDocument result = wiki.Enumerate(parameters, true);
+                XmlDocument result;
+                try
+                {
+                    result = wiki.Enumerate(parameters, true);
+                }
+                catch (WikiException e)
+                {
+                    Console.Out.WriteLine(e.Message);
+                    return;
+                }
                 XmlNodeList artActions = result.SelectNodes("//item[@action=\"approve\" and @ns=\"0\"] | //item[@action=\"approve-i\" and @ns=\"0\"]");
                 XmlNodeList catActions = result.SelectNodes("//item[@action=\"approve\" and @ns=\"14\"] | //item[@action=\"approve-i\" and @ns=\"14\"]");
                 XmlNodeList tempActions = result.SelectNodes("//item[@action=\"approve\" and @ns=\"10\"] | //item[@action=\"approve-i\" and @ns=\"10\"]");
@@ -76,53 +94,28 @@ namespace Claymore.ReviewStatsWikiBot
 
             Console.Out.WriteLine("Processing data...");
 
-            /*using (TextReader sr =
-                            new StreamReader("cache.txt"))
-            {
-                string line;
-                while ((line = sr.ReadLine()) != null)
-                {
-                    int index = line.IndexOf(' ');
-                    if (index != -1)
-                    {
-                        int actions = int.Parse(line.Substring(0, index));
-                        string user = line.Substring(index + 1);
-                        if (actions > 0)
-                        {
-                            users.Add(new User(actions, user));
-                        }
-                    }
-                }
-            }*/
-
             users.Sort(CompareUsers);
 
             using (StreamWriter sw =
                         new StreamWriter("output.txt", false))
             {
                 sw.WriteLine("== " + previousMonth.ToString("MMMM") + " ==");
-                sw.WriteLine("В скобках указано количество действий в пространствах имён: статей, категорий, шаблонов и файлов.\n");
-                sw.WriteLine("<div style=\"-moz-column-count:2; column-count:2; -webkit-column-count:2\">");
+                sw.WriteLine("{| class=\"standard sortable\"");
+                sw.WriteLine("!№!!Участник!!всего!!статей!!категорий!!шаблонов!!файлов");
                 for (int i = 0; i < users.Count; ++i)
                 {
-                    string line = string.Format("# [[User:{0}|{0}]] — {1} ({2}/{3}/{4}/{5})",
+                    sw.WriteLine("|-");
+                    string line = string.Format("|{0}||[[User:{1}|]]||{2}||{3}||{4}||{5}||{6}",
+                        i + 1,
                         users[i].Name,
-                        Actions(users[i].Actions),
+                        users[i].Actions,
                         users[i].ArticleActions,
                         users[i].CategoryActions,
                         users[i].TemplateActions,
                         users[i].FileActions);
-                    if (i != users.Count - 1)
-                    {
-                        line += ";";
-                    }
-                    else
-                    {
-                        line += ".";
-                    }
                     sw.WriteLine(line);
                 }
-                sw.WriteLine("</div>");
+                sw.WriteLine("|}");
                 sw.WriteLine("\n— ~~~~");
             }
             Console.Out.WriteLine("Updating the wiki page...");
@@ -131,7 +124,11 @@ namespace Claymore.ReviewStatsWikiBot
             {
                 string text = sr.ReadToEnd();
                 string period = previousMonth.ToString("MMMM yyyy");
-                wiki.SavePage("User:Claymore/Sandbox", text, "Статистика патрулирования за " + period[0].ToString().ToLower() + period.Substring(1));
+                wiki.PrependTextToPage("Википедия:Проект:Патрулирование/Статистика/2009",
+                    text,
+                    "Статистика патрулирования за " + period[0].ToString().ToLower() + period.Substring(1),
+                    MinorFlags.Minor,
+                    WatchFlags.None);
             }
             Console.Out.WriteLine("Done.");
             wiki.Logout();

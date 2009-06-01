@@ -20,12 +20,11 @@ namespace Claymore.TalkCleanupWikiBot
         {
             _language = "ru";
             _cacheDir = "Cache\\" + _language + "\\RequestedMoves\\";
+            Directory.CreateDirectory(_cacheDir);
         }
 
         public void Analyze(Wiki wiki)
         {
-            Directory.CreateDirectory(_cacheDir);
-
             ParameterCollection parameters = new ParameterCollection();
             parameters.Add("generator", "categorymembers");
             parameters.Add("gcmtitle", "Категория:Википедия:Незакрытые обсуждения переименования страниц");

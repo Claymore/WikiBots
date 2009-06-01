@@ -25,6 +25,16 @@ namespace Claymore.NullEditWikiBot
                     wiki.Login(Settings.Default.Login, Settings.Default.Password);
                     wiki.CacheCookies();
                 }
+                else
+                {
+                    wiki.Login();
+                    if (!wiki.IsBot)
+                    {
+                        wiki.Logout();
+                        wiki.Login(Settings.Default.Login, Settings.Default.Password);
+                        wiki.CacheCookies();
+                    }
+                }
             }
             catch (WikiException e)
             {
