@@ -216,8 +216,8 @@ namespace Claymore.TalkCleanupWikiBot
 
         static string RemoveOK(WikiPageSection section)
         {
-            Regex re = new Regex(@"(<s>)?\s*{{(ok|OK|Ok|oK|ОК|ок|Ок|оК)}}\s*(.+?)(</s>)?\s*$");
-            return re.Replace(section.Title, "<s>$3</s>");
+            Regex re = new Regex(@"^\s*(<s>)?\s*{{(ok|OK|Ok|oK|ОК|ок|Ок|оК)}}\s*(.+?)(</s>)?\s*$");
+            return re.Replace(section.Title, "$1$3</s>");
         }
 
         static string ClosePageRu(string text)

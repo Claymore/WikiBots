@@ -490,6 +490,10 @@ namespace Claymore.TalkCleanupWikiBot
                             events[0].User,
                             events[0].Timestamp.ToUniversalTime().ToString(_l10i.DateFormat),
                             comment);
+                        if (!titles.ContainsKey(title))
+                        {
+                            continue;
+                        }
                         foreach (WikiPageSection section in titles[title])
                         {
                             WikiPageSection verdict = new WikiPageSection(" " + _l10i.Result + " ",
