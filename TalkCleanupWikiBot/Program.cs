@@ -139,6 +139,10 @@ namespace Claymore.TalkCleanupWikiBot
             }
             Console.Out.WriteLine("Logged in as " + Settings.Default.Login + ".");
 
+            CategoriesForDiscussion cat = new CategoriesForDiscussion();
+            cat.Analyze(wiki);
+            cat.UpdateMainPage(wiki);
+
             DeletionReview dr = new DeletionReview();
             dr.Analyze(wiki);
             dr.UpdateMainPage(wiki);
