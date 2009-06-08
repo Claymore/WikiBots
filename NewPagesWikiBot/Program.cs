@@ -45,12 +45,28 @@ namespace Claymore.NewPagesWikiBot
             }
             Console.Out.WriteLine("Logged in as " + Settings.Default.Login + ".");
 
-            WebClient client = new WebClient();
-            client.DownloadFile("http://toolserver.org/~daniel/WikiSense/CategoryIntersect.php?wikilang=ru&wikifam=.wikipedia.org&basecat=Ужасы&basedeep=5&mode=rc&hours=720&onlynew=on&go=Сканировать&format=csv&userlang=ru", "Cache\\data.txt");
+            List<Portal> portals = new List<Portal>();
+            portals.Add(new Portal("Ужасы", "Портал:Хоррор/Новые статьи", 20, "# [[{0}]]"));
+            portals.Add(new Portal("Эротика", "Портал:Эротика и порнография/Новые статьи", 20, "* [[{0}]]"));
 
-            List<string> titles = new List<string>();
-            using (TextWriter streamWriter = new StreamWriter("Cache\\output.txt"))
-            using (TextReader streamReader = new StreamReader("Cache\\data.txt"))
+            for (int i = 0; i < portals.Count; ++i)
+            {
+                GetData(portals[i]);
+                UpdatePage(portals[i], wiki);
+            }
+        }
+
+        static void GetData(Portal portal)
+        {
+            Console.Out.WriteLine("Downloading data for " + portal.Category);
+            string url = string.Format("http://toolserver.org/~daniel/WikiSense/CategoryIntersect.php?wikilang=ru&wikifam=.wikipedia.org&basecat={0}&basedeep=7&mode=rc&hours=720&onlynew=on&go=Сканировать&format=csv&userlang=ru",
+                Uri.EscapeDataString(portal.Category));
+            WebClient client = new WebClient();
+            client.DownloadFile(url, "Cache\\input-" + portal.Category + ".txt");
+
+            Console.Out.WriteLine("Processing data of " + portal.Category);
+            using (TextWriter streamWriter = new StreamWriter("Cache\\output-" + portal.Category + ".txt"))
+            using (TextReader streamReader = new StreamReader("Cache\\input-" + portal.Category + ".txt"))
             {
                 int index = 0;
                 string line;
@@ -59,25 +75,61 @@ namespace Claymore.NewPagesWikiBot
                     string[] groups = line.Split(new char[] { '\t' });
                     if (groups[0] == "0")
                     {
-                        titles.Add(groups[1].Replace('_', ' '));
-                        long ticks = 0;
-                        long.TryParse(groups[4], out ticks);
-                        DateTime date = DateTime.FromFileTimeUtc(ticks * 100);
-                        streamWriter.WriteLine(string.Format("# [[{0}]]", groups[1].Replace('_', ' ')));
+                        streamWriter.WriteLine(string.Format(portal.Format, groups[1].Replace('_', ' ')));
                         ++index;
                     }
-                    if (index > 20)
+                    if (index > portal.PageLimit)
                     {
                         break;
                     }
                 }
             }
+        }
 
-            using (TextReader sr = new StreamReader("Cache\\output.txt"))
+        static void UpdatePage(Portal portal, Wiki wiki)
+        {
+            using (TextReader sr = new StreamReader("Cache\\output-" + portal.Category + ".txt"))
             {
                 string text = sr.ReadToEnd();
-                wiki.SavePage("Портал:Хоррор/Новые статьи", text, "обновление");
+                Console.Out.WriteLine("Updating " + portal.Page);
+                wiki.SavePage(portal.Page, text, "обновление");
             }
+        }
+    }
+
+    internal class Portal
+    {
+        private string _page;
+        private string _category;
+        private int _pageLimit;
+        private string _format;
+
+        public Portal(string category, string page, int pageLimit, string format)
+        {
+            _page = page;
+            _category = category;
+            _pageLimit = pageLimit;
+            _format = format;
+        }
+
+        public string Page
+        {
+            get { return _page; }
+        }
+
+        public string Category
+        {
+            get { return _category; }
+        }
+
+        public string Format
+        {
+            get { return _format; }
+        }
+
+        public int PageLimit
+        {
+            get { return _pageLimit; }
         }
     }
 }
