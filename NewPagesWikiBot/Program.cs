@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Xml;
+using System.Linq;
 using Claymore.NewPagesWikiBot.Properties;
 using Claymore.SharpMediaWiki;
 
@@ -117,6 +118,96 @@ namespace Claymore.NewPagesWikiBot
                     Console.Out.WriteLine("Failed to update " + portals[i].Page + ": " + e.Message);
                 }
             }
+
+
+            Portal portal = new Portal("Музыка", "Википедия:Проект:Музыка/Статьи", 0, "* {2} — [[{0}]] &nbsp; <small>{{{{u|{1}}}}}</small>", true, "hh:mm");
+            portal.Head = "{{МСВС}}";
+            portal.Bottom = "{{МСВС-предупреждение}}";
+            GetFullData(portal, wiki);
+        }
+
+        static void GetFullData(Portal portal, Wiki wiki)
+        {
+            Console.Out.WriteLine("Downloading data for " + portal.Category);
+            string url = string.Format("http://toolserver.org/~daniel/WikiSense/CategoryIntersect.php?wikilang=ru&wikifam=.wikipedia.org&basecat={0}&basedeep=7&mode=rc&hours=192&onlynew=on&go=Сканировать&format=csv&userlang=ru",
+                Uri.EscapeDataString(portal.Category));
+            WebClient client = new WebClient();
+            client.DownloadFile(url, "Cache\\input-" + portal.Category + ".txt");
+
+            Console.Out.WriteLine("Processing data of " + portal.Category);
+            List<NewPage> newPages = new List<NewPage>();
+            using (TextReader streamReader = new StreamReader("Cache\\input-" + portal.Category + ".txt"))
+            {
+                ParameterCollection parameters = new ParameterCollection();
+                parameters.Add("prop", "revisions");
+                parameters.Add("rvprop", "timestamp|user");
+                parameters.Add("rvdir", "newer");
+                parameters.Add("rvlimit", "1");
+
+                if (portal.GetAuthorInfo)
+                {
+                    Console.Out.WriteLine("Quering author information for " + portal.Category);
+                }
+
+                string line;
+                while ((line = streamReader.ReadLine()) != null)
+                {
+                    string[] groups = line.Split(new char[] { '\t' });
+                    if (groups[0] == "0")
+                    {
+                        string title = groups[1].Replace('_', ' ');
+                        
+                        XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, new string[] { title });
+                        XmlNode node = xml.SelectSingleNode("//rev");
+                        if (node != null)
+                        {
+                            string user = node.Attributes["user"].Value;
+                            string timestamp = node.Attributes["timestamp"].Value;
+                            DateTime time = DateTime.Parse(timestamp,
+                                null,
+                                DateTimeStyles.AssumeUniversal);
+                            newPages.Add(new NewPage(title, time, user));
+                        }
+                    }
+                }
+            }
+
+            Directory.CreateDirectory("Cache\\" + portal.Category);
+            for (int i = 0; i < 7; ++i)
+            {
+                DateTime end = DateTime.Today.AddDays(1 - i);
+                DateTime start = DateTime.Today.AddDays(-i);
+                string filename = string.Format("{0}.txt", start.ToString("d MMMM yyyy"));
+                using (TextWriter streamWriter = new StreamWriter("Cache\\" + portal.Category + "\\" + filename))
+                {
+                    streamWriter.WriteLine("<noinclude>" + portal.Head + "</noinclude>");
+                    List<NewPage> pages = new List<NewPage>(newPages.Where(p => p.Time >= start && p.Time < end));
+                    pages.Sort(CompareTime);
+                    foreach (NewPage page in pages)
+                    {
+                        streamWriter.WriteLine(string.Format(portal.Format,
+                                page.Name, page.Author, page.Time.ToString(portal.TimeFormat)));
+                    }
+                    streamWriter.WriteLine("<noinclude>" + portal.Bottom + "</noinclude>");
+                }
+
+                using (TextReader sr = new StreamReader("Cache\\" + portal.Category + "\\" + filename))
+                {
+                    string text = sr.ReadToEnd();
+                    if (string.IsNullOrEmpty(text))
+                    {
+                        Console.Out.WriteLine("Skipping " + portal.Page);
+                        return;
+                    }
+                    Console.Out.WriteLine("Updating " + portal.Page);
+                    wiki.SavePage(portal.Page + "/" + start.ToString("d MMMM yyyy"), text, "обновление");
+                }
+            }
+        }
+
+        internal static int CompareTime(NewPage x, NewPage y)
+        {
+            return x.Time.CompareTo(y.Time);
         }
 
         static void GetData(Portal portal, Wiki wiki)
@@ -193,12 +284,28 @@ namespace Claymore.NewPagesWikiBot
         }
     }
 
+    internal class NewPage
+    {
+        public string Name { get; private set; }
+        public DateTime Time { get; private set; }
+        public string Author { get; private set; }
+
+        public NewPage(string name, DateTime time, string author)
+        {
+            Name = name;
+            Time = time;
+            Author = author;
+        }
+    }
+
     internal class Portal
     {
         public string Page { get; private set; }
         public string Category { get; private set; }
         public string Format { get; private set; }
         public string TimeFormat { get; private set; }
+        public string Head { get; set; }
+        public string Bottom { get; set; }
         public int PageLimit { get; private set; }
         public bool GetAuthorInfo { get; private set; }
 
