@@ -6,9 +6,9 @@ using Claymore.SharpMediaWiki;
 
 namespace Claymore.NewPagesWikiBot
 {
-    internal class PortalWithImages : Portal
+    internal class NewPagesWithImages : NewPages
     {
-        public PortalWithImages(string category, string page, int pageLimit, string format, string top, string bottom)
+        public NewPagesWithImages(string category, string page, int pageLimit, string format, string top, string bottom)
             : base(category, page, pageLimit, format)
         {
             Head = top;

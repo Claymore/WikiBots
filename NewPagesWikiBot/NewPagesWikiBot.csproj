@@ -46,10 +46,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CategoryTemplateIntersection.cs" />
+    <Compile Include="NewPages.cs" />
     <Compile Include="Portal.cs" />
-    <Compile Include="PortalWithAuthors.cs" />
-    <Compile Include="PortalWithImages.cs" />
-    <Compile Include="PortalWithWeeks.cs" />
+    <Compile Include="NewPagesWithAuthors.cs" />
+    <Compile Include="NewPagesWithImages.cs" />
+    <Compile Include="NewPagesWithWeeks.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Settings.Designer.cs">

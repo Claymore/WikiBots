@@ -8,11 +8,11 @@ using Claymore.SharpMediaWiki;
 
 namespace Claymore.NewPagesWikiBot
 {
-    internal class PortalWithWeeks : Portal
+    internal class NewPagesWithWeeks : NewPages
     {
         public string TimeFormat { get; private set; }
 
-        public PortalWithWeeks(string category, string page, string format, string timeFormat, string top, string bottom)
+        public NewPagesWithWeeks(string category, string page, string format, string timeFormat, string top, string bottom)
             : base(category, page, 0, format)
         {
             TimeFormat = timeFormat;
@@ -96,6 +96,10 @@ namespace Claymore.NewPagesWikiBot
                         SaveFlags.Replace);
                 }
             }
+        }
+
+        public override void UpdatePage(Wiki wiki)
+        {
         }
 
         private static int CompareTime(NewPage x, NewPage y)

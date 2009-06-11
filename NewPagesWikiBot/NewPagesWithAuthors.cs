@@ -6,11 +6,11 @@ using Claymore.SharpMediaWiki;
 
 namespace Claymore.NewPagesWikiBot
 {
-    internal class PortalWithAuthors : Portal
+    internal class NewPagesWithAuthors : NewPages
     {
         public string TimeFormat { get; private set; }
 
-        public PortalWithAuthors(string category, string page, int pageLimit, string format, string timeFormat)
+        public NewPagesWithAuthors(string category, string page, int pageLimit, string format, string timeFormat)
             : base(category, page, pageLimit, format)
         {
             TimeFormat = timeFormat;
