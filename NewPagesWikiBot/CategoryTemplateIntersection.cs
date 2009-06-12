@@ -31,7 +31,7 @@ namespace Claymore.NewPagesWikiBot
         {
             Console.Out.WriteLine("Downloading data for " + MainCategory);
 
-            string query = string.Format("language={0}&depth=15&categories={1}&templates_yes={2}&sortby=title&format=tsv&doit=submit",
+            string query = string.Format("language={0}&depth=15&categories={1}&templates_any={2}&sortby=title&format=tsv&doit=submit",
                 "ru",
                 Uri.EscapeDataString(MainCategory),
                 Uri.EscapeDataString(Template));
@@ -75,6 +75,66 @@ namespace Claymore.NewPagesWikiBot
                 Console.Out.WriteLine("Updating " + Page);
                 wiki.SavePage(Page, text, "обновление");
             }
+        }
+    }
+
+    internal class FeaturedArticleCandidates : CategoryTemplateIntersection
+    {
+        public FeaturedArticleCandidates(string category, string page, string format)
+            : base(category,
+                   "Кандидат в избранные статьи\nХорошая статья и кандидат в избранные",
+                   "Cache\\FeaturedArticleCandidates",
+                   page,
+                   format)
+        {
+        }
+    }
+
+    internal class GoodArticleCandidates : CategoryTemplateIntersection
+    {
+        public GoodArticleCandidates(string category, string page, string format)
+            : base(category,
+                   "Кандидат в хорошие статьи",
+                   "Cache\\GoodArticleCandidates",
+                   page,
+                   format)
+        {
+        }
+    }
+
+    internal class FeaturedArticles : CategoryTemplateIntersection
+    {
+        public FeaturedArticles(string category, string page, string format)
+            : base(category,
+                   "Избранная статья",
+                    "Cache\\FeaturedArticles",
+                    page,
+                    format)
+        {
+        }
+    }
+
+    internal class GoodArticles : CategoryTemplateIntersection
+    {
+        public GoodArticles(string category, string page, string format)
+            : base(category,
+                   "Хорошая статья",
+                   "Cache\\GoodArticles",
+                   page,
+                   format)
+        {
+        }
+    }
+
+    internal class FeaturedLists : CategoryTemplateIntersection
+    {
+        public FeaturedLists(string category, string page, string format)
+            : base(category,
+                   "Избранный список или портал",
+                    "Cache\\FeaturedLists",
+                    page,
+                    format)
+        {
         }
     }
 }

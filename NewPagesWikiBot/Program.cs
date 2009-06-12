@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Net;
-using System.Xml;
 using Claymore.NewPagesWikiBot.Properties;
 using Claymore.SharpMediaWiki;
 
@@ -122,6 +120,8 @@ namespace Claymore.NewPagesWikiBot
                     new FeaturedArticles("Япония", "Портал:Япония/Избранные статьи", "* [[{0}]]"),
                     new GoodArticles("Япония", "Портал:Япония/Хорошие статьи", "* [[{0}]]"),
                     new FeaturedLists("Япония", "Портал:Япония/Избранные списки", "* [[{0}]]"),
+                    new FeaturedArticleCandidates("Япония", "Портал:Япония/Кандидаты в избранные статьи", "* [[{0}]]"),
+                    new GoodArticleCandidates("Япония", "Портал:Япония/Кандидаты в хорошие статьи", "* [[{0}]]"),
                 }),
             };
 
@@ -159,131 +159,6 @@ namespace Claymore.NewPagesWikiBot
             Name = name;
             Time = time;
             Author = author;
-        }
-    }
-
-    internal class FeaturedArticles : CategoryTemplateIntersection
-    {
-        public FeaturedArticles(string category, string page, string format)
-            : base(category,
-                   "Избранная статья",
-                    "Cache\\FeaturedArticles",
-                    page,
-                    format)
-        {
-        }
-    }
-
-    internal class GoodArticles : CategoryTemplateIntersection
-    {
-        public GoodArticles(string category, string page, string format)
-            : base(category,
-                   "Хорошая статья",
-                   "Cache\\GoodArticles",
-                   page,
-                   format)
-        {
-        }
-    }
-
-    internal class FeaturedLists : CategoryTemplateIntersection
-    {
-        public FeaturedLists(string category, string page, string format)
-            : base(category,
-                   "Избранный список или портал",
-                    "Cache\\FeaturedLists",
-                    page,
-                    format)
-        {
-        }
-    }
-
-    internal class CategoryIntersectionAndTalkPages : CategoryTemplateIntersection
-    {
-        public string Prefix { get; private set; }
-
-        public CategoryIntersectionAndTalkPages(string mainCategory,
-            string category,
-            string prefix,
-            string directory,
-            string page,
-            string format)
-            : base(mainCategory, category, directory, page, format)
-        {
-            Prefix = prefix;
-        }
-
-        public override void ProcessData(Wiki wiki)
-        {
-            Console.Out.WriteLine("Processing data of " + MainCategory);
-            using (TextWriter streamWriter = new StreamWriter(_directory + "\\output-" + MainCategory + ".txt"))
-            using (TextReader streamReader = new StreamReader(_directory + "\\input-" + MainCategory + ".txt"))
-            {
-                streamReader.ReadLine();
-                streamReader.ReadLine();
-                string line;
-                while ((line = streamReader.ReadLine()) != null)
-                {
-                    string[] groups = line.Split(new char[] { '\t' });
-                    string title = groups[0].Replace('_', ' ');
-
-                    ParameterCollection parameters = new ParameterCollection();
-                    parameters.Add("list", "backlinks");
-                    parameters.Add("bltitle", title);
-                    parameters.Add("blnamespace", "4");
-                    parameters.Add("bllimit", "max");
-
-                    XmlDocument xml = wiki.Enumerate(parameters, true);
-                    foreach (XmlNode node in xml.SelectNodes("//bl"))
-                    {
-                        if (node.Attributes["title"].Value.StartsWith(Prefix))
-                        {
-                            string page = node.Attributes["title"].Value;
-                            streamWriter.WriteLine(string.Format(Format, title, page));
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    internal class PagesForDeletion : CategoryIntersectionAndTalkPages
-    {
-        public PagesForDeletion(string category, string page, string format)
-            : base(category,
-                   "К удалению",
-                   "Википедия:К удалению/",
-                    "Cache\\PagesForDeletion",
-                    page,
-                    format)
-        {
-        }
-    }
-
-    internal class PagesForCleanup : CategoryIntersectionAndTalkPages
-    {
-        public PagesForCleanup(string category, string page, string format)
-            : base(category,
-                   "К улучшению",
-                   "Википедия:К улучшению/",
-                    "Cache\\PagesForCleanup",
-                    page,
-                    format)
-        {
-        }
-    }
-
-    internal class PagesForMoving : CategoryIntersectionAndTalkPages
-    {
-        public PagesForMoving(string category, string page, string format)
-            : base(category,
-                   "К переименованию",
-                   "Википедия:К переименованию/",
-                    "Cache\\PagesForMoving",
-                    page,
-                    format)
-        {
         }
     }
 }

@@ -46,6 +46,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CategoryIntersectionAndTalkPages.cs" />
     <Compile Include="CategoryTemplateIntersection.cs" />
     <Compile Include="NewPages.cs" />
     <Compile Include="Portal.cs" />
