@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 using Claymore.SharpMediaWiki;
-using System.IO.Compression;
-using System.Text;
 
 namespace Claymore.TalkCleanupWikiBot
 {
@@ -45,13 +45,8 @@ namespace Claymore.TalkCleanupWikiBot
                 string pageName = page.Attributes["title"].Value;
                 string date = pageName.Substring(prefix.Length);
                 Day day = new Day();
-                try
-                {
-                    day.Date = DateTime.Parse(date,
-                        CultureInfo.CreateSpecificCulture(_l10i.Culture),
-                        DateTimeStyles.AssumeUniversal);
-                }
-                catch (FormatException)
+                if (!DateTime.TryParse(date, CultureInfo.CreateSpecificCulture(_l10i.Culture),
+                        DateTimeStyles.AssumeUniversal, out day.Date))
                 {
                     continue;
                 }
@@ -159,13 +154,8 @@ namespace Claymore.TalkCleanupWikiBot
                 
                 Day day = new Day();
                 day.Archived = archived;
-                try
-                {
-                    day.Date = DateTime.Parse(date,
-                        CultureInfo.CreateSpecificCulture(_l10i.Culture),
-                        DateTimeStyles.AssumeUniversal);
-                }
-                catch (FormatException)
+                if (!DateTime.TryParse(date, CultureInfo.CreateSpecificCulture(_l10i.Culture),
+                        DateTimeStyles.AssumeUniversal, out day.Date))
                 {
                     continue;
                 }
@@ -314,7 +304,6 @@ namespace Claymore.TalkCleanupWikiBot
         {
             Console.Out.WriteLine("Updating articles for deletion...");
             Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
-            //Regex re = new Regex(@"<s>\[{2}(.+?)(\|.+?)?]{2}</s>");
             Regex timeRE = new Regex(@"(\d{2}:\d{2}\, \d\d? [а-я]+ \d{4}) \(UTC\)");
 
             ParameterCollection parameters = new ParameterCollection();
@@ -341,13 +330,8 @@ namespace Claymore.TalkCleanupWikiBot
                 
                 string date = pageName.Substring(prefix.Length);
                 Day day = new Day();
-                try
-                {
-                    day.Date = DateTime.Parse(date,
-                        CultureInfo.CreateSpecificCulture(_l10i.Culture),
-                        DateTimeStyles.AssumeUniversal);
-                }
-                catch (FormatException)
+                if (!DateTime.TryParse(date, CultureInfo.CreateSpecificCulture(_l10i.Culture),
+                        DateTimeStyles.AssumeUniversal, out day.Date))
                 {
                     continue;
                 }
@@ -389,6 +373,7 @@ namespace Claymore.TalkCleanupWikiBot
                     }
                 }
 
+                List<string> titlesWithResults = new List<string>();
                 Dictionary<string, List<WikiPageSection>> titles = new Dictionary<string, List<WikiPageSection>>();
                 day.Page = WikiPage.Parse(pageName, text);
                 foreach (WikiPageSection section in day.Page.Sections)
@@ -403,7 +388,7 @@ namespace Claymore.TalkCleanupWikiBot
                         if (m.Success)
                         {
                             string title = m.Groups[1].Value.Trim();
-                            
+
                             if (titles.ContainsKey(title))
                             {
                                 titles[title].Add(section);
@@ -415,8 +400,26 @@ namespace Claymore.TalkCleanupWikiBot
                             }
                         }
                     }
+                    else
+                    {
+                        Match m = wikiLinkRE.Match(section.Title);
+                        if (m.Success)
+                        {
+                            titlesWithResults.Add(m.Groups[1].Value.Trim());
+                        }
+                        List<WikiPageSection> sections = new List<WikiPageSection>();
+                        section.Reduce(sections, SubsectionsList);
+                        foreach (WikiPageSection subsection in sections)
+                        {
+                            m = wikiLinkRE.Match(subsection.Title);
+                            if (m.Success)
+                            {
+                                titlesWithResults.Add(m.Groups[1].Value.Trim());
+                            }
+                        }
+                    }
                 }
-                
+
                 parameters.Clear();
                 parameters.Add("prop", "info");
                 Dictionary<string, string> normalizedTitles = new Dictionary<string, string>();
@@ -426,11 +429,12 @@ namespace Claymore.TalkCleanupWikiBot
                     normalizedTitles.Add(node.Attributes["to"].Value,
                         node.Attributes["from"].Value);
                 }
-                XmlNodeList missingTitles = xml.SelectNodes("//page[@missing]");
+                List<string> notificationList = new List<string>();
+                XmlNodeList missingTitles = xml.SelectNodes("//page");
                 foreach (XmlNode node in missingTitles)
                 {
                     string title = node.Attributes["title"].Value;
-                    DateTime start = day.Date;
+                    
                     IEnumerable<WikiPageSection> sections;
                     if (titles.ContainsKey(title))
                     {
@@ -440,68 +444,100 @@ namespace Claymore.TalkCleanupWikiBot
                     {
                         sections = titles[normalizedTitles[title]];
                     }
-                    foreach (WikiPageSection section in sections)
+                    if (node.Attributes["missing"] != null)
                     {
-                        Match m = timeRE.Match(section.Text);
-                        if (m.Success)
+                        DateTime start = day.Date;
+                        foreach (WikiPageSection section in sections)
                         {
-                            start = DateTime.Parse(m.Groups[1].Value,
-                                CultureInfo.CreateSpecificCulture(_l10i.Culture),
+                            Match m = timeRE.Match(section.Text);
+                            if (m.Success)
+                            {
+                                start = DateTime.Parse(m.Groups[1].Value,
+                                    CultureInfo.CreateSpecificCulture(_l10i.Culture),
+                                    DateTimeStyles.AssumeUniversal);
+                            }
+                        }
+                        parameters.Clear();
+                        parameters.Add("list", "logevents");
+                        parameters.Add("letype", "delete");
+                        parameters.Add("lemlimit", "max");
+                        parameters.Add("lestart", start.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"));
+                        parameters.Add("ledir", "newer");
+                        parameters.Add("letitle", title);
+                        parameters.Add("leprop", "comment|type|user|timestamp");
+                        XmlDocument log = wiki.Enumerate(parameters, true);
+                        XmlNodeList items = log.SelectNodes("//item");
+                        List<DeleteLogEvent> events = new List<DeleteLogEvent>();
+                        foreach (XmlNode item in items)
+                        {
+                            DeleteLogEvent ev = new DeleteLogEvent();
+                            ev.Comment = item.Attributes["comment"].Value;
+                            ev.Deleted = item.Attributes["action"].Value == "delete";
+                            ev.User = item.Attributes["user"].Value;
+                            ev.Timestamp = DateTime.Parse(item.Attributes["timestamp"].Value,
+                                null,
                                 DateTimeStyles.AssumeUniversal);
+                            events.Add(ev);
+                        }
+                        events.Sort(CompareDeleteLogEvents);
+                        if (events.Count > 0 && events[0].Deleted)
+                        {
+                            Regex commentRE = new Regex(@"(.+?):&#32;(.+)");
+                            Match m = commentRE.Match(events[0].Comment);
+                            string comment;
+                            if (m.Success)
+                            {
+                                comment = m.Groups[1].Value;
+                            }
+                            else
+                            {
+                                comment = "<nowiki>" + events[0].Comment + "</nowiki>";
+                            }
+                            string message = string.Format(_l10i.AutoResultMessage,
+                                events[0].User,
+                                events[0].Timestamp.ToUniversalTime().ToString(_l10i.DateFormat),
+                                comment);
+                            if (!titles.ContainsKey(title))
+                            {
+                                continue;
+                            }
+                            foreach (WikiPageSection section in titles[title])
+                            {
+                                WikiPageSection verdict = new WikiPageSection(" " + _l10i.Result + " ",
+                                    section.Level + 1,
+                                    message);
+                                section.AddSubsection(verdict);
+                                StrikeOutSection(section);
+                                ++results;
+                            }
                         }
                     }
+                }
+                parameters.Clear();
+                parameters.Add("prop", "info");
+                xml = wiki.Query(QueryBy.Titles, parameters, titlesWithResults);
+                foreach (XmlNode node in xml.SelectNodes("//page"))
+                {
+                    if (node.Attributes["missing"] == null && node.Attributes["ns"].Value == "0")
+                    {
+                        notificationList.Add(node.Attributes["title"].Value);
+                    }
+                }
+                if (notificationList.Count > 0)
+                {
                     parameters.Clear();
-                    parameters.Add("list", "logevents");
-                    parameters.Add("letype", "delete");
-                    parameters.Add("lemlimit", "max");
-                    parameters.Add("lestart", start.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"));
-                    parameters.Add("ledir", "newer");
-                    parameters.Add("letitle", title);
-                    parameters.Add("leprop", "comment|type|user|timestamp");
-                    XmlDocument log = wiki.Enumerate(parameters, true);
-                    XmlNodeList items = log.SelectNodes("//item");
-                    List<DeleteLogEvent> events = new List<DeleteLogEvent>();
-                    foreach (XmlNode item in items)
+                    parameters.Add("list", "backlinks");
+                    parameters.Add("bltitle", pageName);
+                    parameters.Add("blfilterredir", "nonredirects");
+                    parameters.Add("blnamespace", "1");
+                    parameters.Add("bllimit", "max");
+
+                    XmlDocument backlinks = wiki.Enumerate(parameters, true);
+                    foreach (string title in notificationList)
                     {
-                        DeleteLogEvent ev = new DeleteLogEvent();
-                        ev.Comment = item.Attributes["comment"].Value;
-                        ev.Deleted = item.Attributes["action"].Value == "delete";
-                        ev.User = item.Attributes["user"].Value;
-                        ev.Timestamp = DateTime.Parse(item.Attributes["timestamp"].Value,
-                            null,
-                            DateTimeStyles.AssumeUniversal);
-                        events.Add(ev);
-                    }
-                    events.Sort(CompareDeleteLogEvents);
-                    if (events.Count > 0 && events[0].Deleted)
-                    {
-                        Regex commentRE = new Regex(@"(.+?):&#32;(.+)");
-                        Match m = commentRE.Match(events[0].Comment);
-                        string comment;
-                        if (m.Success)
+                        if (backlinks.SelectSingleNode("//bl") == null)
                         {
-                            comment = m.Groups[1].Value;
-                        }
-                        else
-                        {
-                            comment = "<nowiki>" + events[0].Comment + "</nowiki>";
-                        }
-                        string message = string.Format(_l10i.AutoResultMessage,
-                            events[0].User,
-                            events[0].Timestamp.ToUniversalTime().ToString(_l10i.DateFormat),
-                            comment);
-                        if (!titles.ContainsKey(title))
-                        {
-                            continue;
-                        }
-                        foreach (WikiPageSection section in titles[title])
-                        {
-                            WikiPageSection verdict = new WikiPageSection(" " + _l10i.Result + " ",
-                                section.Level + 1,
-                                message);
-                            section.AddSubsection(verdict);
-                            StrikeOutSection(section);
-                            ++results;
+                            PutNotification(wiki, title, date);
                         }
                     }
                 }
@@ -537,6 +573,27 @@ namespace Claymore.TalkCleanupWikiBot
                 catch (WikiException)
                 {
                 }
+            }
+        }
+
+        private void PutNotification(Wiki wiki, string title, string date)
+        {
+            string talkPage = "Обсуждение:" + title;
+            Console.Out.WriteLine("Updating " + talkPage + "...");
+            try
+            {
+                wiki.SavePage(talkPage,
+                    "",
+                    "{{Оставлено|" + date + "}}\n",
+                    "итог",
+                    MinorFlags.Minor,
+                    CreateFlags.None,
+                    WatchFlags.None,
+                    SaveFlags.Prepend);
+            }
+            catch (WikiException e)
+            {
+                Console.Out.WriteLine("Failed to update " + talkPage + ":" + e.Message);
             }
         }
 
@@ -612,6 +669,18 @@ namespace Claymore.TalkCleanupWikiBot
         static int CompareDeleteLogEvents(DeleteLogEvent x, DeleteLogEvent y)
         {
             return y.Timestamp.CompareTo(x.Timestamp);
+        }
+
+        private static List<WikiPageSection> SubsectionsList(WikiPageSection section,
+            List<WikiPageSection> aggregator)
+        {
+            Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
+            Match m = wikiLinkRE.Match(section.Title);
+            if (m.Success)
+            {
+                aggregator.Add(section);
+            }
+            return section.Reduce(aggregator, SubsectionsList);
         }
     }
 }
