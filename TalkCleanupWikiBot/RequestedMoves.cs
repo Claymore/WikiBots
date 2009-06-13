@@ -252,13 +252,8 @@ namespace Claymore.TalkCleanupWikiBot
                 string editToken = page.Attributes["edittoken"].Value;
 
                 Day day = new Day();
-                try
-                {
-                    day.Date = DateTime.Parse(date,
-                        CultureInfo.CreateSpecificCulture("ru-RU"),
-                        DateTimeStyles.AssumeUniversal);
-                }
-                catch (FormatException)
+                if (!DateTime.TryParse(date, CultureInfo.CreateSpecificCulture("ru-RU"),
+                        DateTimeStyles.AssumeUniversal, out day.Date))
                 {
                     continue;
                 }
@@ -294,6 +289,7 @@ namespace Claymore.TalkCleanupWikiBot
                 }
                 day.Page = WikiPage.Parse(pageName, text);
 
+                List<string> titlesWithResults = new List<string>();
                 foreach (WikiPageSection section in day.Page.Sections)
                 {
                     RemoveStrikeOut(section);
@@ -338,13 +334,75 @@ namespace Claymore.TalkCleanupWikiBot
                             StrikeOutSection(section);
                             ++results;
                         }
+                    }
 
-                        if (section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0)
+                    if (m.Success && section.Title.Contains("<s>"))
+                    {
+                        titlesWithResults.Add(m.Groups[1].Value);
+                    }
+                    List<WikiPageSection> sections = new List<WikiPageSection>();
+                    section.Reduce(sections, SubsectionsList);
+                    foreach (WikiPageSection subsection in sections)
+                    {
+                        m = wikiLinkRE.Match(subsection.Title);
+                        if (m.Success && subsection.Title.Contains("<s>"))
                         {
-                            PutNotifications(wiki, link, moved ? movedTo : "", date);
+                            titlesWithResults.Add(m.Groups[1].Value.Trim());
                         }
                     }
                 }
+
+                List<TalkResult> talkResults = new List<TalkResult>();
+                foreach (string name in titlesWithResults)
+                {
+                    if (wiki.PageNamespace(name) > 0)
+                    {
+                        continue;
+                    }
+                    string movedTo;
+                    string movedBy;
+                    DateTime movedAt;
+
+                    bool moved = MovedTo(wiki,
+                                   name,
+                                   day.Date,
+                                   out movedTo,
+                                   out movedBy,
+                                   out movedAt);
+                    talkResults.Add(new TalkResult(name, movedTo, moved));
+                }
+
+                parameters.Clear();
+                parameters.Add("prop", "info");
+                XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, talkResults.ConvertAll(r => r.Moved ? r.MovedTo : r.Title));
+                List<string> notificationList = new List<string>();
+                foreach (XmlNode node in xml.SelectNodes("//page"))
+                {
+                    if (node.Attributes["missing"] == null && node.Attributes["ns"].Value == "0")
+                    {
+                        notificationList.Add(node.Attributes["title"].Value);
+                    }
+                }
+                if (notificationList.Count > 0)
+                {
+                    parameters.Clear();
+                    parameters.Add("list", "backlinks");
+                    parameters.Add("bltitle", pageName);
+                    parameters.Add("blfilterredir", "nonredirects");
+                    parameters.Add("blnamespace", "1");
+                    parameters.Add("bllimit", "max");
+
+                    XmlDocument backlinks = wiki.Enumerate(parameters, true);
+                    foreach (string title in notificationList)
+                    {
+                        if (backlinks.SelectSingleNode("//bl[@title=\"Обсуждение:" + title + "\"]") == null)
+                        {
+                            TalkResult tr = talkResults.Find(r => r.Moved ? r.MovedTo == title : r.Title == title);
+                            PutNotification(wiki, tr, day.Date);
+                        }
+                    }
+                }
+
                 string newText = day.Page.Text;
                 if (newText.Trim() == text.Trim())
                 {
@@ -379,114 +437,36 @@ namespace Claymore.TalkCleanupWikiBot
             }
         }
 
-        private void PutNotifications(Wiki wiki, string link, string movedTo, string date)
+        private void PutNotification(Wiki wiki, TalkResult result, DateTime date)
         {
-            Regex re = new Regex(@"{{(к переименованию|К переименованию|ana|rename)\|" + date + @"(\|.+?)?}}");
-            string title = string.IsNullOrEmpty(movedTo) ? link : movedTo;
-            Regex templateRE = new Regex(@"^(Шаблон:|Template:)(.+)$");
-            Match m = templateRE.Match(title);
-            string talkPageTitle;
-            if (m.Success)
-            {
-                talkPageTitle = "Обсуждение шаблона:" + m.Groups[2].Value;
-            }
-            else
-            {
-                talkPageTitle = "Обсуждение:" + title;
-            }
-            List<string> titles = new List<string>();
-            titles.Add(title);
-            titles.Add(talkPageTitle);
-            string prefix;
             string talkPageTemplate;
-            if (string.IsNullOrEmpty(movedTo))
+            string dateString = date.ToString("d MMMM yyyy");
+            if (!result.Moved)
             {
-                talkPageTemplate = "{{Не переименовано|" + date + "|" + link + "}}\n";
-                prefix = "{{не переименовано|" + date;
+                talkPageTemplate = "{{Не переименовано|" + dateString + "|" + result.Title + "}}\n";
             }
             else
             {
-                talkPageTemplate = "{{Переименовано|" + date + "|" + link +
-                    "|" + movedTo + "}}\n";
-                prefix = "{{переименовано|" + date;
+                talkPageTemplate = "{{Переименовано|" + dateString + "|" + result.Title +
+                    "|" + result.MovedTo + "}}\n";
             }
 
-            ParameterCollection parameters = new ParameterCollection();
-            parameters.Add("prop", "templates");
-            XmlDocument doc = wiki.Query(QueryBy.Titles, parameters, titles);
-            XmlNodeList pages = doc.SelectNodes("//page[@title=\"" + titles[0] + "\"]");
-            if (doc.SelectSingleNode("//page[@title=\"" + titles[0] + "\" and @missing]") != null)
+            string talkPage = "Обсуждение:" + (result.Moved ? result.MovedTo : result.Title);
+            Console.Out.WriteLine("Updating " + talkPage + "...");
+            try
             {
-                return;
-            }
-            else
-            {
-                foreach (XmlNode page in pages)
-                {
-                    if (page.SelectSingleNode("//tl[@title=\"Шаблон:К переименованию\"]") != null)
-                    {
-                        string text = wiki.LoadPage(titles[0]);
-                        text = re.Replace(text, "");
-                        Console.Out.WriteLine("Updating " + titles[0] + "...");
-                        wiki.SavePage(titles[0], text, "есть итог");
-                        break;
-                    }
-                }
-            }
-
-            if (doc.SelectSingleNode("//page[@title=\"" + titles[1] + "\" and @missing]") != null)
-            {
-                Console.Out.WriteLine("Creating " + titles[1] + "...");
-                wiki.SavePage(titles[1],
+                wiki.SavePage(talkPage,
                     "",
                     talkPageTemplate,
-                    "итог переименования",
+                    "итог",
                     MinorFlags.Minor,
-                    CreateFlags.CreateOnly,
+                    CreateFlags.None,
                     WatchFlags.None,
-                    SaveFlags.Replace);
+                    SaveFlags.Prepend);
             }
-            else
+            catch (WikiException e)
             {
-                XmlNodeList talkPages = doc.SelectNodes("//page[@title=\"" + titles[1] + "\"]");
-                bool found = false;
-                foreach (XmlNode talkPage in talkPages)
-                {
-                    if (talkPage.SelectSingleNode("//tl[@title=\"Шаблон:Переименовано\"]") != null ||
-                        talkPage.SelectSingleNode("//tl[@title=\"Шаблон:Не переименовано\"]") != null)
-                    {
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found)
-                {
-                    Console.Out.WriteLine("Updating " + titles[1] + "...");
-                    wiki.SavePage(titles[1],
-                        "",
-                        talkPageTemplate,
-                        "итог переименования",
-                        MinorFlags.Minor,
-                        CreateFlags.None,
-                        WatchFlags.None,
-                        SaveFlags.Prepend);
-                }
-                else
-                {
-                    string text = wiki.LoadPage(titles[1]).ToLower(CultureInfo.CreateSpecificCulture("ru-RU"));
-                    if (!text.Contains(prefix))
-                    {
-                        Console.Out.WriteLine("Updating " + titles[1] + "...");
-                        wiki.SavePage(titles[1],
-                            "",
-                            talkPageTemplate,
-                            "итог переименования",
-                            MinorFlags.Minor,
-                            CreateFlags.None,
-                            WatchFlags.None,
-                            SaveFlags.Prepend);
-                    }
-                }
+                Console.Out.WriteLine("Failed to update " + talkPage + ":" + e.Message);
             }
         }
 
@@ -792,6 +772,20 @@ namespace Claymore.TalkCleanupWikiBot
                 Comment = comment;
                 Time = DateTime.Parse(time, null, DateTimeStyles.AssumeUniversal);
                 User = user;
+            }
+        }
+
+        private class TalkResult
+        {
+            public string Title { get; private set; }
+            public string MovedTo { get; private set; }
+            public bool Moved { get; private set; }
+
+            public TalkResult(string title, string movedTo, bool moved)
+            {
+                Title = title;
+                Moved = moved;
+                MovedTo = movedTo;
             }
         }
 

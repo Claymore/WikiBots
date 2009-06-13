@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Globalization;
+using System.IO;
 using System.Text.RegularExpressions;
 using Claymore.SharpMediaWiki;
 using TalkCleanupWikiBot.Properties;
-using System.IO;
 
 namespace Claymore.TalkCleanupWikiBot
 {
@@ -92,10 +92,14 @@ namespace Claymore.TalkCleanupWikiBot
             cleanupL10i.CloseComment = "закрито";
             cleanupL10i.ClosePage = ClosePageUk;
             cleanupL10i.MainPageSection = "0";
+            cleanupL10i.ArchiveTemplate = "Статті, що необхідно поліпшити";
+            cleanupL10i.ArchivePage = "Вікіпедія:Статті, що необхідно поліпшити/Архів/";
+            cleanupL10i.EmptyArchive = "обговорення не розпочато";
             
             Cleanup cleanup = new Cleanup(cleanupL10i);
             cleanup.Analyze(wiki);
             cleanup.UpdateMainPage(wiki);
+            cleanup.UpdateArchivePages(wiki);
 
             Console.Out.WriteLine("Done.");
         }
@@ -131,6 +135,11 @@ namespace Claymore.TalkCleanupWikiBot
                         wiki.CacheCookies(cookieFile);
                     }
                 }
+                if (!wiki.LoadNamespaces(@"Cache\ru\namespaces.dat"))
+                {
+                    wiki.GetNamespaces();
+                    wiki.SaveNamespaces(@"Cache\ru\namespaces.dat");
+                }
             }
             catch (WikiException e)
             {
@@ -142,14 +151,17 @@ namespace Claymore.TalkCleanupWikiBot
             CategoriesForDiscussion cat = new CategoriesForDiscussion();
             cat.Analyze(wiki);
             cat.UpdateMainPage(wiki);
+            cat.UpdateArchivePages(wiki);
 
             DeletionReview dr = new DeletionReview();
             dr.Analyze(wiki);
             dr.UpdateMainPage(wiki);
+            dr.UpdateArchivePages(wiki);
 
             ProposedSplits ps = new ProposedSplits();
             ps.Analyze(wiki);
             ps.UpdateMainPage(wiki);
+            ps.UpdateArchivePages(wiki);
 
             Cleanup.Localization cleanupL10i = new Cleanup.Localization();
             cleanupL10i.Language = "ru";
@@ -166,10 +178,14 @@ namespace Claymore.TalkCleanupWikiBot
             cleanupL10i.CloseComment = "обсуждение закрыто";
             cleanupL10i.ClosePage = ClosePageRu;
             cleanupL10i.MainPageSection = "1";
+            cleanupL10i.ArchiveTemplate = "Статьи, вынесенные на улучшение";
+            cleanupL10i.ArchivePage = "Википедия:К улучшению/Архив/";
+            cleanupL10i.EmptyArchive = "нет обсуждений";
 
             Cleanup cleanup = new Cleanup(cleanupL10i);
             cleanup.Analyze(wiki);
             cleanup.UpdateMainPage(wiki);
+            cleanup.UpdateArchivePages(wiki);
 
             ProposedMerges pm = new ProposedMerges();
             pm.UpdatePages(wiki);

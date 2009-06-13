@@ -400,10 +400,9 @@ namespace Claymore.TalkCleanupWikiBot
                             }
                         }
                     }
-                    else
                     {
                         Match m = wikiLinkRE.Match(section.Title);
-                        if (m.Success)
+                        if (m.Success && section.Title.Contains("<s>"))
                         {
                             titlesWithResults.Add(m.Groups[1].Value.Trim());
                         }
@@ -412,7 +411,7 @@ namespace Claymore.TalkCleanupWikiBot
                         foreach (WikiPageSection subsection in sections)
                         {
                             m = wikiLinkRE.Match(subsection.Title);
-                            if (m.Success)
+                            if (m.Success && subsection.Title.Contains("<s>"))
                             {
                                 titlesWithResults.Add(m.Groups[1].Value.Trim());
                             }
@@ -513,31 +512,36 @@ namespace Claymore.TalkCleanupWikiBot
                         }
                     }
                 }
-                parameters.Clear();
-                parameters.Add("prop", "info");
-                xml = wiki.Query(QueryBy.Titles, parameters, titlesWithResults);
-                foreach (XmlNode node in xml.SelectNodes("//page"))
-                {
-                    if (node.Attributes["missing"] == null && node.Attributes["ns"].Value == "0")
-                    {
-                        notificationList.Add(node.Attributes["title"].Value);
-                    }
-                }
-                if (notificationList.Count > 0)
+                if (_l10i.Processor == null)
                 {
                     parameters.Clear();
-                    parameters.Add("list", "backlinks");
-                    parameters.Add("bltitle", pageName);
-                    parameters.Add("blfilterredir", "nonredirects");
-                    parameters.Add("blnamespace", "1");
-                    parameters.Add("bllimit", "max");
-
-                    XmlDocument backlinks = wiki.Enumerate(parameters, true);
-                    foreach (string title in notificationList)
+                    parameters.Add("prop", "info");
+                    xml = wiki.Query(QueryBy.Titles, parameters, titlesWithResults);
+                    foreach (XmlNode node in xml.SelectNodes("//page"))
                     {
-                        if (backlinks.SelectSingleNode("//bl") == null)
+                        if (node.Attributes["missing"] == null &&
+                            node.Attributes["redirect"] == null &&
+                            node.Attributes["ns"].Value == "0")
                         {
-                            PutNotification(wiki, title, date);
+                            notificationList.Add(node.Attributes["title"].Value);
+                        }
+                    }
+                    if (notificationList.Count > 0)
+                    {
+                        parameters.Clear();
+                        parameters.Add("list", "backlinks");
+                        parameters.Add("bltitle", pageName);
+                        parameters.Add("blfilterredir", "nonredirects");
+                        parameters.Add("blnamespace", "1");
+                        parameters.Add("bllimit", "max");
+
+                        XmlDocument backlinks = wiki.Enumerate(parameters, true);
+                        foreach (string title in notificationList)
+                        {
+                            if (backlinks.SelectSingleNode("//bl[@title='Обсуждение:" + title + "']") == null)
+                            {
+                                PutNotification(wiki, title, date);
+                            }
                         }
                     }
                 }
