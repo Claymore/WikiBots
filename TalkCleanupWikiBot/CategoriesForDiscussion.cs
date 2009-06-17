@@ -17,11 +17,13 @@ namespace Claymore.TalkCleanupWikiBot
         private readonly string _language;
         private static readonly Regex _closedRE;
         private static readonly Regex _wikiLinkRE;
+        private static readonly Regex _clRE;
 
         static CategoriesForDiscussion()
         {
             _closedRE = new Regex(@"({{ВПОК-Навигация}}\s*{{(Закрыто|Closed|закрыто|closed)}})|({{(Закрыто|Closed|закрыто|closed)}}\s*{{ВПОК-Навигация}})");
             _wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
+            _clRE = new Regex(@"\{{2}(cl|ОБК)\|(.+?)\}{2}");
         }
 
         public CategoriesForDiscussion()
@@ -499,6 +501,12 @@ namespace Claymore.TalkCleanupWikiBot
                         subsection.Title = string.Format(" <s>{0}</s> ",
                             subsection.Title.Trim());
                     }
+                    m = _clRE.Match(subsection.Title);
+                    if (m.Success && !subsection.Title.Contains("<s>"))
+                    {
+                        subsection.Title = string.Format(" <s>{0}</s> ",
+                            subsection.Title.Trim());
+                    }
                 }
             }
             section.ForEach(StrikeOutSection);
@@ -524,6 +532,14 @@ namespace Claymore.TalkCleanupWikiBot
             if (m.Success)
             {
                 aggregator.Add(section);
+            }
+            else
+            {
+                m = _clRE.Match(section.Title);
+                if (m.Success)
+                {
+                    aggregator.Add(section);
+                }
             }
             return section.Reduce(aggregator, SubsectionsList);
         }
