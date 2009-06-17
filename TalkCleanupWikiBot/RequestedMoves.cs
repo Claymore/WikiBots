@@ -135,8 +135,10 @@ namespace Claymore.TalkCleanupWikiBot
                         string result = "";
                         RemoveStrikeOut(section);
                         StrikeOutSection(section);
-                        if (section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0 ||
-                            section.Title.Contains("<s>"))
+
+                        bool hasVerdict = section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0;
+                        bool hasAutoVerdict = section.Subsections.Count(s => s.Title.Trim() == "Автоматический итог") > 0;
+                        if (hasVerdict || hasAutoVerdict || section.Title.Contains("<s>"))
                         {
                             Match m = wikiLinkRE.Match(section.Title);
                             if (m.Success && !m.Groups[1].Value.StartsWith(":Категория:"))
@@ -151,7 +153,8 @@ namespace Claymore.TalkCleanupWikiBot
                                 }
                                 else if (moved)
                                 {
-                                    result = string.Format(" ''(переименовано в «[[{0}]]»)''", movedTo);
+                                    result = string.Format(" ''({1}переименовано в «[[{0}]]»)''",
+                                                movedTo, hasAutoVerdict ? "де-факто " : "");
                                 }
                                 else
                                 {
@@ -171,8 +174,9 @@ namespace Claymore.TalkCleanupWikiBot
                         foreach (WikiPageSection subsection in sections)
                         {
                             result = "";
-                            if (subsection.Subsections.Count(s => s.Title.Trim() == "Итог") > 0 ||
-                                subsection.Title.Contains("<s>"))
+                            hasVerdict = subsection.Subsections.Count(s => s.Title.Trim() == "Итог") > 0;
+                            hasAutoVerdict = subsection.Subsections.Count(s => s.Title.Trim() == "Автоматический итог") > 0;
+                            if (hasVerdict || hasAutoVerdict || subsection.Title.Contains("<s>"))
                             {
                                 Match m = wikiLinkRE.Match(subsection.Title);
                                 if (m.Success && !m.Groups[1].Value.StartsWith(":Категория:"))
@@ -187,7 +191,8 @@ namespace Claymore.TalkCleanupWikiBot
                                     }
                                     else if (moved)
                                     {
-                                        result = string.Format(" ''(переименовано в «[[{0}]]»)''", movedTo);
+                                        result = string.Format(" ''({1}переименовано в «[[{0}]]»)''",
+                                                movedTo, hasAutoVerdict ? "де-факто " : "");
                                     }
                                     else
                                     {
@@ -319,15 +324,24 @@ namespace Claymore.TalkCleanupWikiBot
                             out movedBy,
                             out movedAt);
 
+                        WikiPageSection autoVerdictSection = section.Subsections.FirstOrDefault(s => s.Title.Trim() == "Автоматический итог");
+                        if (autoVerdictSection != null && !moved)
+                        {
+                            autoVerdictSection.Title = " Оспоренный итог ";
+                            RemoveStrikeOut(section);
+                            StrikeOutSection(section);
+                        }
+
                         if (section.Subsections.Count(s => s.Title.Trim() == "Оспоренный итог") == 0 &&
                             section.Subsections.Count(s => s.Title.Trim() == "Итог") == 0 &&
+                            section.Subsections.Count(s => s.Title.Trim() == "Автоматический итог") == 0 &&
                             moved && !string.IsNullOrEmpty(movedTo))
                         {
                             string message = string.Format("Страница была переименована {2} в «[[{0}]]» участником [[User:{1}|]]. Данное сообщение было автоматически сгенерировано ботом ~~~~.\n",
                                     movedTo,
                                     movedBy,
                                     movedAt.ToUniversalTime().ToString("d MMMM yyyy в HH:mm (UTC)"));
-                            WikiPageSection verdict = new WikiPageSection(" Итог ",
+                            WikiPageSection verdict = new WikiPageSection(" Автоматический итог ",
                                 section.Level + 1,
                                 message);
                             section.AddSubsection(verdict);
@@ -348,6 +362,48 @@ namespace Claymore.TalkCleanupWikiBot
                         if (m.Success && subsection.Title.Contains("<s>"))
                         {
                             titlesWithResults.Add(m.Groups[1].Value.Trim());
+                        }
+                        if (m.Success &&
+                            !subsection.Title.Contains("<s>") &&
+                            !m.Groups[1].Value.StartsWith(":Категория:"))
+                        {
+                            string link = m.Groups[1].Value;
+                            string movedTo;
+                            string movedBy;
+                            DateTime movedAt;
+
+                            DateTime start = day.Date;
+                            bool moved = MovedTo(wiki,
+                                link,
+                                start,
+                                out movedTo,
+                                out movedBy,
+                                out movedAt);
+
+                            WikiPageSection verdictSection = subsection.Subsections.FirstOrDefault(s => s.Title.Trim() == "Автоматический итог");
+                            if (verdictSection != null && !moved)
+                            {
+                                verdictSection.Title = " Оспоренный итог ";
+                                RemoveStrikeOut(subsection);
+                                StrikeOutSection(subsection);
+                            }
+
+                            if (subsection.Subsections.Count(s => s.Title.Trim() == "Оспоренный итог") == 0 &&
+                                subsection.Subsections.Count(s => s.Title.Trim() == "Итог") == 0 &&
+                                subsection.Subsections.Count(s => s.Title.Trim() == "Автоматический итог") == 0 &&
+                                moved && !string.IsNullOrEmpty(movedTo))
+                            {
+                                string message = string.Format("Страница была переименована {2} в «[[{0}]]» участником [[User:{1}|]]. Данное сообщение было автоматически сгенерировано ботом ~~~~.\n",
+                                        movedTo,
+                                        movedBy,
+                                        movedAt.ToUniversalTime().ToString("d MMMM yyyy в HH:mm (UTC)"));
+                                WikiPageSection verdict = new WikiPageSection(" Автоматический итог ",
+                                    subsection.Level + 1,
+                                    message);
+                                subsection.AddSubsection(verdict);
+                                StrikeOutSection(subsection);
+                                ++results;
+                            }
                         }
                     }
                 }
@@ -598,8 +654,9 @@ namespace Claymore.TalkCleanupWikiBot
                         {
                             string filler = "";
                             string result = "";
-                            if (section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0 ||
-                                section.Title.Contains("<s>"))
+                            bool hasVerdict = section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0;
+                            bool hasAutoVerdict = section.Subsections.Count(s => s.Title.Trim() == "Автоматический итог") > 0;
+                            if (hasVerdict || hasAutoVerdict || section.Title.Contains("<s>"))
                             {
                                 Match m = wikiLinkRE.Match(section.Title);
                                 if (m.Success && !m.Groups[1].Value.StartsWith(":Категория:"))
@@ -614,7 +671,8 @@ namespace Claymore.TalkCleanupWikiBot
                                     }
                                     else if (moved)
                                     {
-                                        result = string.Format(" ''(переименовано в «[[{0}]]»)''", movedTo);
+                                        result = string.Format(" ''({1}переименовано в «[[{0}]]»)''",
+                                                movedTo, hasAutoVerdict ? "де-факто " : "");
                                     }
                                     else
                                     {
@@ -634,8 +692,9 @@ namespace Claymore.TalkCleanupWikiBot
                             foreach (WikiPageSection subsection in sections)
                             {
                                 result = "";
-                                if (subsection.Subsections.Count(s => s.Title.Trim() == "Итог") > 0 ||
-                                    subsection.Title.Contains("<s>"))
+                                hasVerdict = subsection.Subsections.Count(s => s.Title.Trim() == "Итог") > 0;
+                                hasAutoVerdict = subsection.Subsections.Count(s => s.Title.Trim() == "Автоматический итог") > 0;
+                                if (hasVerdict || hasAutoVerdict || subsection.Title.Contains("<s>"))
                                 {
                                     Match m = wikiLinkRE.Match(subsection.Title);
                                     if (m.Success && !m.Groups[1].Value.StartsWith(":Категория:"))
@@ -650,7 +709,8 @@ namespace Claymore.TalkCleanupWikiBot
                                         }
                                         else if (moved)
                                         {
-                                            result = string.Format(" ''(переименовано в «[[{0}]]»)''", movedTo);
+                                            result = string.Format(" ''({1}переименовано в «[[{0}]]»)''",
+                                                movedTo, hasAutoVerdict ? "де-факто " : "");
                                         }
                                         else
                                         {
@@ -803,7 +863,8 @@ namespace Claymore.TalkCleanupWikiBot
         {
             Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
 
-            if (section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0)
+            if (section.Subsections.Count(s => s.Title.Trim() == "Итог" ||
+                s.Title.Trim() == "Автоматический итог") > 0)
             {
                 if (!section.Title.Contains("<s>"))
                 {
@@ -826,7 +887,8 @@ namespace Claymore.TalkCleanupWikiBot
 
         private void RemoveStrikeOut(WikiPageSection section)
         {
-            if (section.Subsections.Count(s => s.Title.Trim() == "Итог") == 0)
+            if (section.Subsections.Count(s => s.Title.Trim() == "Итог") == 0 &&
+                section.Subsections.Count(s => s.Title.Trim() == "Автоматический итог") == 0)
             {
                 if (section.Title.Contains("<s>"))
                 {

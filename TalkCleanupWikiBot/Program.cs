@@ -219,9 +219,9 @@ namespace Claymore.TalkCleanupWikiBot
             afd.UpdateArchive(wiki);
 
             RequestedMoves rm = new RequestedMoves();
+            rm.UpdatePages(wiki);
             rm.Analyze(wiki);
             rm.UpdateMainPage(wiki);
-            rm.UpdatePages(wiki);
             //rm.UpdateArchive(wiki, 2009, 2);
             //rm.UpdateArchive(wiki, 2009, 1);
 
