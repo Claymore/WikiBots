@@ -123,6 +123,7 @@ namespace Claymore.NewPagesWikiBot
                     new FeaturedArticleCandidates("Япония", "Портал:Япония/Кандидаты в избранные статьи", "* [[{0}]]"),
                     new GoodArticleCandidates("Япония", "Портал:Япония/Кандидаты в хорошие статьи", "* [[{0}]]"),
                 }),
+                //new Portal("Ядро энцкиплопедии", new IPortalModule[] { new EncyShell("Cache\\EncyShell") }),
             };
 
             for (int i = 0; i < portals.Count; ++i)
