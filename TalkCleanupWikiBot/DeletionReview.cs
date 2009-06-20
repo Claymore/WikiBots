@@ -45,13 +45,9 @@ namespace Claymore.TalkCleanupWikiBot
                 string date = pageName.Substring("Википедия:К восстановлению/".Length);
                 DateTime cutOffDate = new DateTime(2008, 11, 13);
                 Day day = new Day();
-                try
-                {
-                    day.Date = DateTime.Parse(date,
+                if (!DateTime.TryParse(date,
                         CultureInfo.CreateSpecificCulture("ru-RU"),
-                        DateTimeStyles.AssumeUniversal);
-                }
-                catch (FormatException)
+                        DateTimeStyles.AssumeUniversal, out day.Date))
                 {
                     continue;
                 }

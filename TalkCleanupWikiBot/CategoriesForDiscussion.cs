@@ -528,17 +528,24 @@ namespace Claymore.TalkCleanupWikiBot
         private static List<WikiPageSection> SubsectionsList(WikiPageSection section,
             List<WikiPageSection> aggregator)
         {
-            Match m = _wikiLinkRE.Match(section.Title);
-            if (m.Success)
+            if (section.Level < 4)
             {
                 aggregator.Add(section);
             }
             else
             {
-                m = _clRE.Match(section.Title);
+                Match m = _wikiLinkRE.Match(section.Title);
                 if (m.Success)
                 {
                     aggregator.Add(section);
+                }
+                else
+                {
+                    m = _clRE.Match(section.Title);
+                    if (m.Success)
+                    {
+                        aggregator.Add(section);
+                    }
                 }
             }
             return section.Reduce(aggregator, SubsectionsList);
