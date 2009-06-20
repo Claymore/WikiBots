@@ -78,6 +78,12 @@ namespace Claymore.NewPagesWikiBot
                 new Portal("Религия", new IPortalModule[] { new NewPages("Тула", "Портал:Тула/Новые статьи", 20, "# [[{0}]]") }),
                 new Portal("Религия", new IPortalModule[] { new NewPages("Белоруссия", "Портал:Белоруссия/Новые статьи", 15, "* [[{0}]]") }),
                 new Portal("Литература", new IPortalModule[] { new NewPages("Литература", "Портал:Литература/Новые статьи", 25, "* [[{0}]]") }),
+                new Portal("Кино", new IPortalModule[]
+                    {
+                        new NewPages("Кинематограф", "Портал:Кино/Новые статьи о кинематографе"),
+                        new NewPages("Кинематографисты", "Портал:Кино/Новые статьи о персоналиях"),
+                        new NewPages("Фильмы", "Портал:Кино/Новые статьи о фильмах"),
+                    }),
 
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Древний Восток", "Портал:Древний Восток/Новые статьи", 25, "* [[{0}]] — [[User:{1}|]] {2}", "d MMMM yyyy") }),
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Индеанистика", "Портал:Индейцы/Новые статьи", 20, "* [[{0}]] <small>— [[User:{1}|]] {2}</small>", "d MMMM yyyy") }),
@@ -123,7 +129,7 @@ namespace Claymore.NewPagesWikiBot
                     new FeaturedArticleCandidates("Япония", "Портал:Япония/Кандидаты в избранные статьи", "* [[{0}]]"),
                     new GoodArticleCandidates("Япония", "Портал:Япония/Кандидаты в хорошие статьи", "* [[{0}]]"),
                 }),
-                //new Portal("Ядро энцкиплопедии", new IPortalModule[] { new EncyShell("Cache\\EncyShell") }),
+                new Portal("Ядро энцкиплопедии", new IPortalModule[] { new EncyShell("Cache\\EncyShell") }),
             };
 
             for (int i = 0; i < portals.Count; ++i)

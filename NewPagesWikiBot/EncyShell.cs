@@ -35,7 +35,7 @@ namespace Claymore.NewPagesWikiBot
                 if (line.StartsWith("| "))
                 {
                     string[] properties = line.Split(new string[] { "||" }, StringSplitOptions.None);
-                    string name = properties[1].Trim();
+                    string name = properties[2].Trim();
                     name = name.Replace("[[", "").Replace("]]", "");
                     if (!names.Contains(name))
                     {
@@ -167,12 +167,31 @@ namespace Claymore.NewPagesWikiBot
             using (TextWriter streamWriter = new StreamWriter(_directory + "\\output.txt"))
             {
                 streamWriter.WriteLine("{| class=\"wikitable sortable\" |");
-                streamWriter.WriteLine("!  !! Название !! Размер");
+                streamWriter.WriteLine("! № !! !! Название !! Размер");
 
-                foreach (Item item in items)
+                for (int i = 0; i < items.Count; ++i)
                 {
-                    streamWriter.WriteLine("|-");
-                    streamWriter.WriteLine(string.Format("| {2} || [[{0}]] || {1}", item.Name, item.Size, item.GetTemplate()));
+                    string style;
+                    Item item = items[i];
+                    if (item.Size < 10 * 1024)
+                    {
+                        style = " bgcolor=#FFE8E9";
+                    }
+                    else if (item.Size < 30 * 1024)
+                    {
+                        style = " bgcolor=#FFFDE8";
+                    }
+                    else
+                    {
+                        style = "";
+                    }
+                    streamWriter.WriteLine("|-" + style);
+                    streamWriter.WriteLine(string.Format("| {3} || {2} || [[{0}]] || {1}",
+                        item.Name,
+                        item.Size,
+                        item.GetTemplate(),
+                        i + 1,
+                        style));
                 }
                 streamWriter.WriteLine("|}");
             }
