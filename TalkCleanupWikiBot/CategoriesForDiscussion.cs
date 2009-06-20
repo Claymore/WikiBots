@@ -128,9 +128,13 @@ namespace Claymore.TalkCleanupWikiBot
                     }
                     if (titles.Count(s => s.Contains("=")) > 0)
                     {
-                        titles[0] = "2=<li>" + titles[0].Substring(2) + "</li>";
+                        titles[0] = "2=<div>" + titles[0].Substring(2);
                     }
                     sw.Write(string.Join("\n", titles.ConvertAll(c => c).ToArray()));
+                    if (titles.Count(s => s.Contains("=")) > 0)
+                    {
+                        sw.Write("</div>");
+                    }
                     sw.Write("}}\n\n");
                 }
 
@@ -284,9 +288,13 @@ namespace Claymore.TalkCleanupWikiBot
                     }
                     if (sectionTitles.Count(s => s.Contains("=")) > 0)
                     {
-                        sectionTitles[0] = "2=<li>" + sectionTitles[0].Substring(2) + "</li>";
+                        sectionTitles[0] = "2=<div>" + sectionTitles[0].Substring(2);
                     }
                     textBuilder.Append(string.Join("\n", sectionTitles.ConvertAll(c => c).ToArray()));
+                    if (sectionTitles.Count(s => s.Contains("=")) > 0)
+                    {
+                        textBuilder.Append("</div>");
+                    }
                     textBuilder.Append("}}\n\n");
                     textBuilder.AppendLine("|}");
 
@@ -437,9 +445,13 @@ namespace Claymore.TalkCleanupWikiBot
                     }
                     if (sectionTitles.Count(s => s.Contains("=")) > 0)
                     {
-                        sectionTitles[0] = "2=<li>" + sectionTitles[0].Substring(2) + "</li>";
+                        sectionTitles[0] = "2=<div>" + sectionTitles[0].Substring(2);
                     }
                     sb.Append(string.Join("\n", sectionTitles.ConvertAll(c => c).ToArray()));
+                    if (sectionTitles.Count(s => s.Contains("=")) > 0)
+                    {
+                        sb.Append("</div>");
+                    }
                     sb.Append("}}\n\n");
                 }
 
