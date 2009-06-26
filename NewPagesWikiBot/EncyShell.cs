@@ -173,11 +173,11 @@ namespace Claymore.NewPagesWikiBot
                 {
                     string style;
                     Item item = items[i];
-                    if (item.Size < 10 * 1024)
+                    if (item.Size < 10 * 1000)
                     {
                         style = " bgcolor=#FFE8E9";
                     }
-                    else if (item.Size < 30 * 1024)
+                    else if (item.Size < 30 * 1000)
                     {
                         style = " bgcolor=#FFFDE8";
                     }

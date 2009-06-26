@@ -74,6 +74,7 @@ namespace Claymore.NewPagesWikiBot
                 new Portal("Религия", new IPortalModule[] { new NewPages("Каталония", "Портал:Каталония/Новые статьи") }),
                 new Portal("Религия", new IPortalModule[] { new NewPages("Камбоджа", "Портал:Камбоджа/Новые статьи") }),
                 new Portal("Религия", new IPortalModule[] { new NewPages("Таиланд", "Портал:Таиланд/Новые статьи") }),
+                new Portal("Татарстан", new IPortalModule[] { new NewPages("Татарстан", "Портал:Татарстан/Новые статьи") }),
                 new Portal("Религия", new IPortalModule[] { new NewPages("Православие", "Портал:Православие/Новые статьи", 25, "# [[{0}]]") }),
                 new Portal("Религия", new IPortalModule[] { new NewPages("Тула", "Портал:Тула/Новые статьи", 20, "# [[{0}]]") }),
                 new Portal("Религия", new IPortalModule[] { new NewPages("Белоруссия", "Портал:Белоруссия/Новые статьи", 15, "* [[{0}]]") }),
@@ -85,6 +86,7 @@ namespace Claymore.NewPagesWikiBot
                         new NewPages("Фильмы", "Портал:Кино/Новые статьи о фильмах"),
                     }),
 
+                new Portal("Украинский футбол", new IPortalModule[] { new NewPagesWithAuthors("Футбол на Украине", "Портал:Украинский футбол/Новые статьи", 20, "* {2} — [[{0}]]", "d MMMM yyyy") }),
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Древний Восток", "Портал:Древний Восток/Новые статьи", 25, "* [[{0}]] — [[User:{1}|]] {2}", "d MMMM yyyy") }),
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Индеанистика", "Портал:Индейцы/Новые статьи", 20, "* [[{0}]] <small>— [[User:{1}|]] {2}</small>", "d MMMM yyyy") }),
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Доисторическая Европа", "Портал:Доисторическая Европа/Новые статьи", 25, "* [[{0}]] — [[User:{1}|]] {2}", "d MMMM yyyy") }),
