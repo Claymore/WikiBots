@@ -511,14 +511,56 @@ namespace Claymore.TalkCleanupWikiBot
             Console.Out.WriteLine("Updating " + talkPage + "...");
             try
             {
+                ParameterCollection parameters = new ParameterCollection();
+                parameters.Add("rvprop", "content");
+                parameters.Add("rvsection", "0)");
+                parameters.Add("prop", "revisions");
+                XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, new string[] { talkPage });
+                string content;
+                XmlNode node = xml.SelectSingleNode("//rev");
+                if (node != null)
+                {
+                    content = node.FirstChild.Value;
+                }
+                else
+                {
+                    content = "";
+                }
+
+                int index = content.IndexOf("{{talkheader", StringComparison.CurrentCultureIgnoreCase);
+                if (index != -1)
+                {
+                    int endIndex = content.IndexOf("}}", index);
+                    if (endIndex != -1)
+                    {
+                        content = content.Insert(endIndex + 2, "\n" + talkPageTemplate);
+                    }
+                }
+                else
+                {
+                    index = content.IndexOf("{{заголовок обсуждения", StringComparison.CurrentCultureIgnoreCase);
+                    if (index != -1)
+                    {
+                        int endIndex = content.IndexOf("}}", index);
+                        if (endIndex != -1)
+                        {
+                            content = content.Insert(endIndex + 2, "\n" + talkPageTemplate);
+                        }
+                    }
+                    else
+                    {
+                        content = content.Insert(0, talkPageTemplate);
+                    }
+                }
+
                 wiki.SavePage(talkPage,
-                    "",
-                    talkPageTemplate,
+                    "0",
+                    content,
                     "итог",
                     MinorFlags.Minor,
                     CreateFlags.None,
                     WatchFlags.None,
-                    SaveFlags.Prepend);
+                    SaveFlags.Replace);
             }
             catch (WikiException e)
             {

@@ -4,10 +4,10 @@ using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 using Claymore.SharpMediaWiki;
-using System.Text;
 
 namespace Claymore.TalkCleanupWikiBot
 {
