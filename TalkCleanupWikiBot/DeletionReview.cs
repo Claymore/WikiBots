@@ -97,6 +97,47 @@ namespace Claymore.TalkCleanupWikiBot
 
             days.Sort(CompareDays);
 
+            Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
+            List<string> sectionTitles = new List<string>();
+            foreach (Day day in days)
+            {
+                foreach (WikiPageSection section in day.Page.Sections)
+                {
+                    RemoveStrikeOut(section);
+                    StrikeOutSection(section);
+                    bool hasVerdict = section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0;
+                    bool hasAutoVerdict = section.Subsections.Count(s => s.Title.Trim() == "Автоматический итог") > 0;
+                    if (hasVerdict || hasAutoVerdict || section.Title.Contains("<s>"))
+                    {
+                        Match m = wikiLinkRE.Match(section.Title);
+                        if (m.Success)
+                        {
+                            sectionTitles.Add(m.Groups[1].Value);
+                        }
+                    }
+
+                    List<WikiPageSection> sections = new List<WikiPageSection>();
+                    section.Reduce(sections, SubsectionsList);
+                    foreach (WikiPageSection subsection in sections)
+                    {
+                        hasVerdict = subsection.Subsections.Count(s => s.Title.Trim() == "Итог") > 0;
+                        hasAutoVerdict = subsection.Subsections.Count(s => s.Title.Trim() == "Автоматический итог") > 0;
+                        if (hasVerdict || hasAutoVerdict || subsection.Title.Contains("<s>"))
+                        {
+                            Match m = wikiLinkRE.Match(subsection.Title);
+                            if (m.Success)
+                            {
+                                sectionTitles.Add(m.Groups[1].Value);
+                            }
+                        }
+                    }
+                }
+            }
+
+            parameters.Clear();
+            parameters.Add("prop", "info");
+            XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, sectionTitles);
+
             using (StreamWriter sw =
                         new StreamWriter(_cacheDir + "MainPage.txt"))
             {
@@ -110,20 +151,67 @@ namespace Claymore.TalkCleanupWikiBot
                     List<string> titles = new List<string>();
                     foreach (WikiPageSection section in day.Page.Sections)
                     {
+                        string result = "";
                         string filler = "";
                         RemoveStrikeOut(section);
                         StrikeOutSection(section);
+
+                        bool hasVerdict = section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0;
+                        bool hasAutoVerdict = section.Subsections.Count(s => s.Title.Trim() == "Автоматический итог") > 0;
+                        if (hasVerdict || hasAutoVerdict || section.Title.Contains("<s>"))
+                        {
+                            Match m = wikiLinkRE.Match(section.Title);
+                            if (m.Success)
+                            {
+                                string link = m.Groups[1].Value;
+                                XmlNode node = xml.SelectSingleNode("//page[@title='" + link + "']");
+                                if (node != null)
+                                {
+                                    if (node.Attributes["missing"] == null)
+                                    {
+                                        result = " ''(восстановлено)''";
+                                    }
+                                    else
+                                    {
+                                        result = " ''(не восстановлено)''";
+                                    }
+                                }
+                            }
+                        }
 
                         for (int i = 0; i < section.Level - 1; ++i)
                         {
                             filler += "*";
                         }
-                        titles.Add(filler + " " + section.Title.Trim());
+                        titles.Add(filler + " " + section.Title.Trim() + result);
 
                         List<WikiPageSection> sections = new List<WikiPageSection>();
                         section.Reduce(sections, SubsectionsList);
                         foreach (WikiPageSection subsection in sections)
                         {
+                            result = "";
+                            hasVerdict = subsection.Subsections.Count(s => s.Title.Trim() == "Итог") > 0;
+                            hasAutoVerdict = subsection.Subsections.Count(s => s.Title.Trim() == "Автоматический итог") > 0;
+                            if (hasVerdict || hasAutoVerdict || subsection.Title.Contains("<s>"))
+                            {
+                                Match m = wikiLinkRE.Match(subsection.Title);
+                                if (m.Success)
+                                {
+                                    string link = m.Groups[1].Value;
+                                    XmlNode node = xml.SelectSingleNode("//page[@title='" + link + "']");
+                                    if (node != null)
+                                    {
+                                        if (node.Attributes["missing"] == null)
+                                        {
+                                            result = " ''(восстановлено)''";
+                                        }
+                                        else
+                                        {
+                                            result = " ''(не восстановлено)''";
+                                        }
+                                    }
+                                }
+                            }
                             filler = "";
                             for (int i = 0; i < subsection.Level - 1; ++i)
                             {
@@ -134,9 +222,13 @@ namespace Claymore.TalkCleanupWikiBot
                     }
                     if (titles.Count(s => s.Contains("=")) > 0)
                     {
-                        titles[0] = "2=<li>" + titles[0].Substring(2) + "</li>";
+                        titles[0] = "2=<div>" + titles[0].Substring(2);
                     }
                     sw.Write(string.Join("\n", titles.ConvertAll(c => c).ToArray()));
+                    if (titles.Count(s => s.Contains("=")) > 0)
+                    {
+                        sw.Write("</div>");
+                    }
                     sw.Write("}}\n\n");
                 }
 
