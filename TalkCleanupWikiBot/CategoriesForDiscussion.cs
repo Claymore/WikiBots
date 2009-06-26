@@ -192,148 +192,7 @@ namespace Claymore.TalkCleanupWikiBot
             minDate = new DateTime(minDate.Year, minDate.Month, 1);
             DateTime currentMonth = new DateTime(DateTime.Today.Year,
                 DateTime.Today.Month, 1);
-            DateTime start = minDate;
-            while (start <= currentMonth)
-            {
-                string date = start.ToString("MMMM yyyy");
-                string pageName = "Википедия:Обсуждение категорий/Архив/" + date;
-                titles.Add(pageName);
-                start = start.AddMonths(1);
-            }
-
-            parameters.Clear();
-            parameters.Add("prop", "info");
-
-            XmlDocument archivesDoc = wiki.Query(QueryBy.Titles, parameters, titles);
-            pages = archivesDoc.SelectNodes("//page");
-            foreach (XmlNode archivePage in pages)
-            {
-                string archiveName = archivePage.Attributes["title"].Value;
-                string date = archiveName.Substring("Википедия:Обсуждение категорий/Архив/".Length);
-                DateTime archiveDate;
-                if (!DateTime.TryParse(date,
-                        CultureInfo.CreateSpecificCulture("ru-RU"),
-                        DateTimeStyles.AssumeUniversal, out archiveDate))
-                {
-                    continue;
-                }
-
-                string fileName = _cacheDir + "Archive-" + date + ".txt";
-
-                string pageTitle = "Википедия:Обсуждение категорий/" + date.Substring(0, 1).ToLower() + date.Substring(1);
-                parameters.Clear();
-                parameters.Add("prop", "info");
-
-                List<Day> days = new List<Day>();
-                XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, new string[] { pageTitle });
-                XmlNodeList archives = xml.SelectNodes("//page");
-                foreach (XmlNode page in archives)
-                {
-                    string pageName = page.Attributes["title"].Value;
-                    string dateString = pageName.Substring("Википедия:Обсуждение категорий/".Length);
-
-                    string pageFileName = _cacheDir + dateString + ".bin";
-                    Day day = new Day();
-
-                    if (!DateTime.TryParse(dateString,
-                        CultureInfo.CreateSpecificCulture("ru-RU"),
-                        DateTimeStyles.AssumeUniversal, out day.Date))
-                    {
-                        continue;
-                    }
-
-                    if (page.Attributes["missing"] != null)
-                    {
-                        continue;
-                    }
-
-                    string text = LoadPageFromCache(pageFileName,
-                        page.Attributes["lastrevid"].Value, pageName);
-
-                    if (string.IsNullOrEmpty(text))
-                    {
-                        Console.Out.WriteLine("Downloading " + pageName + "...");
-                        text = wiki.LoadPage(pageName);
-                        CachePage(pageFileName, page.Attributes["lastrevid"].Value, text);
-                    }
-                    day.Page = WikiPage.Parse(pageName, text);
-
-                    StringBuilder textBuilder = new StringBuilder();
-                    textBuilder.AppendLine("{{Википедия:Обсуждение категорий/Обсуждаемые категории}}\n");
-                    textBuilder.Append("{{Википедия:Обсуждение категорий/Месяц|" + day.Date.ToString("yyyy-M") + "|\n");
-                    List<string> sectionTitles = new List<string>();
-                    foreach (WikiPageSection section in day.Page.Sections)
-                    {
-                        string filler = "";
-                        RemoveStrikeOut(section);
-                        StrikeOutSection(section);
-
-                        for (int i = 0; i < section.Level - 1; ++i)
-                        {
-                            filler += "*";
-                        }
-                        sectionTitles.Add(filler + " " + section.Title.Trim());
-
-                        List<WikiPageSection> sections = new List<WikiPageSection>();
-                        section.Reduce(sections, SubsectionsList);
-                        foreach (WikiPageSection subsection in sections)
-                        {
-                            filler = "";
-                            for (int i = 0; i < subsection.Level - 1; ++i)
-                            {
-                                filler += "*";
-                            }
-                            sectionTitles.Add(filler + " " + subsection.Title.Trim());
-                        }
-                    }
-                    if (sectionTitles.Count(s => s.Contains("=")) > 0)
-                    {
-                        sectionTitles[0] = "2=<div>" + sectionTitles[0].Substring(2);
-                    }
-                    textBuilder.Append(string.Join("\n", sectionTitles.ConvertAll(c => c).ToArray()));
-                    if (sectionTitles.Count(s => s.Contains("=")) > 0)
-                    {
-                        textBuilder.Append("</div>");
-                    }
-                    textBuilder.Append("}}\n\n");
-                    textBuilder.AppendLine("|}");
-
-                    textBuilder.Replace("<s>", "");
-                    textBuilder.Replace("</s>", "");
-                    textBuilder.Replace("<strike>", "");
-                    textBuilder.Replace("</strike>", "");
-
-                    if (File.Exists(fileName))
-                    {
-                        using (TextReader sr = new StreamReader(fileName))
-                        {
-                            string txt = sr.ReadToEnd();
-                            if (txt == textBuilder.ToString())
-                            {
-                                continue;
-                            }
-                        }
-                    }
-
-                    Console.Out.WriteLine("Updating " + archiveName + "...");
-                    wiki.SavePage(archiveName,
-                        "",
-                        textBuilder.ToString(),
-                        "обновление",
-                        MinorFlags.Minor,
-                        CreateFlags.None,
-                        WatchFlags.None,
-                        SaveFlags.Replace);
-                    using (StreamWriter sw =
-                            new StreamWriter(fileName))
-                    {
-                        sw.Write(textBuilder.ToString());
-                    }
-                }
-            }
-
-            titles.Clear();
-            start = new DateTime(minDate.Year, 1, 1);
+            DateTime start = new DateTime(minDate.Year, 1, 1);
             while (start <= currentMonth)
             {
                 string date = start.ToString("yyyy");
@@ -345,7 +204,7 @@ namespace Claymore.TalkCleanupWikiBot
             parameters.Clear();
             parameters.Add("prop", "info");
 
-            archivesDoc = wiki.Query(QueryBy.Titles, parameters, titles);
+            XmlDocument archivesDoc = wiki.Query(QueryBy.Titles, parameters, titles);
             pages = archivesDoc.SelectNodes("//page");
             foreach (XmlNode archivePage in pages)
             {
@@ -367,7 +226,7 @@ namespace Claymore.TalkCleanupWikiBot
                     string pageDate = start.ToString("MMMM yyyy",
                         CultureInfo.CreateSpecificCulture("ru-RU"));
                     string prefix = "Википедия:Обсуждение категорий/";
-                    string pageName = prefix + pageDate.Substring(0, 1).ToLower() + pageDate.Substring(1);
+                    string pageName = prefix + pageDate;
                     titles.Add(pageName);
 
                     start = start.AddMonths(1);
