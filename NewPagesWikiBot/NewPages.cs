@@ -29,7 +29,7 @@ namespace Claymore.NewPagesWikiBot
             Hours = 720;
         }
 
-        public void GetData(Wiki wiki)
+        public virtual void GetData(Wiki wiki)
         {
             Console.Out.WriteLine("Downloading data for " + Category);
             string url = string.Format("http://toolserver.org/~daniel/WikiSense/CategoryIntersect.php?wikilang=ru&wikifam=.wikipedia.org&basecat={0}&basedeep=7&mode=rc&hours={1}&onlynew=on&go=Сканировать&format=csv&userlang=ru",

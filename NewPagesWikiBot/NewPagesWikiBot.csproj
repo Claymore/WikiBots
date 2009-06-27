@@ -50,6 +50,7 @@
     <Compile Include="CategoryTemplateIntersection.cs" />
     <Compile Include="EncyShell.cs" />
     <Compile Include="NewPages.cs" />
+    <Compile Include="NewPagesWithArchive.cs" />
     <Compile Include="Portal.cs" />
     <Compile Include="NewPagesWithAuthors.cs" />
     <Compile Include="NewPagesWithImages.cs" />

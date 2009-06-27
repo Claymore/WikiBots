@@ -87,7 +87,11 @@ namespace Claymore.NewPagesWikiBot
                         new NewPages("Фильмы", "Портал:Кино/Новые статьи о фильмах"),
                     }),
 
-                new Portal("Украинский футбол", new IPortalModule[] { new NewPagesWithAuthors("Футбол на Украине", "Портал:Украинский футбол/Новые статьи", 20, "* {2} — [[{0}]]", "d MMMM yyyy") }),
+                new Portal("Украинский футбол", new IPortalModule[]
+                    {
+                        new NewPagesWithArchive("Футбол на Украине", "Портал:Украинский футбол/Новые статьи", "Портал:Украинский футбол/Новые статьи/Архив", 20, "* {2} — [[{0}]]", "d MMMM yyyy"),
+                    }),
+
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Древний Восток", "Портал:Древний Восток/Новые статьи", 25, "* [[{0}]] — [[User:{1}|]] {2}", "d MMMM yyyy") }),
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Индеанистика", "Портал:Индейцы/Новые статьи", 20, "* [[{0}]] <small>— [[User:{1}|]] {2}</small>", "d MMMM yyyy") }),
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Доисторическая Европа", "Портал:Доисторическая Европа/Новые статьи", 25, "* [[{0}]] — [[User:{1}|]] {2}", "d MMMM yyyy") }),
