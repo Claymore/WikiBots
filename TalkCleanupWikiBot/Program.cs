@@ -45,6 +45,11 @@ namespace Claymore.TalkCleanupWikiBot
                         wiki.CacheCookies(cookieFile);
                     }
                 }
+                if (!wiki.LoadNamespaces(@"Cache\uk\namespaces.dat"))
+                {
+                    wiki.GetNamespaces();
+                    wiki.SaveNamespaces(@"Cache\uk\namespaces.dat");
+                }
             }
             catch (WikiException e)
             {
@@ -60,7 +65,7 @@ namespace Claymore.TalkCleanupWikiBot
             l10i.Template = "Вилучення статей";
             l10i.TopTemplate = "/шапка";
             l10i.BottomTemplate = "/низ";
-            l10i.Result = "Підсумок";
+            l10i.Results = new string[] { "Підсумок" };
             l10i.Language = "uk";
             l10i.MainPageUpdateComment = "оновлення даних";
             l10i.ArchiveTemplate = "Статті, винесені на вилучення";
@@ -71,12 +76,14 @@ namespace Claymore.TalkCleanupWikiBot
             l10i.AutoResultMessage = "Сторінка була вилучена {1} адміністратором [[User:{0}|]]. Була вказана наступна причина: «{2}». Це повідомлення було автоматично згенеровано ботом ~~~~.\n";
             l10i.DateFormat = "d MMMM yyyy";
             l10i.AutoResultComment = ", підбиття підсумків";
+            l10i.AutoResultSection = "Підсумок";
+            l10i.NotificationTemplate = "Залишено";
 
             ArticlesForDeletion afd = new ArticlesForDeletion(l10i);
+            afd.UpdatePages(wiki);
             afd.Analyse(wiki);
             afd.UpdateMainPage(wiki);
             afd.UpdateArchive(wiki);
-            afd.UpdatePages(wiki);
 
             Cleanup.Localization cleanupL10i = new Cleanup.Localization();
             cleanupL10i.Language = "uk";
@@ -200,7 +207,7 @@ namespace Claymore.TalkCleanupWikiBot
             l10i.Template = "Удаление статей";
             l10i.TopTemplate = "/Заголовок";
             l10i.BottomTemplate = "/Подвал";
-            l10i.Result = "Итог";
+            l10i.Results = new string[] { "Итог", "Общий итог", "Автоматический итог" };
             l10i.Language = "ru";
             l10i.MainPageUpdateComment = "обновление";
             l10i.ArchiveTemplate = "Статьи, вынесенные на удаление";
@@ -211,6 +218,8 @@ namespace Claymore.TalkCleanupWikiBot
             l10i.AutoResultMessage = "Страница была удалена {1} администратором [[User:{0}|]]. Была указана следующая причина: «{2}». Данное сообщение было автоматически сгенерировано ботом ~~~~.\n";
             l10i.DateFormat = "d MMMM yyyy в HH:mm (UTC)";
             l10i.AutoResultComment = " и подведение итогов";
+            l10i.AutoResultSection = "Автоматический итог";
+            l10i.NotificationTemplate = "Оставлено";
 
             ArticlesForDeletion afd = new ArticlesForDeletion(l10i);
             afd.UpdatePages(wiki);
@@ -271,6 +280,7 @@ namespace Claymore.TalkCleanupWikiBot
 
     internal struct ArticlesForDeletionLocalization
     {
+        public string AutoResultSection;
         public string Language;
         public string Category;
         public string MainPage;
@@ -278,7 +288,7 @@ namespace Claymore.TalkCleanupWikiBot
         public string Template;
         public string TopTemplate;
         public string BottomTemplate;
-        public string Result;
+        public string[] Results;
         public string MainPageUpdateComment;
         public string ArchiveTemplate;
         public string ArchivePage;
@@ -288,5 +298,6 @@ namespace Claymore.TalkCleanupWikiBot
         public string AutoResultMessage;
         public string DateFormat;
         public string AutoResultComment;
+        public string NotificationTemplate;
     }
 }

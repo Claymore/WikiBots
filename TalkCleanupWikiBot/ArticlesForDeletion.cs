@@ -381,8 +381,8 @@ namespace Claymore.TalkCleanupWikiBot
                     RemoveStrikeOut(section);
                     StrikeOutSection(section);
                     if (section.Subsections.Count(s => _l10i.Processor != null
-                        ? _l10i.Processor(s).Trim() == _l10i.Result
-                        : s.Title.Trim() == _l10i.Result) == 0)
+                        ? _l10i.Results.Any(r => r == _l10i.Processor(s).Trim())
+                        : _l10i.Results.Any(r => r == s.Title.Trim())) == 0)
                     {
                         Match m = wikiLinkRE.Match(section.Title);
                         if (m.Success)
@@ -414,6 +414,24 @@ namespace Claymore.TalkCleanupWikiBot
                             if (m.Success && subsection.Title.Contains("<s>"))
                             {
                                 titlesWithResults.Add(m.Groups[1].Value.Trim());
+                            }
+                            if (m.Success &&
+                                !subsection.Title.Contains("<s>") &&
+                                subsection.Subsections.Count(s => _l10i.Processor != null
+                                    ? _l10i.Results.Any(r => r == _l10i.Processor(s).Trim())
+                                    : _l10i.Results.Any(r => r == s.Title.Trim())) == 0)
+                            {
+                                string title = m.Groups[1].Value.Trim();
+
+                                if (titles.ContainsKey(title))
+                                {
+                                    titles[title].Add(subsection);
+                                }
+                                else
+                                {
+                                    titles.Add(title, new List<WikiPageSection>());
+                                    titles[title].Add(subsection);
+                                }
                             }
                         }
                     }
@@ -479,7 +497,9 @@ namespace Claymore.TalkCleanupWikiBot
                             events.Add(ev);
                         }
                         events.Sort(CompareDeleteLogEvents);
-                        if (events.Count > 0 && events[0].Deleted)
+                        if (events.Count > 0 &&
+                            events[0].Deleted &&
+                            (DateTime.Now - events[0].Timestamp).TotalHours > 2)
                         {
                             Regex commentRE = new Regex(@"(.+?):&#32;(.+)");
                             Match m = commentRE.Match(events[0].Comment);
@@ -502,7 +522,7 @@ namespace Claymore.TalkCleanupWikiBot
                             }
                             foreach (WikiPageSection section in titles[title])
                             {
-                                WikiPageSection verdict = new WikiPageSection(" " + _l10i.Result + " ",
+                                WikiPageSection verdict = new WikiPageSection(" " + _l10i.AutoResultSection + " ",
                                     section.Level + 1,
                                     message);
                                 section.AddSubsection(verdict);
@@ -512,36 +532,35 @@ namespace Claymore.TalkCleanupWikiBot
                         }
                     }
                 }
-                if (_l10i.Processor == null)
+                
+                parameters.Clear();
+                parameters.Add("prop", "info");
+                xml = wiki.Query(QueryBy.Titles, parameters, titlesWithResults);
+                foreach (XmlNode node in xml.SelectNodes("//page"))
+                {
+                    if (node.Attributes["missing"] == null &&
+                        node.Attributes["redirect"] == null &&
+                        node.Attributes["ns"].Value == "0")
+                    {
+                        notificationList.Add(node.Attributes["title"].Value);
+                    }
+                }
+                if (notificationList.Count > 0)
                 {
                     parameters.Clear();
-                    parameters.Add("prop", "info");
-                    xml = wiki.Query(QueryBy.Titles, parameters, titlesWithResults);
-                    foreach (XmlNode node in xml.SelectNodes("//page"))
-                    {
-                        if (node.Attributes["missing"] == null &&
-                            node.Attributes["redirect"] == null &&
-                            node.Attributes["ns"].Value == "0")
-                        {
-                            notificationList.Add(node.Attributes["title"].Value);
-                        }
-                    }
-                    if (notificationList.Count > 0)
-                    {
-                        parameters.Clear();
-                        parameters.Add("list", "backlinks");
-                        parameters.Add("bltitle", pageName);
-                        parameters.Add("blfilterredir", "nonredirects");
-                        parameters.Add("blnamespace", "1");
-                        parameters.Add("bllimit", "max");
+                    parameters.Add("list", "backlinks");
+                    parameters.Add("bltitle", pageName);
+                    parameters.Add("blfilterredir", "nonredirects");
+                    parameters.Add("blnamespace", "1");
+                    parameters.Add("bllimit", "max");
 
-                        XmlDocument backlinks = wiki.Enumerate(parameters, true);
-                        foreach (string title in notificationList)
+                    XmlDocument backlinks = wiki.Enumerate(parameters, true);
+                    foreach (string title in notificationList)
+                    {
+                        string talkPage = wiki.GetNamespace(1) + ":" + title;
+                        if (backlinks.SelectSingleNode("//bl[@title='" + talkPage + "']") == null)
                         {
-                            if (backlinks.SelectSingleNode("//bl[@title='Обсуждение:" + title + "']") == null)
-                            {
-                                PutNotification(wiki, title, date);
-                            }
+                            PutNotification(wiki, title, date);
                         }
                     }
                 }
@@ -582,7 +601,7 @@ namespace Claymore.TalkCleanupWikiBot
 
         private void PutNotification(Wiki wiki, string title, string date)
         {
-            string talkPage = "Обсуждение:" + title;
+            string talkPage = wiki.GetNamespace(1) + ":" + title;
             Console.Out.WriteLine("Updating " + talkPage + "...");
             try
             {
@@ -601,7 +620,7 @@ namespace Claymore.TalkCleanupWikiBot
                 {
                     content = "";
                 }
-                int index = content.IndexOf("{{оставлено|", StringComparison.CurrentCultureIgnoreCase);
+                int index = content.IndexOf("{{" + _l10i.NotificationTemplate + "|", StringComparison.CurrentCultureIgnoreCase);
                 if (index != -1)
                 {
                     int endIndex = content.IndexOf("}}", index);
@@ -618,7 +637,7 @@ namespace Claymore.TalkCleanupWikiBot
                         int endIndex = content.IndexOf("}}", index);
                         if (endIndex != -1)
                         {
-                            content = content.Insert(endIndex + 2, "\n{{Оставлено|" + date + "}}\n");
+                            content = content.Insert(endIndex + 2, "\n{{" + _l10i.NotificationTemplate + "|" + date + "}}\n");
                         }
                     }
                     else
@@ -629,19 +648,19 @@ namespace Claymore.TalkCleanupWikiBot
                             int endIndex = content.IndexOf("}}", index);
                             if (endIndex != -1)
                             {
-                                content = content.Insert(endIndex + 2, "\n{{Оставлено|" + date + "}}\n");
+                                content = content.Insert(endIndex + 2, "\n{{" + _l10i.NotificationTemplate + "|" + date + "}}\n");
                             }
                         }
                         else
                         {
-                            content = content.Insert(0, "{{Оставлено|" + date + "}}\n");
+                            content = content.Insert(0, "\n{{" + _l10i.NotificationTemplate + "|" + date + "}}\n");
                         }
                     }
                 }
                 wiki.SavePage(talkPage,
                     "0",
                     content,
-                    "итог",
+                    _l10i.MainPageUpdateComment,
                     MinorFlags.Minor,
                     CreateFlags.None,
                     WatchFlags.None,
@@ -663,8 +682,8 @@ namespace Claymore.TalkCleanupWikiBot
             Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
 
             if (section.Subsections.Count(s => _l10i.Processor != null
-                        ? _l10i.Processor(s).Trim() == _l10i.Result
-                        : s.Title.Trim() == _l10i.Result) > 0)
+                        ? _l10i.Results.Any(r => r == _l10i.Processor(s).Trim())
+                        : _l10i.Results.Any(r => r == s.Title.Trim())) > 0)
             {
                 if (!section.Title.Contains("<s>"))
                 {
@@ -688,8 +707,8 @@ namespace Claymore.TalkCleanupWikiBot
         private void RemoveStrikeOut(WikiPageSection section)
         {
             if (section.Subsections.Count(s => _l10i.Processor != null
-                        ? _l10i.Processor(s).Trim() == _l10i.Result
-                        : s.Title.Trim() == _l10i.Result) == 0)
+                        ? _l10i.Results.Any(r => r == _l10i.Processor(s).Trim())
+                        : _l10i.Results.Any(r => r == s.Title.Trim())) == 0)
             {
                 if (section.Title.Contains("<s>"))
                 {
