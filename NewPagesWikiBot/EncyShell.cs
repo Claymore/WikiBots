@@ -166,6 +166,7 @@ namespace Claymore.NewPagesWikiBot
 
             using (TextWriter streamWriter = new StreamWriter(_directory + "\\output.txt"))
             {
+                streamWriter.WriteLine("{{/Шапка}}");
                 streamWriter.WriteLine("{| class=\"wikitable sortable\" |");
                 streamWriter.WriteLine("! № !! !! Название !! Размер");
 
@@ -173,17 +174,17 @@ namespace Claymore.NewPagesWikiBot
                 {
                     string style;
                     Item item = items[i];
-                    if (item.Size < 10 * 1000)
+                    if (item.Size < 15 * 1000)
                     {
                         style = " bgcolor=#FFE8E9";
                     }
-                    else if (item.Size < 30 * 1000)
+                    else if (item.Size < 40 * 1000)
                     {
                         style = " bgcolor=#FFFDE8";
                     }
                     else
                     {
-                        style = "";
+                        style = " bgcolor=#F2FFF2";
                     }
                     streamWriter.WriteLine("|-" + style);
                     streamWriter.WriteLine(string.Format("| {3} || {2} || [[{0}]] || {1}",

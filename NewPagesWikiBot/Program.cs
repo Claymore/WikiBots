@@ -78,6 +78,7 @@ namespace Claymore.NewPagesWikiBot
                 new Portal("Религия", new IPortalModule[] { new NewPages("Православие", "Портал:Православие/Новые статьи", 25, "# [[{0}]]") }),
                 new Portal("Религия", new IPortalModule[] { new NewPages("Тула", "Портал:Тула/Новые статьи", 20, "# [[{0}]]") }),
                 new Portal("Религия", new IPortalModule[] { new NewPages("Белоруссия", "Портал:Белоруссия/Новые статьи", 15, "* [[{0}]]") }),
+                new Portal("Израиль", new IPortalModule[] { new NewPages("Израиль", "Портал:Израиль/Новые статьи", 10, "* [[{0}]]") }),
                 new Portal("Литература", new IPortalModule[] { new NewPages("Литература", "Портал:Литература/Новые статьи", 25, "* [[{0}]]") }),
                 new Portal("Кино", new IPortalModule[]
                     {
