@@ -161,6 +161,7 @@ namespace Claymore.TalkCleanupWikiBot
             cat.UpdateArchivePages(wiki);
 
             DeletionReview dr = new DeletionReview();
+            dr.UpdatePages(wiki);
             dr.Analyze(wiki);
             dr.UpdateMainPage(wiki);
             dr.UpdateArchivePages(wiki);
@@ -275,6 +276,7 @@ namespace Claymore.TalkCleanupWikiBot
         public string Comment;
         public string User;
         public bool Deleted;
+        public bool Restored;
         public DateTime Timestamp;
     }
 

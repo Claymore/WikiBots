@@ -15,12 +15,15 @@ namespace Claymore.TalkCleanupWikiBot
     {
         private readonly string _cacheDir;
         private string _language;
+        private string[] _results;
+        private static Regex _wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
 
         public DeletionReview()
         {
             _language = "ru";
             _cacheDir = "Cache\\" + _language + "\\DeletionReview\\";
             Directory.CreateDirectory(_cacheDir);
+            _results = new string[] { "Итог", "Автоматический итог" };
         }
 
         public void Analyze(Wiki wiki)
@@ -105,9 +108,7 @@ namespace Claymore.TalkCleanupWikiBot
                 {
                     RemoveStrikeOut(section);
                     StrikeOutSection(section);
-                    bool hasVerdict = section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0;
-                    bool hasAutoVerdict = section.Subsections.Count(s => s.Title.Trim() == "Автоматический итог") > 0;
-                    if (hasVerdict || hasAutoVerdict || section.Title.Contains("<s>"))
+                    if (section.Title.Contains("<s>"))
                     {
                         Match m = wikiLinkRE.Match(section.Title);
                         if (m.Success)
@@ -120,9 +121,7 @@ namespace Claymore.TalkCleanupWikiBot
                     section.Reduce(sections, SubsectionsList);
                     foreach (WikiPageSection subsection in sections)
                     {
-                        hasVerdict = subsection.Subsections.Count(s => s.Title.Trim() == "Итог") > 0;
-                        hasAutoVerdict = subsection.Subsections.Count(s => s.Title.Trim() == "Автоматический итог") > 0;
-                        if (hasVerdict || hasAutoVerdict || subsection.Title.Contains("<s>"))
+                        if (subsection.Title.Contains("<s>"))
                         {
                             Match m = wikiLinkRE.Match(subsection.Title);
                             if (m.Success)
@@ -156,9 +155,7 @@ namespace Claymore.TalkCleanupWikiBot
                         RemoveStrikeOut(section);
                         StrikeOutSection(section);
 
-                        bool hasVerdict = section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0;
-                        bool hasAutoVerdict = section.Subsections.Count(s => s.Title.Trim() == "Автоматический итог") > 0;
-                        if (hasVerdict || hasAutoVerdict || section.Title.Contains("<s>"))
+                        if (section.Title.Contains("<s>"))
                         {
                             Match m = wikiLinkRE.Match(section.Title);
                             if (m.Success)
@@ -169,11 +166,20 @@ namespace Claymore.TalkCleanupWikiBot
                                 {
                                     if (node.Attributes["missing"] == null)
                                     {
-                                        result = " ''(восстановлено)''";
+                                        WikiPageSection autoresult = section.Subsections.FirstOrDefault(s => s.Title.Trim() == "Автоматический итог");
+                                        if (autoresult != null &&
+                                            autoresult.SectionText.Contains("Страница была создана заново"))
+                                        {
+                                            result = " ''(создана заново)''";
+                                        }
+                                        else
+                                        {
+                                            result = " ''(восстановлена)''";
+                                        }
                                     }
                                     else
                                     {
-                                        result = " ''(не восстановлено)''";
+                                        result = " ''(не восстановлена)''";
                                     }
                                 }
                             }
@@ -190,9 +196,7 @@ namespace Claymore.TalkCleanupWikiBot
                         foreach (WikiPageSection subsection in sections)
                         {
                             result = "";
-                            hasVerdict = subsection.Subsections.Count(s => s.Title.Trim() == "Итог") > 0;
-                            hasAutoVerdict = subsection.Subsections.Count(s => s.Title.Trim() == "Автоматический итог") > 0;
-                            if (hasVerdict || hasAutoVerdict || subsection.Title.Contains("<s>"))
+                            if (subsection.Title.Contains("<s>"))
                             {
                                 Match m = wikiLinkRE.Match(subsection.Title);
                                 if (m.Success)
@@ -203,11 +207,20 @@ namespace Claymore.TalkCleanupWikiBot
                                     {
                                         if (node.Attributes["missing"] == null)
                                         {
-                                            result = " ''(восстановлено)''";
+                                            WikiPageSection autoresult = subsection.Subsections.FirstOrDefault(s => s.Title.Trim() == "Автоматический итог");
+                                            if (autoresult != null &&
+                                                autoresult.SectionText.Contains("Страница была создана заново"))
+                                            {
+                                                result = " ''(создана заново)''";
+                                            }
+                                            else
+                                            {
+                                                result = " ''(восстановлена)''";
+                                            }
                                         }
                                         else
                                         {
-                                            result = " ''(не восстановлено)''";
+                                            result = " ''(не восстановлена)''";
                                         }
                                     }
                                 }
@@ -467,6 +480,285 @@ namespace Claymore.TalkCleanupWikiBot
             }
         }
 
+        internal void UpdatePages(Wiki wiki)
+        {
+            ParameterCollection parameters = new ParameterCollection();
+            parameters.Add("generator", "categorymembers");
+            parameters.Add("gcmtitle", "Категория:Википедия:Незакрытые обсуждения восстановления страниц");
+            parameters.Add("gcmlimit", "max");
+            parameters.Add("gcmnamespace", "4");
+            parameters.Add("prop", "info|revisions");
+            parameters.Add("intoken", "edit");
+            XmlDocument doc = wiki.Enumerate(parameters, true);
+
+            string queryTimestamp = DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ");
+
+            XmlNodeList pages = doc.SelectNodes("//page");
+            foreach (XmlNode page in pages)
+            {
+                string starttimestamp = queryTimestamp;
+                int results = 0;
+                string prefix = "Википедия:К восстановлению/";
+                string pageName = page.Attributes["title"].Value;
+
+                string basetimestamp = page.FirstChild.FirstChild.Attributes["timestamp"].Value;
+                string editToken = page.Attributes["edittoken"].Value;
+
+                string date = pageName.Substring(prefix.Length);
+                Day day = new Day();
+                if (!DateTime.TryParse(date, CultureInfo.CreateSpecificCulture("ru-RU"),
+                        DateTimeStyles.AssumeUniversal, out day.Date))
+                {
+                    continue;
+                }
+
+                string text = "";
+                string fileName = _cacheDir + date + ".bin";
+                if (File.Exists(fileName))
+                {
+                    using (FileStream fs = new FileStream(fileName, FileMode.Open))
+                    using (GZipStream gs = new GZipStream(fs, CompressionMode.Decompress))
+                    using (TextReader sr = new StreamReader(gs))
+                    {
+                        string revid = sr.ReadLine();
+                        if (revid == page.Attributes["lastrevid"].Value)
+                        {
+                            Console.Out.WriteLine("Loading " + pageName + "...");
+                            text = sr.ReadToEnd();
+                        }
+                    }
+                }
+                if (string.IsNullOrEmpty(text))
+                {
+                    try
+                    {
+                        Console.Out.WriteLine("Downloading " + pageName + "...");
+                        text = wiki.LoadPage(pageName);
+                        starttimestamp = DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ");
+                    }
+                    catch (WikiPageNotFound)
+                    {
+                        continue;
+                    }
+                    using (FileStream fs = new FileStream(fileName, FileMode.Create))
+                    using (GZipStream gs = new GZipStream(fs, CompressionMode.Compress))
+                    using (StreamWriter sw = new StreamWriter(gs))
+                    {
+                        sw.WriteLine(page.Attributes["lastrevid"].Value);
+                        sw.Write(text);
+                    }
+                }
+
+                Dictionary<string, List<WikiPageSection>> titles = new Dictionary<string, List<WikiPageSection>>();
+                day.Page = WikiPage.Parse(pageName, text);
+                foreach (WikiPageSection section in day.Page.Sections)
+                {
+                    RemoveStrikeOut(section);
+                    StrikeOutSection(section);
+                    if (section.Subsections.Count(s => _results.Any(r => r.ToLower() == s.Title.Trim().ToLower())) == 0)
+                    {
+                        Match m = _wikiLinkRE.Match(section.Title);
+                        if (m.Success)
+                        {
+                            string title = m.Groups[1].Value.Trim();
+
+                            if (titles.ContainsKey(title))
+                            {
+                                titles[title].Add(section);
+                            }
+                            else
+                            {
+                                titles.Add(title, new List<WikiPageSection>());
+                                titles[title].Add(section);
+                            }
+                        }
+                    }
+                    {
+                        List<WikiPageSection> sections = new List<WikiPageSection>();
+                        section.Reduce(sections, SubsectionsList);
+                        foreach (WikiPageSection subsection in sections)
+                        {
+                            Match m = _wikiLinkRE.Match(subsection.Title);
+                            if (m.Success &&
+                                !subsection.Title.Contains("<s>") &&
+                                subsection.Subsections.Count(s => _results.Any(r => r.ToLower() == s.Title.Trim().ToLower())) == 0)
+                            {
+                                string title = m.Groups[1].Value.Trim();
+
+                                if (titles.ContainsKey(title))
+                                {
+                                    titles[title].Add(subsection);
+                                }
+                                else
+                                {
+                                    titles.Add(title, new List<WikiPageSection>());
+                                    titles[title].Add(subsection);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                parameters.Clear();
+                parameters.Add("prop", "info");
+                Dictionary<string, string> normalizedTitles = new Dictionary<string, string>();
+                XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, titles.Keys);
+                foreach (XmlNode node in xml.SelectNodes("//n"))
+                {
+                    normalizedTitles.Add(node.Attributes["to"].Value,
+                        node.Attributes["from"].Value);
+                }
+                List<string> notificationList = new List<string>();
+                XmlNodeList missingTitles = xml.SelectNodes("//page");
+                foreach (XmlNode node in missingTitles)
+                {
+                    string title = node.Attributes["title"].Value;
+
+                    IEnumerable<WikiPageSection> sections;
+                    if (titles.ContainsKey(title))
+                    {
+                        sections = titles[title];
+                    }
+                    else
+                    {
+                        sections = titles[normalizedTitles[title]];
+                    }
+                    if (node.Attributes["missing"] == null)
+                    {
+                        DateTime start = day.Date;
+                        parameters.Clear();
+                        parameters.Add("list", "logevents");
+                        parameters.Add("letype", "delete");
+                        parameters.Add("lemlimit", "max");
+                        parameters.Add("lestart", start.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"));
+                        parameters.Add("ledir", "newer");
+                        parameters.Add("letitle", title);
+                        parameters.Add("leprop", "comment|type|user|timestamp");
+                        XmlDocument log = wiki.Enumerate(parameters, true);
+                        XmlNodeList items = log.SelectNodes("//item");
+                        List<DeleteLogEvent> events = new List<DeleteLogEvent>();
+                        foreach (XmlNode item in items)
+                        {
+                            DeleteLogEvent ev = new DeleteLogEvent();
+                            ev.Comment = item.Attributes["comment"].Value;
+                            ev.Restored = item.Attributes["action"].Value == "restore";
+                            ev.Deleted = item.Attributes["action"].Value == "delete";
+                            ev.User = item.Attributes["user"].Value;
+                            ev.Timestamp = DateTime.Parse(item.Attributes["timestamp"].Value,
+                                null,
+                                DateTimeStyles.AssumeUniversal);
+                            events.Add(ev);
+                        }
+                        events.Sort(CompareDeleteLogEvents);
+                        if (events.Count > 0 &&
+                            events[0].Restored &&
+                            (DateTime.Now - events[0].Timestamp).TotalHours > 2)
+                        {
+                            Regex commentRE = new Regex(@" восстановлено: (.+)");
+                            Match m = commentRE.Match(events[0].Comment);
+                            string comment;
+                            if (m.Success)
+                            {
+                                comment = m.Groups[1].Value;
+                            }
+                            else
+                            {
+                                comment = "<nowiki>" + events[0].Comment + "</nowiki>";
+                            }
+                            string message = string.Format("Страница была восстановлена {1} администратором [[User:{0}|]]. Была указана следующая причина: «{2}». Данное сообщение было автоматически сгенерировано ботом ~~~~.\n",
+                                events[0].User,
+                                events[0].Timestamp.ToUniversalTime().ToString("d MMMM yyyy в HH:mm (UTC)"),
+                                comment);
+                            if (titles.ContainsKey(title))
+                            {
+                                continue;
+                            }
+                            foreach (WikiPageSection section in titles[title])
+                            {
+                                WikiPageSection verdict = new WikiPageSection(" Автоматический итог ",
+                                    section.Level + 1,
+                                    message);
+                                section.AddSubsection(verdict);
+                                StrikeOutSection(section);
+                                ++results;
+                            }
+                        }
+                        else if (events.Count > 0 &&
+                            events[0].Deleted)
+                        {
+                            parameters.Clear();
+                            parameters.Add("prop", "revisions");
+                            parameters.Add("rvprop", "timestamp|user");
+                            parameters.Add("rvdir", "newer");
+                            parameters.Add("rvlimit", "1");
+                            parameters.Add("redirects");
+
+                            log = wiki.Query(QueryBy.Titles, parameters, new string[] { title });
+                            XmlNode revision = log.SelectSingleNode("//rev");
+                            if (revision != null)
+                            {
+                                string user = revision.Attributes["user"].Value;
+                                string timestamp = revision.Attributes["timestamp"].Value;
+                                DateTime time = DateTime.Parse(timestamp,
+                                    null,
+                                    DateTimeStyles.AssumeUniversal);
+
+                                string message = string.Format("Страница была создана заново {1} участником [[User:{0}|]]. Данное сообщение было автоматически сгенерировано ботом ~~~~.\n",
+                                    user,
+                                    time.ToUniversalTime().ToString("d MMMM yyyy в HH:mm (UTC)"));
+                                
+                                if (!titles.ContainsKey(title))
+                                {
+                                    continue;
+                                }
+                                foreach (WikiPageSection section in titles[title])
+                                {
+                                    WikiPageSection verdict = new WikiPageSection(" Автоматический итог ",
+                                        section.Level + 1,
+                                        message);
+                                    section.AddSubsection(verdict);
+                                    StrikeOutSection(section);
+                                    ++results;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                string newText = day.Page.Text;
+                if (newText.Trim() == text.Trim())
+                {
+                    continue;
+                }
+                try
+                {
+                    Console.Out.WriteLine("Updating " + pageName + "...");
+                    string revid = wiki.SavePage(pageName,
+                        "",
+                        newText,
+                        "зачёркивание заголовков" + (results > 0 ? " и подведение итогов" : ""),
+                        MinorFlags.Minor,
+                        CreateFlags.NoCreate,
+                        WatchFlags.None,
+                        SaveFlags.Replace,
+                        basetimestamp,
+                        starttimestamp,
+                        editToken);
+
+                    using (FileStream fs = new FileStream(fileName, FileMode.Create))
+                    using (GZipStream gs = new GZipStream(fs, CompressionMode.Compress))
+                    using (StreamWriter sw = new StreamWriter(gs))
+                    {
+                        sw.WriteLine(revid);
+                        sw.Write(newText);
+                    }
+                }
+                catch (WikiException)
+                {
+                }
+            }
+        }
+
         internal static int CompareDays(Day x, Day y)
         {
             return y.Date.CompareTo(x.Date);
@@ -476,7 +768,7 @@ namespace Claymore.TalkCleanupWikiBot
         {
             Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
 
-            if (section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0)
+            if (section.Subsections.Count(s => _results.Any(r => r.ToLower() == s.Title.Trim().ToLower())) > 0)
             {
                 if (!section.Title.Contains("<s>"))
                 {
@@ -499,7 +791,7 @@ namespace Claymore.TalkCleanupWikiBot
 
         private void RemoveStrikeOut(WikiPageSection section)
         {
-            if (section.Subsections.Count(s => s.Title.Trim() == "Итог") == 0)
+            if (section.Subsections.Count(s => _results.Any(r => r.ToLower() == s.Title.Trim().ToLower())) == 0)
             {
                 if (section.Title.Contains("<s>"))
                 {
@@ -552,6 +844,11 @@ namespace Claymore.TalkCleanupWikiBot
                 sw.WriteLine(revisionId);
                 sw.Write(text);
             }
+        }
+
+        static int CompareDeleteLogEvents(DeleteLogEvent x, DeleteLogEvent y)
+        {
+            return y.Timestamp.CompareTo(x.Timestamp);
         }
     }
 }
