@@ -36,6 +36,11 @@ namespace Claymore.NewPagesWikiBot
                 Uri.EscapeDataString(Category), Hours);
             WebClient client = new WebClient();
             client.DownloadFile(url, "Cache\\input-" + Category + ".txt");
+            using (TextWriter streamWriter = new StreamWriter("Cache\\input-" + Category + "-previous.txt"))
+            {
+                string text = wiki.LoadPage(Page);
+                streamWriter.Write(text);
+            }
         }
 
         public virtual void ProcessData(Wiki wiki)
@@ -64,15 +69,19 @@ namespace Claymore.NewPagesWikiBot
             }
         }
 
-        public virtual void UpdatePage(Wiki wiki)
+        public virtual bool UpdatePage(Wiki wiki)
         {
+            using (TextReader oldSr = new StreamReader("Cache\\input-" + Category + "-previous.txt"))
             using (TextReader sr = new StreamReader("Cache\\output-" + Category + ".txt"))
             {
+                string oldText = oldSr.ReadToEnd();
+                string[] oldLines = oldText.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
                 string text = sr.ReadToEnd();
-                if (string.IsNullOrEmpty(text))
+                string[] lines = text.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+                if (string.IsNullOrEmpty(text) || lines.Length < oldLines.Length)
                 {
                     Console.Out.WriteLine("Skipping " + Page);
-                    return;
+                    return false;
                 }
                 Console.Out.WriteLine("Updating " + Page);
                 wiki.SavePage(Page,
@@ -83,6 +92,7 @@ namespace Claymore.NewPagesWikiBot
                     CreateFlags.None,
                     WatchFlags.None,
                     SaveFlags.Replace);
+                return true;
             }
         }
     }

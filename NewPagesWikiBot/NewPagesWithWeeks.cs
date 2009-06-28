@@ -98,8 +98,9 @@ namespace Claymore.NewPagesWikiBot
             }
         }
 
-        public override void UpdatePage(Wiki wiki)
+        public override bool UpdatePage(Wiki wiki)
         {
+            return false;
         }
 
         private static int CompareTime(NewPage x, NewPage y)

@@ -15,16 +15,6 @@ namespace Claymore.NewPagesWikiBot
             ArchivePage = archive;
         }
 
-        public override void GetData(Wiki wiki)
-        {
-            base.GetData(wiki);
-            using (TextWriter streamWriter = new StreamWriter("Cache\\input-" + Category + "-previous.txt"))
-            {
-                string text = wiki.LoadPage(Page);
-                streamWriter.Write(text);
-            }
-        }
-
         public override void ProcessData(Wiki wiki)
         {
             base.ProcessData(wiki);
@@ -46,16 +36,19 @@ namespace Claymore.NewPagesWikiBot
             }
         }
 
-        public override void UpdatePage(Wiki wiki)
+        public override bool UpdatePage(Wiki wiki)
         {
-            base.UpdatePage(wiki);
+            if (!base.UpdatePage(wiki))
+            {
+                return false;
+            }
             using (TextReader sr = new StreamReader("Cache\\output-" + Category + "-archive.txt"))
             {
                 string text = sr.ReadToEnd();
                 if (string.IsNullOrEmpty(text))
                 {
                     Console.Out.WriteLine("Skipping " + ArchivePage);
-                    return;
+                    return false;
                 }
                 Console.Out.WriteLine("Updating " + ArchivePage);
                 wiki.SavePage(ArchivePage,
@@ -66,6 +59,7 @@ namespace Claymore.NewPagesWikiBot
                     CreateFlags.None,
                     WatchFlags.None,
                     SaveFlags.Prepend);
+                return true;
             }
         }
     }

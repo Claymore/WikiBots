@@ -203,13 +203,14 @@ namespace Claymore.NewPagesWikiBot
             return x.Size.CompareTo(y.Size);
         }
 
-        public void UpdatePage(Wiki wiki)
+        public bool UpdatePage(Wiki wiki)
         {
             using (TextReader sr = new StreamReader(_directory + "\\output.txt"))
             {
                 string text = sr.ReadToEnd();
                 Console.Out.WriteLine("Updating " + Page);
                 wiki.SavePage(Page, text, "обновление");
+                return true;
             }
         }
 

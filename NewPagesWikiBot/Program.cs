@@ -97,7 +97,7 @@ namespace Claymore.NewPagesWikiBot
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Доисторическая Европа", "Портал:Доисторическая Европа/Новые статьи", 25, "* [[{0}]] — [[User:{1}|]] {2}", "d MMMM yyyy") }),
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Лингвистика", "Портал:Лингвистика/Новые статьи", 30, "# [[{0}]] — [[User:{1}|]] {2}", "d MMMM yyyy") }),
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Ирландия", "Портал:Ирландия/Новые статьи", 20, "* '''{2}''' — [[{0}]]", "[[d MMMM]] [[yyyy]]") }),
-                new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Монголия", "Портал:Монголия/Новые статьи", 20, "{{{{Новая статья|{0}|{2}|{1}}}}}", "d MMMM yyyy") }),
+                new Portal("Религия", new IPortalModule[] { new NewPagesWithArchive("Монголия", "Портал:Монголия/Новые статьи", "Портал:Монголия/Новости/Архив", 20, "{{{{Новая статья|{0}|{2}|{1}}}}}", "d MMMM yyyy") }),
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Индия", "Портал:Индия/Новые статьи", 10, "{{{{Новая статья|{0}|{2}|{1}}}}}", "d MMMM yyyy") }),
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Германия", "Портал:Германия/Новые статьи", 20, "* [[{0}]] <small>— {2}</small>", "d MMMM yyyy") }),
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Этнология", "Портал:Этнология/Новые статьи", 20, "* [[{0}]] — [[User:{1}|]] {2}", "d MMMM yyyy") }),
@@ -158,7 +158,7 @@ namespace Claymore.NewPagesWikiBot
     internal interface IPortalModule
     {
         void GetData(Wiki wiki);
-        void UpdatePage(Wiki wiki);
+        bool UpdatePage(Wiki wiki);
         void ProcessData(Wiki wiki);
     }
 

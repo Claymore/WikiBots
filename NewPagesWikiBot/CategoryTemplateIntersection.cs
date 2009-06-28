@@ -62,7 +62,7 @@ namespace Claymore.NewPagesWikiBot
             }
         }
 
-        public void UpdatePage(Wiki wiki)
+        public bool UpdatePage(Wiki wiki)
         {
             using (TextReader sr = new StreamReader(_directory + "\\output-" + MainCategory + ".txt"))
             {
@@ -70,10 +70,11 @@ namespace Claymore.NewPagesWikiBot
                 if (string.IsNullOrEmpty(text))
                 {
                     Console.Out.WriteLine("Skipping " + Page);
-                    return;
+                    return false;
                 }
                 Console.Out.WriteLine("Updating " + Page);
                 wiki.SavePage(Page, text, "обновление");
+                return true;
             }
         }
     }
