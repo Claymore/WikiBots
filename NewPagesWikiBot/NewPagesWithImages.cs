@@ -8,17 +8,26 @@ namespace Claymore.NewPagesWikiBot
 {
     internal class NewPagesWithImages : NewPages
     {
+        private Regex _regex;
+        
         public NewPagesWithImages(string category, string page, int pageLimit, string format, string top, string bottom)
             : base(category, page, pageLimit, format)
         {
             Head = top;
             Bottom = bottom;
+            _regex = new Regex(@"\| *image file *= *(?'fileName'.+?) *\n");
+        }
+
+        public NewPagesWithImages(string category, string page, int pageLimit, string format, string top, string bottom, Regex regex)
+            : base(category, page, pageLimit, format)
+        {
+            Head = top;
+            Bottom = bottom;
+            _regex = regex;
         }
 
         public override void ProcessData(Wiki wiki)
         {
-            Regex re = new Regex(@"\| *image file *= *(.+?) *\n");
-
             Console.Out.WriteLine("Processing data of " + Category);
             using (TextWriter streamWriter = new StreamWriter("Cache\\output-" + Category + ".txt"))
             using (TextReader streamReader = new StreamReader("Cache\\input-" + Category + ".txt"))
@@ -47,10 +56,10 @@ namespace Claymore.NewPagesWikiBot
                         {
                             title = xml.SelectSingleNode("//page").Attributes["title"].Value;
                             string content = node.FirstChild.Value;
-                            Match m = re.Match(content);
+                            Match m = _regex.Match(content);
                             if (m.Success)
                             {
-                                string file = m.Groups[1].Value.Trim();
+                                string file = m.Groups["fileName"].Value.Trim();
                                 if (string.IsNullOrEmpty(file))
                                 {
                                     continue;

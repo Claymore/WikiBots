@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using Claymore.NewPagesWikiBot.Properties;
 using Claymore.SharpMediaWiki;
+using System.Text.RegularExpressions;
 
 namespace Claymore.NewPagesWikiBot
 {
@@ -78,7 +79,13 @@ namespace Claymore.NewPagesWikiBot
                 new Portal("Религия", new IPortalModule[] { new NewPages("Православие", "Портал:Православие/Новые статьи", 25, "# [[{0}]]") }),
                 new Portal("Религия", new IPortalModule[] { new NewPages("Тула", "Портал:Тула/Новые статьи", 20, "# [[{0}]]") }),
                 new Portal("Религия", new IPortalModule[] { new NewPages("Белоруссия", "Портал:Белоруссия/Новые статьи", 15, "* [[{0}]]") }),
-                new Portal("Израиль", new IPortalModule[] { new NewPages("Израиль", "Портал:Израиль/Новые статьи", 10, "* [[{0}]]") }),
+                new Portal("Израиль", new IPortalModule[]
+                {
+                    new NewPages("Израиль", "Портал:Израиль/Новые статьи", 10, "* [[{0}]]"),
+                    new PagesForDeletion("Израиль", "Википедия:Проект:Израиль/Блоки/К удалению", "* [[{0}]] — [[{1}#{0}|{2}]]"),
+                    new PagesForCleanup("Израиль", "Википедия:Проект:Израиль/Блоки/К улучшению", "* [[{0}]] — [[{1}#{0}|{2}]]"),
+                    new PagesForMoving("Израиль", "Википедия:Проект:Израиль/Блоки/К переименованию", "* [[{0}]] — [[{1}#{0}|{2}]]"),
+                }),
                 new Portal("Литература", new IPortalModule[] { new NewPages("Литература", "Портал:Литература/Новые статьи", 25, "* [[{0}]]") }),
                 new Portal("Кино", new IPortalModule[]
                     {
@@ -113,11 +120,15 @@ namespace Claymore.NewPagesWikiBot
                     "<gallery perrow=\"3\" widths=\"110px\">",
                     "</gallery>\nОсновной список новых статей в [[Википедия:Проект:Энтомология]].") }),
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithImages("Микология", "Портал:Микология/Новые статьи", 8, "Файл:{1}|[[{0}]]",
-                    "<div align=center><gallery perrow=\"1\" widths=\"80px\">",
+                    "<div align=\"center\"><gallery perrow=\"1\" widths=\"80px\">",
                     "</gallery></div>") }),
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithImages("Ботаника", "Портал:Ботаника/Новые статьи", 8, "Файл:{1}|[[{0}]]",
-                    "<div align=center>\n<gallery perrow=\"2\" widths=\"125px\" heights=\"125px\" caption=\"Ботаника\">",
+                    "<div align=\"center\">\n<gallery perrow=\"2\" widths=\"125px\" heights=\"125px\" caption=\"Ботаника\">",
                     "</gallery>\nОсновной список новых статей в [[Википедия:Проект:Ботаника]].\n</div>") }),
+                new Portal("Кулинария", new IPortalModule[] { new NewPagesWithImages("Кулинария", "Портал:Кулинария/Новые статьи", 6, "Файл:{1}|[[{0}]]",
+                    "<div align=\"center\">\n<gallery perrow=\"3\" widths=\"110px\">",
+                    "</gallery></div>",
+                    new Regex(@"\[{2}(Image|File|Файл|Изображение):(?'fileName'.+?)\|")) }),
 
                 new Portal("Музыка", new IPortalModule[] { new NewPagesWithWeeks("Музыка", "Википедия:Проект:Музыка/Статьи", "* {2} — [[{0}]] &nbsp; <small>{{{{u|{1}}}}}</small>", "HH:mm",
                     "{{МСВС}}", "{{МСВС-предупреждение}}") }),
@@ -145,11 +156,25 @@ namespace Claymore.NewPagesWikiBot
                 {
                     portals[i].GetData(wiki);
                     portals[i].ProcessData(wiki);
-                    portals[i].UpdatePages(wiki);
+                }
+                catch (WikiException e)
+                {
+                    Console.Out.WriteLine("Failed to get data for " + portals[i].Name + ": " + e.Message);
                 }
                 catch (WebException e)
                 {
-                    Console.Out.WriteLine("Failed to update " + portals[i].Name + ": " + e.Message);
+                    Console.Out.WriteLine("Failed to get data for " + portals[i].Name + ": " + e.Message);
+                }
+                for (int j = 0; j < 3; ++j)
+                {
+                    try
+                    {
+                        portals[i].UpdatePages(wiki);
+                        break;
+                    }
+                    catch (WikiException)
+                    {
+                    }
                 }
             }
         }

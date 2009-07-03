@@ -63,7 +63,7 @@ namespace Claymore.NewPagesWikiBot
                     {
                         DateTime talkDate = dates.Max();
                         string page = string.Format("{0}{1}", Prefix, talkDate.ToString("d MMMM yyyy"));
-                        streamWriter.WriteLine(string.Format(Format, title, page));
+                        streamWriter.WriteLine(string.Format(Format, title, page, talkDate.ToString("d MMMM yyyy")));
                     }
                 }
             }
