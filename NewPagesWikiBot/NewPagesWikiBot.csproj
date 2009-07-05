@@ -49,8 +49,10 @@
     <Compile Include="CategoryIntersectionAndTalkPages.cs" />
     <Compile Include="CategoryTemplateIntersection.cs" />
     <Compile Include="EncyShell.cs" />
+    <Compile Include="NewCategories.cs" />
     <Compile Include="NewPages.cs" />
     <Compile Include="NewPagesWithArchive.cs" />
+    <Compile Include="NewTemplates.cs" />
     <Compile Include="Portal.cs" />
     <Compile Include="NewPagesWithAuthors.cs" />
     <Compile Include="NewPagesWithImages.cs" />

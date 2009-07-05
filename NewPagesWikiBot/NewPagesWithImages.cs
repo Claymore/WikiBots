@@ -55,7 +55,7 @@ namespace Claymore.NewPagesWikiBot
                         if (node != null)
                         {
                             title = xml.SelectSingleNode("//page").Attributes["title"].Value;
-                            string content = node.FirstChild.Value;
+                            string content = node.FirstChild == null ? "" : node.FirstChild.Value;
                             Match m = _regex.Match(content);
                             if (m.Success)
                             {

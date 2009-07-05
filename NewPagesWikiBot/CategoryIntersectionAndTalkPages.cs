@@ -108,4 +108,17 @@ namespace Claymore.NewPagesWikiBot
         {
         }
     }
+
+    internal class PagesForMerging : CategoryIntersectionAndTalkPages
+    {
+        public PagesForMerging(string category, string page, string format)
+            : base(category,
+                   "К объединению",
+                   "Википедия:К объединению/",
+                    "Cache\\PagesForMerging",
+                    page,
+                    format)
+        {
+        }
+    }
 }
