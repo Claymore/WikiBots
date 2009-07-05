@@ -97,6 +97,7 @@ namespace Claymore.TalkCleanupWikiBot
 
                     foreach (WikiPageSection section in day.Page.Sections)
                     {
+                        ReplaceEmptyResults(section);
                         RemoveStrikeOut(section);
                         StrikeOutSection(section);
                         string result = section.Reduce("", SubsectionsList);
@@ -378,6 +379,7 @@ namespace Claymore.TalkCleanupWikiBot
                 day.Page = WikiPage.Parse(pageName, text);
                 foreach (WikiPageSection section in day.Page.Sections)
                 {
+                    ReplaceEmptyResults(section);
                     RemoveStrikeOut(section);
                     StrikeOutSection(section);
                     if (section.Subsections.Count(s => _l10i.Processor != null
@@ -710,6 +712,19 @@ namespace Claymore.TalkCleanupWikiBot
                 }
             }
             section.ForEach(RemoveStrikeOut);
+        }
+
+        private void ReplaceEmptyResults(WikiPageSection section)
+        {
+            WikiPageSection result = section.Subsections.FirstOrDefault(s => _l10i.Processor != null
+                        ? _l10i.Results.Any(r => r == _l10i.Processor(s).Trim())
+                        : _l10i.Results.Any(r => r == s.Title.Trim()));
+            if (result != null && result.Subsections.Count == 0 &&
+                string.IsNullOrEmpty(result.SectionText.Trim()))
+            {
+                result.Title = _l10i.EmptyResult;
+            }
+            section.ForEach(ReplaceEmptyResults);
         }
 
         private string SubsectionsList(WikiPageSection section,

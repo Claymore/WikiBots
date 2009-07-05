@@ -78,6 +78,7 @@ namespace Claymore.TalkCleanupWikiBot
             l10i.AutoResultComment = ", підбиття підсумків";
             l10i.AutoResultSection = "Підсумок";
             l10i.NotificationTemplate = "Залишено";
+            l10i.EmptyResult = "Підсумок";
 
             ArticlesForDeletion afd = new ArticlesForDeletion(l10i);
             afd.UpdatePages(wiki);
@@ -221,6 +222,7 @@ namespace Claymore.TalkCleanupWikiBot
             l10i.AutoResultComment = " и подведение итогов";
             l10i.AutoResultSection = "Автоматический итог";
             l10i.NotificationTemplate = "Оставлено";
+            l10i.EmptyResult = "Пустой итог";
 
             ArticlesForDeletion afd = new ArticlesForDeletion(l10i);
             afd.UpdatePages(wiki);
@@ -301,5 +303,6 @@ namespace Claymore.TalkCleanupWikiBot
         public string DateFormat;
         public string AutoResultComment;
         public string NotificationTemplate;
+        public string EmptyResult;
     }
 }
