@@ -501,17 +501,10 @@ namespace Claymore.TalkCleanupWikiBot
                             events[0].Deleted &&
                             (DateTime.Now - events[0].Timestamp).TotalHours > 2)
                         {
-                            Regex commentRE = new Regex(@"(.+?):&#32;(.+)");
-                            Match m = commentRE.Match(events[0].Comment);
-                            string comment;
-                            if (m.Success)
-                            {
-                                comment = m.Groups[1].Value;
-                            }
-                            else
-                            {
-                                comment = "<nowiki>" + events[0].Comment + "</nowiki>";
-                            }
+                            Regex commentRE = new Regex(@"\[{2}(File|Файл|Image|Изображение|Category|Категория):(.+?)\]{2}");
+                            string comment = events[0].Comment;
+                            comment = comment.Replace("{{", "<nowiki>{{").Replace("}}", "}}</nowiki>").Replace("'''", "").Replace("''", "").Trim();
+                            comment = commentRE.Replace(comment, "[[:$1:$2]]");
                             string message = string.Format(_l10i.AutoResultMessage,
                                 events[0].User,
                                 events[0].Timestamp.ToUniversalTime().ToString(_l10i.DateFormat),

@@ -33,7 +33,8 @@ namespace Claymore.TalkCleanupWikiBot
             parameters.Add("gcmtitle", "Категория:Википедия:Незакрытые обсуждения восстановления страниц");
             parameters.Add("gcmlimit", "max");
             parameters.Add("gcmnamespace", "4");
-            parameters.Add("prop", "info");
+            parameters.Add("prop", "info|revisions");
+            parameters.Add("rvprop", "timestamp");
 
             XmlDocument doc = wiki.Enumerate(parameters, true);
             XmlNodeList pages = doc.SelectNodes("//page");
@@ -84,8 +85,9 @@ namespace Claymore.TalkCleanupWikiBot
                         sw.Write(text);
                     }
                 }
+                DateTime lastEdit = DateTime.Parse(page.FirstChild.FirstChild.Attributes["timestamp"].Value, null, DateTimeStyles.AssumeUniversal);
                 Match m = closedRE.Match(text);
-                if (m.Success || day.Date < cutOffDate)
+                if ((DateTime.Now - lastEdit).TotalDays > 2 && (m.Success || day.Date < cutOffDate))
                 {
                     Console.Out.WriteLine("Closing " + pageName + "...");
                     text = text.Replace("{{ВПВУС-Навигация}}", "{{ВПВУС-Навигация|nocat=1}}");

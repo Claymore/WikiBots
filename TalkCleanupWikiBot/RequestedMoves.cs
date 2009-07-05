@@ -30,7 +30,8 @@ namespace Claymore.TalkCleanupWikiBot
             parameters.Add("gcmtitle", "Категория:Википедия:Незакрытые обсуждения переименования страниц");
             parameters.Add("gcmlimit", "max");
             parameters.Add("gcmnamespace", "4");
-            parameters.Add("prop", "info");
+            parameters.Add("prop", "info|revisions");
+            parameters.Add("rvprop", "timestamp");
             XmlDocument doc = wiki.Enumerate(parameters, true);
             XmlNodeList pages = doc.SelectNodes("//page");
 
@@ -87,8 +88,9 @@ namespace Claymore.TalkCleanupWikiBot
                         sw.Write(text);
                     }
                 }
+                DateTime lastEdit = DateTime.Parse(page.FirstChild.FirstChild.Attributes["timestamp"].Value, null, DateTimeStyles.AssumeUniversal);
                 Match m = closedRE.Match(text);
-                if (m.Success)
+                if ((DateTime.Now - lastEdit).TotalDays > 2 && m.Success)
                 {
                     text = text.Replace("{{ВПКПМ-Навигация}}", "{{ВПКПМ-Навигация|nocat=1}}");
                     try
