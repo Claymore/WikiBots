@@ -73,7 +73,14 @@ namespace Claymore.NewPagesWikiBot
                     return false;
                 }
                 Console.Out.WriteLine("Updating " + Page);
-                wiki.SavePage(Page, text, "обновление");
+                wiki.SavePage(Page,
+                    "",
+                    text,
+                    "обновление",
+                    MinorFlags.Minor,
+                    CreateFlags.None,
+                    WatchFlags.None,
+                    SaveFlags.Replace);
                 return true;
             }
         }
