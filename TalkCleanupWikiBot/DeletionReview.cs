@@ -163,7 +163,7 @@ namespace Claymore.TalkCleanupWikiBot
                             if (m.Success)
                             {
                                 string link = m.Groups[1].Value;
-                                XmlNode node = xml.SelectSingleNode("//page[@title='" + link + "']");
+                                XmlNode node = xml.SelectSingleNode("//page[@title='" + link.Replace("'", @"&apos;") + "']");
                                 if (node != null)
                                 {
                                     if (node.Attributes["missing"] == null)
@@ -851,6 +851,50 @@ namespace Claymore.TalkCleanupWikiBot
         static int CompareDeleteLogEvents(DeleteLogEvent x, DeleteLogEvent y)
         {
             return y.Timestamp.CompareTo(x.Timestamp);
+        }
+
+        internal void AddNavigationTemplate(Wiki wiki)
+        {
+            ParameterCollection parameters = new ParameterCollection();
+            parameters.Add("list", "embeddedin");
+            parameters.Add("eititle", "Template:ВПВУС-Навигация");
+            parameters.Add("eilimit", "max");
+            parameters.Add("einamespace", "4");
+            parameters.Add("eifilterredir", "nonredirects");
+
+            XmlDocument doc = wiki.Enumerate(parameters, true);
+
+            List<string> titles = new List<string>();
+            DateTime end = DateTime.Today;
+            DateTime start = end.AddDays(-7);
+            while (start <= end)
+            {
+                string pageDate = start.ToString("d MMMM yyyy",
+                        CultureInfo.CreateSpecificCulture("ru-RU"));
+                string prefix = "Википедия:К восстановлению/";
+                string pageName = prefix + pageDate;
+                if (doc.SelectSingleNode("//ei[@title='" + pageName + "']") == null)
+                {
+                    titles.Add(pageName);
+                }
+                start = start.AddDays(1);
+            }
+
+            parameters.Clear();
+            parameters.Add("prop", "info");
+            XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, titles);
+            foreach (XmlNode node in xml.SelectNodes("//page"))
+            {
+                if (node.Attributes["missing"] == null)
+                {
+                    Console.Out.WriteLine("Updating " + node.Attributes["title"].Value + "...");
+                    wiki.PrependTextToPage(node.Attributes["title"].Value,
+                        "{{ВПВУС-Навигация}}\n",
+                        "добавление навигационного шаблона",
+                        MinorFlags.Minor,
+                        WatchFlags.None);
+                }
+            }
         }
     }
 }

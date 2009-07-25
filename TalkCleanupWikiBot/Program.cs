@@ -162,12 +162,14 @@ namespace Claymore.TalkCleanupWikiBot
             cat.UpdateArchivePages(wiki);
 
             DeletionReview dr = new DeletionReview();
+            dr.AddNavigationTemplate(wiki);
             dr.UpdatePages(wiki);
             dr.Analyze(wiki);
             dr.UpdateMainPage(wiki);
             dr.UpdateArchivePages(wiki);
 
             ProposedSplits ps = new ProposedSplits();
+            ps.AddNavigationTemplate(wiki);
             ps.Analyze(wiki);
             ps.UpdateMainPage(wiki);
             ps.UpdateArchivePages(wiki);
@@ -197,6 +199,7 @@ namespace Claymore.TalkCleanupWikiBot
             cleanup.UpdateArchivePages(wiki);
 
             ProposedMerges pm = new ProposedMerges();
+            pm.AddNavigationTemplate(wiki);
             pm.UpdatePages(wiki);
             pm.Analyze(wiki);
             pm.UpdateMainPage(wiki);
@@ -234,6 +237,11 @@ namespace Claymore.TalkCleanupWikiBot
             rm.UpdatePages(wiki);
             rm.Analyze(wiki);
             rm.UpdateMainPage(wiki);
+            //rm.UpdateArchive(wiki, 2009, 7);
+            //rm.UpdateArchive(wiki, 2009, 6);
+            //rm.UpdateArchive(wiki, 2009, 5);
+            //rm.UpdateArchive(wiki, 2009, 4);
+            //rm.UpdateArchive(wiki, 2009, 3);
             //rm.UpdateArchive(wiki, 2009, 2);
             //rm.UpdateArchive(wiki, 2009, 1);
 
