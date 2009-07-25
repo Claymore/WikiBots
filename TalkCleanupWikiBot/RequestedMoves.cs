@@ -522,7 +522,7 @@ namespace Claymore.TalkCleanupWikiBot
                 XmlNode node = xml.SelectSingleNode("//rev");
                 if (node != null)
                 {
-                    content = node.FirstChild.Value;
+                    content = node.FirstChild != null ? node.FirstChild.Value : "";
                 }
                 else
                 {
@@ -587,15 +587,15 @@ namespace Claymore.TalkCleanupWikiBot
             }
         }
 
-        public void UpdateArchive(Wiki wiki, int year, int quarter)
+        public void UpdateArchive(Wiki wiki, int year, int monthNumber)
         {
             Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
 
-            DateTime month = new DateTime(year, (quarter - 1) * 3 + 1, 1);
-            DateTime end = month.AddMonths(3);
+            DateTime month = new DateTime(year, monthNumber, 1);
+            DateTime end = month.AddMonths(1);
             using (StreamWriter archiveSW =
                         new StreamWriter(_cacheDir + "Archive-" +
-                            year.ToString() + "-" + quarter.ToString() + ".txt"))
+                            year.ToString() + "-" + monthNumber.ToString() + ".txt"))
                 while (month < end && month < DateTime.Now)
                 {
                     DateTime start = month;
@@ -790,15 +790,59 @@ namespace Claymore.TalkCleanupWikiBot
                     month = month.AddMonths(1);
                 }
 
-            string archiveName = string.Format("Википедия:К переименованию/Архив/{0}-{1}",
-                year, quarter);
+            string archiveName = string.Format("Википедия:Архив запросов на переименование/{0}-{1:00}",
+                year, monthNumber);
             Console.Out.WriteLine("Updating " + archiveName + "...");
             using (TextReader sr =
                         new StreamReader(_cacheDir + "Archive-" +
-                            year.ToString() + "-" + quarter.ToString() + ".txt"))
+                            year.ToString() + "-" + monthNumber.ToString() + ".txt"))
             {
                 string text = sr.ReadToEnd();
                 wiki.SavePage(archiveName, text, "обновление");
+            }
+        }
+
+        internal void AddNavigationTemplate(Wiki wiki)
+        {
+            ParameterCollection parameters = new ParameterCollection();
+            parameters.Add("list", "embeddedin");
+            parameters.Add("eititle", "Template:ВПКПМ-Навигация");
+            parameters.Add("eilimit", "max");
+            parameters.Add("einamespace", "4");
+            parameters.Add("eifilterredir", "nonredirects");
+
+            XmlDocument doc = wiki.Enumerate(parameters, true);
+
+            List<string> titles = new List<string>();
+            DateTime end = DateTime.Today;
+            DateTime start = end.AddDays(-7);
+            while (start <= end)
+            {
+                string pageDate = start.ToString("d MMMM yyyy",
+                        CultureInfo.CreateSpecificCulture("ru-RU"));
+                string prefix = "Википедия:К переименованию/";
+                string pageName = prefix + pageDate;
+                if (doc.SelectSingleNode("//ei[@title='" + pageName + "']") == null)
+                {
+                    titles.Add(pageName);
+                }
+                start = start.AddDays(1);
+            }
+
+            parameters.Clear();
+            parameters.Add("prop", "info");
+            XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, titles);
+            foreach (XmlNode node in xml.SelectNodes("//page"))
+            {
+                if (node.Attributes["missing"] == null)
+                {
+                    Console.Out.WriteLine("Updating " + node.Attributes["title"].Value + "...");
+                    wiki.PrependTextToPage(node.Attributes["title"].Value,
+                        "{{ВПКПМ-Навигация}}\n",
+                        "добавление навигационного шаблона",
+                        MinorFlags.Minor,
+                        WatchFlags.None);
+                }
             }
         }
 
