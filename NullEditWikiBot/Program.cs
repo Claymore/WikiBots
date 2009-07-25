@@ -61,9 +61,53 @@ namespace Claymore.NullEditWikiBot
                 Console.Out.WriteLine(e.Message);
                 return;
             }
-            
+
             XmlNodeList pages = doc.SelectNodes("//page");
             int index = 1;
+            foreach (XmlNode page in pages)
+            {
+                XmlNode category = page.SelectSingleNode("categories/cl");
+                if (category != null)
+                {
+                    continue;
+                }
+                string pageTitle = page.Attributes["title"].Value;
+                Console.Out.WriteLine(string.Format("Processing '{0}' ({1}/{2})...",
+                    pageTitle, index++, pages.Count));
+                try
+                {
+                    wiki.AppendTextToPage(pageTitle,
+                        "\n\n",
+                        "Сброс кеша нулевой правкой",
+                        MinorFlags.None,
+                        WatchFlags.Watch);
+                }
+                catch (WikiException e)
+                {
+                    Console.Out.WriteLine(e.Message);
+                }
+            }
+
+            parameters.Clear();
+            parameters.Add("generator", "embeddedin");
+            parameters.Add("geititle", "Шаблон:Orphaned-fairuse");
+            parameters.Add("geilimit", "max");
+            parameters.Add("geinamespace", "6");
+            parameters.Add("prop", "categories");
+            parameters.Add("clcategories", "Категория:Файлы:Неиспользуемые несвободные:Просроченные подведения итогов");
+
+            try
+            {
+                doc = wiki.Enumerate(parameters, true);
+            }
+            catch (WikiException e)
+            {
+                Console.Out.WriteLine(e.Message);
+                return;
+            }
+
+            pages = doc.SelectNodes("//page");
+            index = 1;
             foreach (XmlNode page in pages)
             {
                 XmlNode category = page.SelectSingleNode("categories/cl");
