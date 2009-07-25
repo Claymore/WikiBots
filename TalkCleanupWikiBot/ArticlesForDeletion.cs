@@ -43,6 +43,10 @@ namespace Claymore.TalkCleanupWikiBot
             {
                 string prefix = _l10i.MainPage + "/";
                 string pageName = page.Attributes["title"].Value;
+                if (pageName.Length < prefix.Length)
+                {
+                    continue;
+                }
                 string date = pageName.Substring(prefix.Length);
                 Day day = new Day();
                 if (!DateTime.TryParse(date, CultureInfo.CreateSpecificCulture(_l10i.Culture),
@@ -328,7 +332,11 @@ namespace Claymore.TalkCleanupWikiBot
                 
                 string basetimestamp = page.FirstChild.FirstChild.Attributes["timestamp"].Value;
                 string editToken = page.Attributes["edittoken"].Value;
-                
+
+                if (pageName.Length < prefix.Length)
+                {
+                    continue;
+                }
                 string date = pageName.Substring(prefix.Length);
                 Day day = new Day();
                 if (!DateTime.TryParse(date, CultureInfo.CreateSpecificCulture(_l10i.Culture),
@@ -466,16 +474,16 @@ namespace Claymore.TalkCleanupWikiBot
                     if (node.Attributes["missing"] != null)
                     {
                         DateTime start = day.Date;
-                        foreach (WikiPageSection section in sections)
-                        {
-                            Match m = timeRE.Match(section.Text);
-                            if (m.Success)
-                            {
-                                start = DateTime.Parse(m.Groups[1].Value,
-                                    CultureInfo.CreateSpecificCulture(_l10i.Culture),
-                                    DateTimeStyles.AssumeUniversal);
-                            }
-                        }
+                        //foreach (WikiPageSection section in sections)
+                        //{
+                        //    Match m = timeRE.Match(section.Text);
+                        //    if (m.Success)
+                        //    {
+                        //        start = DateTime.Parse(m.Groups[1].Value,
+                        //            CultureInfo.CreateSpecificCulture(_l10i.Culture),
+                        //            DateTimeStyles.AssumeUniversal);
+                        //    }
+                        //}
                         parameters.Clear();
                         parameters.Add("list", "logevents");
                         parameters.Add("letype", "delete");
@@ -527,35 +535,38 @@ namespace Claymore.TalkCleanupWikiBot
                         }
                     }
                 }
-                
-                parameters.Clear();
-                parameters.Add("prop", "info");
-                xml = wiki.Query(QueryBy.Titles, parameters, titlesWithResults);
-                foreach (XmlNode node in xml.SelectNodes("//page"))
-                {
-                    if (node.Attributes["missing"] == null &&
-                        node.Attributes["redirect"] == null &&
-                        node.Attributes["ns"].Value == "0")
-                    {
-                        notificationList.Add(node.Attributes["title"].Value);
-                    }
-                }
-                if (notificationList.Count > 0)
+
+                if (_l10i.Culture != "ru-RU")
                 {
                     parameters.Clear();
-                    parameters.Add("list", "backlinks");
-                    parameters.Add("bltitle", pageName);
-                    parameters.Add("blfilterredir", "nonredirects");
-                    parameters.Add("blnamespace", "1");
-                    parameters.Add("bllimit", "max");
-
-                    XmlDocument backlinks = wiki.Enumerate(parameters, true);
-                    foreach (string title in notificationList)
+                    parameters.Add("prop", "info");
+                    xml = wiki.Query(QueryBy.Titles, parameters, titlesWithResults);
+                    foreach (XmlNode node in xml.SelectNodes("//page"))
                     {
-                        string talkPage = wiki.GetNamespace(1) + ":" + title;
-                        if (backlinks.SelectSingleNode("//bl[@title='" + talkPage + "']") == null)
+                        if (node.Attributes["missing"] == null &&
+                            node.Attributes["redirect"] == null &&
+                            node.Attributes["ns"].Value == "0")
                         {
-                            PutNotification(wiki, title, date);
+                            notificationList.Add(node.Attributes["title"].Value);
+                        }
+                    }
+                    if (notificationList.Count > 0)
+                    {
+                        parameters.Clear();
+                        parameters.Add("list", "backlinks");
+                        parameters.Add("bltitle", pageName);
+                        parameters.Add("blfilterredir", "nonredirects");
+                        parameters.Add("blnamespace", "1");
+                        parameters.Add("bllimit", "max");
+
+                        XmlDocument backlinks = wiki.Enumerate(parameters, true);
+                        foreach (string title in notificationList)
+                        {
+                            string talkPage = wiki.GetNamespace(1) + ":" + title;
+                            if (backlinks.SelectSingleNode("//bl[@title='" + talkPage + "']") == null)
+                            {
+                                PutNotification(wiki, title, date);
+                            }
                         }
                     }
                 }
