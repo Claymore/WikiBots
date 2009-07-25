@@ -48,6 +48,8 @@ namespace Claymore.NewPagesWikiBot
 
             List<Portal> portals = new List<Portal>
             {
+                new Portal("Математика", new IPortalModule[] { new ArticlesInCategory("Динамические системы", "Википедия:Проект:Математика/Динамические системы/watchlist", "* [[{0}]]") }),
+                new Portal("Криптография", new IPortalModule[] { new NewPages("Криптография", "Портал:Криптография/Новые статьи") }),
                 new Portal("Религия", new IPortalModule[] { new NewPages("Религия", "Портал:Религия/Новые статьи", 35, "* [[{0}]]") }),
                 new Portal("Италия", new IPortalModule[] { new NewPages("Италия", "Портал:Италия/Новые статьи", 35, "* [[{0}]]") }),
                 new Portal("Христианство", new IPortalModule[] { new NewPages("Христианство", "Портал:Христианство/Новые статьи", 25, "* [[{0}]]") }),
@@ -79,6 +81,7 @@ namespace Claymore.NewPagesWikiBot
                 new Portal("Религия", new IPortalModule[] { new NewPages("Православие", "Портал:Православие/Новые статьи", 25, "# [[{0}]]") }),
                 new Portal("Религия", new IPortalModule[] { new NewPages("Тула", "Портал:Тула/Новые статьи", 20, "# [[{0}]]") }),
                 new Portal("Религия", new IPortalModule[] { new NewPages("Белоруссия", "Портал:Белоруссия/Новые статьи", 15, "* [[{0}]]") }),
+                new Portal("Мальта", new IPortalModule[] { new NewPages("Мальта", "Портал:Мальта/Новые статьи") }),
                 new Portal("Израиль", new IPortalModule[]
                 {
                     new NewPages("Израиль", "Портал:Израиль/Новые статьи", 10, "* [[{0}]]"),
@@ -94,6 +97,15 @@ namespace Claymore.NewPagesWikiBot
                     new FeaturedArticleCandidates("Израиль", "Портал:Израиль/Кандидаты в избранные статьи", "* [[{0}]]"),
                     new GoodArticleCandidates("Израиль", "Портал:Израиль/Кандидаты в хорошие статьи", "* [[{0}]]"),
                 }),
+                new Portal("Египет", new IPortalModule[]
+                {
+                    new NewPages("Египет", "Портал:Египет/Новые статьи", 20, "* [[{0}]]"),
+                    new FeaturedArticles("Египет", "Портал:Египет/Статьи/Избранные статьи", "* [[{0}]]"),
+                    new GoodArticles("Египет", "Портал:Египет/Статьи/Хорошие статьи", "* [[{0}]]"),
+                    new FeaturedLists("Египет", "Портал:Египет/Статьи/Избранные списки", "* [[{0}]]"),
+                    new FeaturedArticleCandidates("Египет", "Портал:Египет/Статьи/Кандидаты в избранные статьи", "* [[{0}]]"),
+                    new GoodArticleCandidates("Египет", "Портал:Египет/Статьи/Кандидаты в хорошие статьи", "* [[{0}]]"),
+                }),
                 new Portal("Литература", new IPortalModule[] { new NewPages("Литература", "Портал:Литература/Новые статьи", 25, "* [[{0}]]") }),
                 new Portal("Кино", new IPortalModule[]
                     {
@@ -106,14 +118,17 @@ namespace Claymore.NewPagesWikiBot
                     {
                         new NewPagesWithArchive("Футбол на Украине", "Портал:Украинский футбол/Новые статьи", "Портал:Украинский футбол/Новые статьи/Архив", 20, "* {2} — [[{0}]]", "d MMMM yyyy"),
                     }),
-
+                
+                new Portal("Индия", new IPortalModule[] { new NewPagesWithArchive("Индия", "Портал:Индия/Новые статьи", "Википедия:Проект:Индия/Новые статьи", 10, "{{{{Новая статья|{0}|{2}|{1}}}}}", "d MMMM yyyy") }),
+                new Portal("Сингапур", new IPortalModule[] { new NewPagesWithArchive("Сингапур", "Портал:Сингапур/Новые статьи", "Портал:Сингапур/Новые статьи/Архив", 20, "{{{{Новая статья|{0}|{2}|{1}}}}}", "d MMMM yyyy") }),
+                new Portal("Бурятия", new IPortalModule[] { new NewPagesWithArchive("Бурятия", "Портал:Бурятия/Новые статьи", "Портал:Бурятия/Новые статьи/Архив", 35, "{{{{Новая статья|{0}|{2}|{1}}}}}", "d MMMM yyyy") }),
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Древний Восток", "Портал:Древний Восток/Новые статьи", 25, "* [[{0}]] — [[User:{1}|]] {2}", "d MMMM yyyy") }),
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Индеанистика", "Портал:Индейцы/Новые статьи", 20, "* [[{0}]] <small>— [[User:{1}|]] {2}</small>", "d MMMM yyyy") }),
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Доисторическая Европа", "Портал:Доисторическая Европа/Новые статьи", 25, "* [[{0}]] — [[User:{1}|]] {2}", "d MMMM yyyy") }),
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Лингвистика", "Портал:Лингвистика/Новые статьи", 30, "# [[{0}]] — [[User:{1}|]] {2}", "d MMMM yyyy") }),
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Ирландия", "Портал:Ирландия/Новые статьи", 20, "* '''{2}''' — [[{0}]]", "[[d MMMM]] [[yyyy]]") }),
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithArchive("Монголия", "Портал:Монголия/Новые статьи", "Портал:Монголия/Новости/Архив", 20, "{{{{Новая статья|{0}|{2}|{1}}}}}", "d MMMM yyyy") }),
-                new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Индия", "Портал:Индия/Новые статьи", 10, "{{{{Новая статья|{0}|{2}|{1}}}}}", "d MMMM yyyy") }),
+                
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Германия", "Портал:Германия/Новые статьи", 20, "* [[{0}]] <small>— {2}</small>", "d MMMM yyyy") }),
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Этнология", "Портал:Этнология/Новые статьи", 20, "* [[{0}]] — [[User:{1}|]] {2}", "d MMMM yyyy") }),
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Канада", "Портал:Канада/Новые статьи", 15, "# [[{0}]] <small>— {2} [[User:{1}|]]</small>", "dd.MM.yy") }),
@@ -180,7 +195,7 @@ namespace Claymore.NewPagesWikiBot
                         portals[i].UpdatePages(wiki);
                         break;
                     }
-                    catch (WikiException)
+                    catch (WikiException e)
                     {
                     }
                 }

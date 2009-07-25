@@ -48,8 +48,14 @@ namespace Claymore.NewPagesWikiBot
             client.DownloadFile(url, "Cache\\input-" + Category + ".txt");
             using (TextWriter streamWriter = new StreamWriter(Previous))
             {
-                string text = wiki.LoadPage(Page);
-                streamWriter.Write(text);
+                try
+                {
+                    string text = wiki.LoadPage(Page);
+                    streamWriter.Write(text);
+                }
+                catch (WikiPageNotFound)
+                {
+                }
             }
         }
 
@@ -81,6 +87,12 @@ namespace Claymore.NewPagesWikiBot
 
         public virtual bool UpdatePage(Wiki wiki)
         {
+            if (!File.Exists(Previous))
+            {
+                using (TextWriter streamWriter = new StreamWriter(Previous))
+                {
+                }
+            }
             using (TextReader oldSr = new StreamReader(Previous))
             using (TextReader sr = new StreamReader(Output))
             {
