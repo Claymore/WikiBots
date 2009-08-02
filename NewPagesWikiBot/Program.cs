@@ -48,7 +48,7 @@ namespace Claymore.NewPagesWikiBot
 
             List<Portal> portals = new List<Portal>
             {
-                new Portal("Математика", new IPortalModule[] { new ArticlesInCategory("Динамические системы", "Википедия:Проект:Математика/Динамические системы/watchlist", "* [[{0}]]") }),
+                new Portal("Математика", new IPortalModule[] { new ArticlesInCategory("Динамические системы", "Википедия:Проект:Математика/Динамические системы/watchlist", "* [[{0}]] ([[Обсуждение:{0}|обсуждение]])") }),
                 new Portal("Криптография", new IPortalModule[] { new NewPages("Криптография", "Портал:Криптография/Новые статьи") }),
                 new Portal("Религия", new IPortalModule[] { new NewPages("Религия", "Портал:Религия/Новые статьи", 35, "* [[{0}]]") }),
                 new Portal("Италия", new IPortalModule[] { new NewPages("Италия", "Портал:Италия/Новые статьи", 35, "* [[{0}]]") }),
@@ -128,7 +128,7 @@ namespace Claymore.NewPagesWikiBot
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Лингвистика", "Портал:Лингвистика/Новые статьи", 30, "# [[{0}]] — [[User:{1}|]] {2}", "d MMMM yyyy") }),
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Ирландия", "Портал:Ирландия/Новые статьи", 20, "* '''{2}''' — [[{0}]]", "[[d MMMM]] [[yyyy]]") }),
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithArchive("Монголия", "Портал:Монголия/Новые статьи", "Портал:Монголия/Новости/Архив", 20, "{{{{Новая статья|{0}|{2}|{1}}}}}", "d MMMM yyyy") }),
-                
+                new Portal("Удмуртия", new IPortalModule[] { new NewPagesWithArchive("Удмуртия", "Портал:Удмуртия/Новые статьи", "Портал:Удмуртия/Новые статьи/Архив", 20, "{{{{Новая статья|{0}|{2}|{1}}}}}", "d MMMM yyyy") }),
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Германия", "Портал:Германия/Новые статьи", 20, "* [[{0}]] <small>— {2}</small>", "d MMMM yyyy") }),
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Этнология", "Портал:Этнология/Новые статьи", 20, "* [[{0}]] — [[User:{1}|]] {2}", "d MMMM yyyy") }),
                 new Portal("Религия", new IPortalModule[] { new NewPagesWithAuthors("Канада", "Портал:Канада/Новые статьи", 15, "# [[{0}]] <small>— {2} [[User:{1}|]]</small>", "dd.MM.yy") }),
@@ -149,6 +149,10 @@ namespace Claymore.NewPagesWikiBot
                     "<div align=\"center\">\n<gallery perrow=\"2\" widths=\"125px\" heights=\"125px\" caption=\"Ботаника\">",
                     "</gallery>\nОсновной список новых статей в [[Википедия:Проект:Ботаника]].\n</div>") }),
                 new Portal("Кулинария", new IPortalModule[] { new NewPagesWithImages("Кулинария", "Портал:Кулинария/Новые статьи", 6, "Файл:{1}|[[{0}]]",
+                    "<div align=\"center\">\n<gallery perrow=\"3\" widths=\"110px\">",
+                    "</gallery></div>",
+                    new Regex(@"\[{2}(Image|File|Файл|Изображение):(?'fileName'.+?)\|")) }),
+                new Portal("Мода", new IPortalModule[] { new NewPagesWithImages("Мода", "Портал:Мода/Новые статьи", 6, "Файл:{1}|[[{0}]]",
                     "<div align=\"center\">\n<gallery perrow=\"3\" widths=\"110px\">",
                     "</gallery></div>",
                     new Regex(@"\[{2}(Image|File|Файл|Изображение):(?'fileName'.+?)\|")) }),
