@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Claymore.SharpMediaWiki;
 
 namespace Claymore.ErrorReportsWikiBot
 {

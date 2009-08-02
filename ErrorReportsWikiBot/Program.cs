@@ -59,6 +59,10 @@ namespace Claymore.ErrorReportsWikiBot
             XmlNodeList nodes = doc.SelectNodes("//page");
             foreach (XmlNode node in nodes)
             {
+                if (node.Attributes["missing"] != null)
+                {
+                    continue;
+                }
                 string title = node.Attributes["title"].Value;
                 string timestamp = node.Attributes["touched"].Value;
                 pages[title] = DateTime.Parse(timestamp, null, DateTimeStyles.AssumeUniversal);
