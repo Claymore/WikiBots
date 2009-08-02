@@ -32,7 +32,7 @@ namespace Claymore.ReviewStatsWikiBot
             }
             Console.Out.WriteLine("Logged in as " + Settings.Default.Login + ".");
 
-            DateTime now = DateTime.Now.ToUniversalTime();
+            DateTime now = DateTime.Today;
             DateTime currentMonth = new DateTime(now.Year, now.Month, 1);
             DateTime firstReviewMonth = new DateTime(2008, 9, 1);
             while (currentMonth > firstReviewMonth)
@@ -40,10 +40,11 @@ namespace Claymore.ReviewStatsWikiBot
                 DateTime previousMonth = currentMonth.AddMonths(-1);
                 if (File.Exists("output" + previousMonth.ToString("yyyy-MM") + ".txt"))
                 {
+                    currentMonth = currentMonth.AddMonths(-1);
                     continue;
                 }
-                string start = previousMonth.ToString("yyyy-MM-ddTHH:mm:ssZ");
-                string stop = currentMonth.ToString("yyyy-MM-ddTHH:mm:ssZ");
+                string start = previousMonth.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ");
+                string stop = currentMonth.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ");
 
                 Console.Out.WriteLine("Quering list of editors for " + previousMonth.ToString("MMMM yyyy") + "...");
                 ParameterCollection parameters = new ParameterCollection();
@@ -235,9 +236,10 @@ namespace Claymore.ReviewStatsWikiBot
                 sw.WriteLine("|}");
             }
 
+            currentMonth = new DateTime(now.Year, now.Month, 1).AddMonths(-1);
             Console.Out.WriteLine("Updating the wiki page...");
             using (TextReader sr =
-                        new StreamReader("output.txt"))
+                        new StreamReader("output" + currentMonth.ToString("yyyy-MM") + ".txt"))
             {
                 DateTime previousMonth = new DateTime(now.Year, now.Month, 1).AddMonths(-1);
                 string text = sr.ReadToEnd();
