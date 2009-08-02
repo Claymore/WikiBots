@@ -156,6 +156,9 @@ namespace Claymore.TalkCleanupWikiBot
             }
             Console.Out.WriteLine("Logged in as " + Settings.Default.Login + ".");
 
+            AdministratorIntervention ai = new AdministratorIntervention();
+            ai.Archive(wiki);
+
             CategoriesForDiscussion cat = new CategoriesForDiscussion();
             cat.Analyze(wiki);
             cat.UpdateMainPage(wiki);
