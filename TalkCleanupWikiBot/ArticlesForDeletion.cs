@@ -34,7 +34,7 @@ namespace Claymore.TalkCleanupWikiBot
             parameters.Add("gcmlimit", "max");
             parameters.Add("gcmnamespace", "4");
             parameters.Add("prop", "info");
-            
+
             XmlDocument doc = wiki.Enumerate(parameters, true);
             XmlNodeList pages = doc.SelectNodes("//page");
 
@@ -54,9 +54,9 @@ namespace Claymore.TalkCleanupWikiBot
                 {
                     continue;
                 }
-                
+
                 string fileName = _cacheDir + date + ".bin";
-                
+
                 string text = "";
                 if (File.Exists(fileName))
                 {
@@ -154,9 +154,9 @@ namespace Claymore.TalkCleanupWikiBot
                 string prefix = _l10i.MainPage + "/";
                 string date = pageName.Substring(prefix.Length);
                 string fileName = _cacheDir + date + ".bin";
-                bool archived = doc.SelectSingleNode("//page[@title=\""+ pageName + "\"]") == null;
+                bool archived = doc.SelectSingleNode("//page[@title=\"" + pageName + "\"]") == null;
                 XmlNode page = xml.SelectSingleNode("//page[@title=\"" + pageName + "\"]");
-                
+
                 Day day = new Day();
                 day.Archived = archived;
                 if (!DateTime.TryParse(date, CultureInfo.CreateSpecificCulture(_l10i.Culture),
@@ -321,7 +321,7 @@ namespace Claymore.TalkCleanupWikiBot
             XmlDocument doc = wiki.Enumerate(parameters, true);
 
             string queryTimestamp = DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ");
-            
+
             XmlNodeList pages = doc.SelectNodes("//page");
             foreach (XmlNode page in pages)
             {
@@ -329,7 +329,7 @@ namespace Claymore.TalkCleanupWikiBot
                 int results = 0;
                 string prefix = _l10i.MainPage + "/";
                 string pageName = page.Attributes["title"].Value;
-                
+
                 string basetimestamp = page.FirstChild.FirstChild.Attributes["timestamp"].Value;
                 string editToken = page.Attributes["edittoken"].Value;
 
@@ -344,7 +344,7 @@ namespace Claymore.TalkCleanupWikiBot
                 {
                     continue;
                 }
-                
+
                 string text = "";
                 string fileName = _cacheDir + date + ".bin";
                 if (File.Exists(fileName))
@@ -461,7 +461,7 @@ namespace Claymore.TalkCleanupWikiBot
                 foreach (XmlNode node in missingTitles)
                 {
                     string title = node.Attributes["title"].Value;
-                    
+
                     IEnumerable<WikiPageSection> sections;
                     if (titles.ContainsKey(title))
                     {
@@ -511,10 +511,7 @@ namespace Claymore.TalkCleanupWikiBot
                             events[0].Deleted &&
                             (DateTime.Now - events[0].Timestamp).TotalHours > 2)
                         {
-                            Regex commentRE = new Regex(@"\[{2}(File|Файл|Image|Изображение|Category|Категория):(.+?)\]{2}");
-                            string comment = events[0].Comment;
-                            comment = comment.Replace("{{", "<nowiki>{{").Replace("}}", "}}</nowiki>").Replace("'''", "").Replace("''", "").Trim();
-                            comment = commentRE.Replace(comment, "[[:$1:$2]]");
+                            string comment = FilterWikiMarkup(events[0].Comment);
                             string message = string.Format(_l10i.AutoResultMessage,
                                 events[0].User,
                                 events[0].Timestamp.ToUniversalTime().ToString(_l10i.DateFormat),
@@ -590,7 +587,7 @@ namespace Claymore.TalkCleanupWikiBot
                         basetimestamp,
                         starttimestamp,
                         editToken);
-                    
+
                     using (FileStream fs = new FileStream(fileName, FileMode.Create))
                     using (GZipStream gs = new GZipStream(fs, CompressionMode.Compress))
                     using (StreamWriter sw = new StreamWriter(gs))
@@ -775,6 +772,29 @@ namespace Claymore.TalkCleanupWikiBot
                 aggregator.Add(section);
             }
             return section.Reduce(aggregator, SubsectionsList);
+        }
+
+        private static string FilterWikiMarkup(string line)
+        {
+            Regex commentRE = new Regex(@"\[{2}(File|Файл|Image|Изображение|Category|Категория):(.+?)\]{2}");
+            string comment = line;
+            comment = comment.Replace("{{", "<nowiki>{{").Replace("}}", "}}</nowiki>").Replace("'''", "").Replace("''", "").Trim();
+            comment = commentRE.Replace(comment, "[[:$1:$2]]");
+            if (comment.Contains("<nowiki>"))
+            {
+                for (int index = comment.IndexOf("<nowiki>");
+                     index != -1;
+                     index = comment.IndexOf("<nowiki>", index + 1))
+                {
+                    int endIndex = comment.IndexOf("</nowiki>", index);
+                    if (endIndex == -1)
+                    {
+                        comment += "</nowiki>";
+                        break;
+                    }
+                }
+            }
+            return comment;
         }
     }
 }
