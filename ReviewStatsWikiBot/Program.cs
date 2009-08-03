@@ -31,9 +31,10 @@ namespace Claymore.ReviewStatsWikiBot
                 return;
             }
             Console.Out.WriteLine("Logged in as " + Settings.Default.Login + ".");
+            wiki.SleepBetweenQueries = 3;
 
-            DateTime now = DateTime.Today;
-            DateTime currentMonth = new DateTime(now.Year, now.Month, 1);
+            DateTime currentMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+            DateTime now = currentMonth;
             DateTime firstReviewMonth = new DateTime(2008, 9, 1);
             while (currentMonth > firstReviewMonth)
             {
@@ -43,67 +44,101 @@ namespace Claymore.ReviewStatsWikiBot
                     currentMonth = currentMonth.AddMonths(-1);
                     continue;
                 }
-                string start = previousMonth.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ");
-                string stop = currentMonth.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ");
+                string start = previousMonth.ToString("yyyy-MM-ddTHH:mm:ssZ");
+                string stop = currentMonth.ToString("yyyy-MM-ddTHH:mm:ssZ");
 
                 Console.Out.WriteLine("Quering list of editors for " + previousMonth.ToString("MMMM yyyy") + "...");
                 ParameterCollection parameters = new ParameterCollection();
-                parameters.Add("list", "allusers");
-                parameters.Add("augroup", "editor");
-                parameters.Add("aulimit", "max");
-                wiki.SleepBetweenQueries = 3;
-                XmlDocument doc;
-                try
-                {
-                    doc = wiki.Enumerate(parameters, true);
-                }
-                catch (WikiException e)
-                {
-                    Console.Out.WriteLine(e.Message);
-                    return;
-                }
-                XmlNodeList editors = doc.SelectNodes("//u[@name]");
+                parameters.Add("list", "logevents");
+                parameters.Add("letype", "review");
+                parameters.Add("lestart", start);
+                parameters.Add("leend", stop);
+                parameters.Add("ledir", "newer");
+                parameters.Add("lelimit", "max");
 
-                List<User> users = new List<User>();
-                int index = 1;
-                foreach (XmlNode user in editors)
+                Dictionary<string, User> users = new Dictionary<string, User>();
+                XmlNode continueNode = null;
+                while (true)
                 {
-                    string username = user.Attributes["name"].Value;
-                    Console.Out.WriteLine(string.Format("Quering actions of user '{0} ({1}/{2})",
-                        username, index++, editors.Count));
-                    parameters.Clear();
-                    parameters.Add("list", "logevents");
-                    parameters.Add("letype", "review");
-                    parameters.Add("lestart", start);
-                    parameters.Add("leend", stop);
-                    parameters.Add("ledir", "newer");
-                    parameters.Add("lelimit", "max");
-                    parameters.Add("leuser", username);
-
-                    XmlDocument result;
+                    XmlDocument doc;
                     try
                     {
-                        result = wiki.Enumerate(parameters, true);
+                        doc = wiki.MakeRequest(Claymore.SharpMediaWiki.Action.Query, parameters);
                     }
                     catch (WikiException e)
                     {
                         Console.Out.WriteLine(e.Message);
                         return;
                     }
-                    XmlNodeList artActions = result.SelectNodes("//item[@action=\"approve\" and @ns=\"0\"] | //item[@action=\"approve-i\" and @ns=\"0\"]");
-                    XmlNodeList catActions = result.SelectNodes("//item[@action=\"approve\" and @ns=\"14\"] | //item[@action=\"approve-i\" and @ns=\"14\"]");
-                    XmlNodeList tempActions = result.SelectNodes("//item[@action=\"approve\" and @ns=\"10\"] | //item[@action=\"approve-i\" and @ns=\"10\"]");
-                    XmlNodeList fileActions = result.SelectNodes("//item[@action=\"approve\" and @ns=\"6\"] | //item[@action=\"approve-i\" and @ns=\"6\"]");
-                    int totalActions = artActions.Count + catActions.Count + tempActions.Count + fileActions.Count;
-                    if (totalActions > 0)
+
+                    continueNode = doc.SelectSingleNode("//query-continue");
+                    if (continueNode != null)
                     {
-                        users.Add(new User(username, artActions.Count, catActions.Count, tempActions.Count, fileActions.Count));
+                        string name = continueNode.FirstChild.Attributes[0].Name;
+                        string value = continueNode.FirstChild.Attributes[0].Value;
+                        parameters.Set(name, value);
+                    }
+
+                    XmlNodeList entries = doc.SelectNodes("//item[@action!=\"approve-a\" and @action!=\"approve-ia\"]");
+
+                    foreach (XmlNode entry in entries)
+                    {
+                        string username = entry.Attributes["user"].Value;
+                        string ns = entry.Attributes["ns"].Value;
+                        if (!users.ContainsKey(username))
+                        {
+                            User user = new User(username);
+                            if (ns == "0")
+                            {
+                                user.ArticleActions = 1;
+                            }
+                            else if (ns == "14")
+                            {
+                                user.CategoryActions = 1;
+                            }
+                            else if (ns == "10")
+                            {
+                                user.TemplateActions = 1;
+                            }
+                            else if (ns == "6")
+                            {
+                                user.FileActions = 1;
+                            }
+                            users.Add(username, user);
+                        }
+                        else
+                        {
+                            User user = users[username];
+                            if (ns == "0")
+                            {
+                                ++user.ArticleActions;
+                            }
+                            else if (ns == "14")
+                            {
+                                ++user.CategoryActions;
+                            }
+                            else if (ns == "10")
+                            {
+                                ++user.TemplateActions;
+                            }
+                            else if (ns == "6")
+                            {
+                                ++user.FileActions;
+                            }
+                            users[username] = user;
+                        }
+                    }
+
+                    if (continueNode == null)
+                    {
+                        break;
                     }
                 }
 
                 Console.Out.WriteLine("Processing data...");
 
-                users.Sort(CompareUsers);
+                List<User> userList = new List<User>(users.Select(s => s.Value));
+                userList.Sort(CompareUsers);
 
                 using (StreamWriter sw =
                             new StreamWriter("output" + previousMonth.ToString("yyyy-MM") + ".txt", false))
@@ -111,17 +146,17 @@ namespace Claymore.ReviewStatsWikiBot
                     sw.WriteLine("== " + previousMonth.ToString("MMMM") + " ==");
                     sw.WriteLine("{| class=\"standard sortable\"");
                     sw.WriteLine("!№!!Участник!!всего!!статей!!категорий!!шаблонов!!файлов");
-                    for (int i = 0; i < users.Count; ++i)
+                    for (int i = 0; i < userList.Count; ++i)
                     {
                         sw.WriteLine("|-");
                         string line = string.Format("|{0}||[[User:{1}|]]||{2}||{3}||{4}||{5}||{6}",
                             i + 1,
-                            users[i].Name,
-                            users[i].Actions,
-                            users[i].ArticleActions,
-                            users[i].CategoryActions,
-                            users[i].TemplateActions,
-                            users[i].FileActions);
+                            userList[i].Name,
+                            userList[i].Actions,
+                            userList[i].ArticleActions,
+                            userList[i].CategoryActions,
+                            userList[i].TemplateActions,
+                            userList[i].FileActions);
                         sw.WriteLine(line);
                     }
                     sw.WriteLine("|}");
@@ -335,13 +370,13 @@ namespace Claymore.ReviewStatsWikiBot
             public int FileActions;
             public string Name;
 
-            public User(string name, int artActions, int catActions, int tempActions, int fileActions)
+            public User(string name)
             {
                 Name = name;
-                ArticleActions = artActions;
-                CategoryActions = catActions;
-                TemplateActions = tempActions;
-                FileActions = fileActions;
+                FileActions = 0;
+                CategoryActions = 0;
+                TemplateActions = 0;
+                ArticleActions = 0;
             }
 
             public override string ToString()
