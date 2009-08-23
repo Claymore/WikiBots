@@ -11,7 +11,7 @@ using System.Xml;
 
 namespace Claymore.TalkCleanupWikiBot
 {
-    internal class AdministratorIntervention
+    internal class AdministratorIntervention : IModule
     {
         private string _cacheDir;
         private string _language;
@@ -27,7 +27,6 @@ namespace Claymore.TalkCleanupWikiBot
 
         public void Archive(Wiki wiki)
         {
-            string starttimestamp = DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ");
             ParameterCollection parameters = new ParameterCollection();
             parameters.Add("prop", "info|revisions");
             parameters.Add("intoken", "edit");
@@ -93,34 +92,50 @@ namespace Claymore.TalkCleanupWikiBot
                     }
                 }
             }
+
+            if (archivedSections.Count == 0)
+            {
+                return;
+            }
+
+            Dictionary<string, string> archiveTexts = new Dictionary<string, string>();
             foreach (DateTime month in archives.Keys)
             {
                 string pageName = month.ToString("Википедия:Запросы к администраторам\\/Архив\\/yyyy\\/MM");
                 pageFileName = _cacheDir + month.ToString("yyyy-MM");
                 xml = wiki.Query(QueryBy.Titles, parameters, new string[] { pageName });
                 node = xml.SelectSingleNode("//page");
-                text = LoadPageFromCache(pageFileName,
+                if (node.Attributes["missing"] == null)
+                {
+                    text = LoadPageFromCache(pageFileName,
                             node.Attributes["lastrevid"].Value, pageName);
 
-                if (string.IsNullOrEmpty(text))
-                {
-                    Console.Out.WriteLine("Downloading " + pageName + "...");
-                    text = wiki.LoadPage(pageName);
-                    CachePage(pageFileName, node.Attributes["lastrevid"].Value, text);
+                    if (string.IsNullOrEmpty(text))
+                    {
+                        Console.Out.WriteLine("Downloading " + pageName + "...");
+                        text = wiki.LoadPage(pageName);
+                        CachePage(pageFileName, node.Attributes["lastrevid"].Value, text);
+                    }
                 }
+                else
+                {
+                    text = "{{closed}}\n";
+                }
+                
                 WikiPage archivePage = WikiPage.Parse(pageName, text);
                 foreach (WikiPageSection section in archives[month])
                 {
                     archivePage.Sections.Add(section);
                 }
                 archivePage.Sections.Sort(CompareSections);
-                Console.Out.WriteLine("Saving " + pageName + "...");
-                wiki.SavePage(pageName, archivePage.Text, "архивация");
+                archiveTexts.Add(pageName, archivePage.Text);
             }
+
             foreach (var section in archivedSections)
             {
                 page.Sections.Remove(section);
             }
+            Console.Out.WriteLine("Saving Википедия:Запросы к администраторам...");
             wiki.SavePage("Википедия:Запросы к администраторам", page.Text, "архивация");
             string revid = wiki.SavePage("Википедия:Запросы к администраторам",
                         "",
@@ -131,11 +146,33 @@ namespace Claymore.TalkCleanupWikiBot
                         WatchFlags.None,
                         SaveFlags.Replace,
                         baseTimeStamp,
-                        starttimestamp,
+                        "",
                         editToken);
             if (revid != null)
             {
                 CachePage("Запросы к администраторам", revid, page.Text);
+            }
+            foreach (var archiveText in archiveTexts)
+            {
+                Console.Out.WriteLine("Saving " + archiveText.Key + "...");
+                for (int i = 0; i < 5; ++i)
+                {
+                    try
+                    {
+                        wiki.SavePage(archiveText.Key,
+                            "",
+                            archiveText.Value,
+                            "архивация",
+                            MinorFlags.Minor,
+                            CreateFlags.None,
+                            WatchFlags.None,
+                            SaveFlags.Replace);
+                        break;
+                    }
+                    catch (WikiException)
+                    {
+                    }
+                }
             }
         }
 
@@ -207,5 +244,14 @@ namespace Claymore.TalkCleanupWikiBot
                 sw.Write(text);
             }
         }
+
+        #region IModule Members
+
+        public void Run(Wiki wiki)
+        {
+            Archive(wiki);
+        }
+
+        #endregion
     }
 }

@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Net;
 using System.Text.RegularExpressions;
 using Claymore.SharpMediaWiki;
 using TalkCleanupWikiBot.Properties;
@@ -9,13 +11,24 @@ namespace Claymore.TalkCleanupWikiBot
 {
     class Program
     {
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
-            UpdateUkWiki();
-            UpdateRuWiki();
+            bool success = true;
+            foreach (var arg in args)
+            {
+                if (arg == "/ru")
+                {
+                    success = UpdateRuWiki() && success;
+                }
+                else if (arg == "/uk")
+                {
+                    success = UpdateUkWiki() && success;
+                }
+            }
+            return success ? 0 : -1;
         }
 
-        private static void UpdateUkWiki()
+        private static bool UpdateUkWiki()
         {
             Wiki wiki = new Wiki("http://uk.wikipedia.org");
             wiki.SleepBetweenQueries = 2;
@@ -23,7 +36,7 @@ namespace Claymore.TalkCleanupWikiBot
                 string.IsNullOrEmpty(Settings.Default.Password))
             {
                 Console.Out.WriteLine("Please add login and password to the configuration file.");
-                return;
+                return false;
             }
             Console.Out.WriteLine("Logging in as " + Settings.Default.Login + " to " + wiki.Uri + "...");
             try
@@ -54,7 +67,7 @@ namespace Claymore.TalkCleanupWikiBot
             catch (WikiException e)
             {
                 Console.Out.WriteLine(e.Message);
-                return;
+                return false;
             }
             Console.Out.WriteLine("Logged in as " + Settings.Default.Login + ".");
 
@@ -80,12 +93,6 @@ namespace Claymore.TalkCleanupWikiBot
             l10i.NotificationTemplate = "Залишено";
             l10i.EmptyResult = "Підсумок";
 
-            ArticlesForDeletion afd = new ArticlesForDeletion(l10i);
-            afd.UpdatePages(wiki);
-            afd.Analyse(wiki);
-            afd.UpdateMainPage(wiki);
-            afd.UpdateArchive(wiki);
-
             Cleanup.Localization cleanupL10i = new Cleanup.Localization();
             cleanupL10i.Language = "uk";
             cleanupL10i.Category = "Категорія:Вікіпедія:Незакриті обговорення поліпшення статей";
@@ -103,16 +110,34 @@ namespace Claymore.TalkCleanupWikiBot
             cleanupL10i.ArchiveTemplate = "Статті, що необхідно поліпшити";
             cleanupL10i.ArchivePage = "Вікіпедія:Статті, що необхідно поліпшити/Архів/";
             cleanupL10i.EmptyArchive = "обговорення не розпочато";
-            
-            Cleanup cleanup = new Cleanup(cleanupL10i);
-            cleanup.Analyze(wiki);
-            cleanup.UpdateMainPage(wiki);
-            cleanup.UpdateArchivePages(wiki);
+
+            List<IModule> modules = new List<IModule>()
+            {
+                new Cleanup(cleanupL10i),
+                new ArticlesForDeletion(l10i),
+            };
+
+            for (int i = 0; i < modules.Count; ++i)
+            {
+                try
+                {
+                    modules[i].Run(wiki);
+                }
+                catch (WikiException)
+                {
+                    return false;
+                }
+                catch (WebException)
+                {
+                    return false;
+                }
+            }
 
             Console.Out.WriteLine("Done.");
+            return true;
         }
 
-        private static void UpdateRuWiki()
+        private static bool UpdateRuWiki()
         {
             Wiki wiki = new Wiki("http://ru.wikipedia.org");
             wiki.SleepBetweenQueries = 2;
@@ -121,7 +146,7 @@ namespace Claymore.TalkCleanupWikiBot
                 string.IsNullOrEmpty(Settings.Default.Password))
             {
                 Console.Out.WriteLine("Please add login and password to the configuration file.");
-                return;
+                return false;
             }
             Console.Out.WriteLine("Logging in as " + Settings.Default.Login + " to " + wiki.Uri + "...");
             try
@@ -152,30 +177,11 @@ namespace Claymore.TalkCleanupWikiBot
             catch (WikiException e)
             {
                 Console.Out.WriteLine(e.Message);
-                return;
+                return false;
             }
             Console.Out.WriteLine("Logged in as " + Settings.Default.Login + ".");
 
-            AdministratorIntervention ai = new AdministratorIntervention();
-            ai.Archive(wiki);
-
-            CategoriesForDiscussion cat = new CategoriesForDiscussion();
-            cat.Analyze(wiki);
-            cat.UpdateMainPage(wiki);
-            cat.UpdateArchivePages(wiki);
-
-            DeletionReview dr = new DeletionReview();
-            dr.AddNavigationTemplate(wiki);
-            dr.UpdatePages(wiki);
-            dr.Analyze(wiki);
-            dr.UpdateMainPage(wiki);
-            dr.UpdateArchivePages(wiki);
-
-            ProposedSplits ps = new ProposedSplits();
-            ps.AddNavigationTemplate(wiki);
-            ps.Analyze(wiki);
-            ps.UpdateMainPage(wiki);
-            ps.UpdateArchivePages(wiki);
+            string errorFileName = @"Cache\ru\Errors.txt";
 
             Cleanup.Localization cleanupL10i = new Cleanup.Localization();
             cleanupL10i.Language = "ru";
@@ -195,18 +201,6 @@ namespace Claymore.TalkCleanupWikiBot
             cleanupL10i.ArchiveTemplate = "Статьи, вынесенные на улучшение";
             cleanupL10i.ArchivePage = "Википедия:К улучшению/Архив/";
             cleanupL10i.EmptyArchive = "нет обсуждений";
-
-            Cleanup cleanup = new Cleanup(cleanupL10i);
-            cleanup.Analyze(wiki);
-            cleanup.UpdateMainPage(wiki);
-            cleanup.UpdateArchivePages(wiki);
-
-            ProposedMerges pm = new ProposedMerges();
-            pm.AddNavigationTemplate(wiki);
-            pm.UpdatePages(wiki);
-            pm.Analyze(wiki);
-            pm.UpdateMainPage(wiki);
-            pm.UpdateArchivePages(wiki);
 
             ArticlesForDeletionLocalization l10i = new ArticlesForDeletionLocalization();
             l10i.Category = "Категория:Википедия:Незакрытые обсуждения удаления страниц";
@@ -230,25 +224,64 @@ namespace Claymore.TalkCleanupWikiBot
             l10i.NotificationTemplate = "Оставлено";
             l10i.EmptyResult = "Пустой итог";
 
-            ArticlesForDeletion afd = new ArticlesForDeletion(l10i);
-            afd.UpdatePages(wiki);
-            afd.Analyse(wiki);
-            afd.UpdateMainPage(wiki);
-            afd.UpdateArchive(wiki);
+            List<IModule> modules = new List<IModule>()
+            {
+                new AdministratorIntervention(),
+                new CategoriesForDiscussion(),
+                new DeletionReview(),
+                new ProposedSplits(),
+                new Cleanup(cleanupL10i),
+                new ProposedMerges(),
+                new ArticlesForDeletion(l10i),
+                new RequestedMoves(),
+            };
 
-            RequestedMoves rm = new RequestedMoves();
-            rm.UpdatePages(wiki);
-            rm.Analyze(wiki);
-            rm.UpdateMainPage(wiki);
-            //rm.UpdateArchive(wiki, 2009, 7);
-            //rm.UpdateArchive(wiki, 2009, 6);
-            //rm.UpdateArchive(wiki, 2009, 5);
-            //rm.UpdateArchive(wiki, 2009, 4);
-            //rm.UpdateArchive(wiki, 2009, 3);
-            //rm.UpdateArchive(wiki, 2009, 2);
-            //rm.UpdateArchive(wiki, 2009, 1);
+            if (!File.Exists(errorFileName))
+            {
+                using (FileStream stream = File.Create(errorFileName)) { }
+            }
+
+            int lastIndex = 0;
+            using (TextReader streamReader = new StreamReader(errorFileName))
+            {
+                string line = streamReader.ReadToEnd();
+                if (!string.IsNullOrEmpty(line))
+                {
+                    lastIndex = int.Parse(line);
+                }
+            }
+
+            for (int i = lastIndex; i < modules.Count; ++i)
+            {
+                try
+                {
+                    modules[i].Run(wiki);
+                }
+                catch (WikiException)
+                {
+                    using (TextWriter streamWriter = new StreamWriter(errorFileName))
+                    {
+                        streamWriter.Write(i);
+                    }
+                    return false;
+                }
+                catch (WebException)
+                {
+                    using (TextWriter streamWriter = new StreamWriter(errorFileName))
+                    {
+                        streamWriter.Write(i);
+                    }
+                    return false;
+                }
+            }
+
+            if (File.Exists(errorFileName))
+            {
+                File.Delete(errorFileName);
+            }
 
             Console.Out.WriteLine("Done.");
+            return true;
         }
 
         static string RemoveVotes(WikiPageSection section)
@@ -315,5 +348,10 @@ namespace Claymore.TalkCleanupWikiBot
         public string AutoResultComment;
         public string NotificationTemplate;
         public string EmptyResult;
+    }
+
+    internal interface IModule
+    {
+        void Run(Wiki wiki);
     }
 }

@@ -11,7 +11,7 @@ using Claymore.SharpMediaWiki;
 
 namespace Claymore.TalkCleanupWikiBot
 {
-    internal class ProposedMerges
+    internal class ProposedMerges : IModule
     {
         private readonly string _cacheDir;
         private readonly string _language;
@@ -564,5 +564,18 @@ namespace Claymore.TalkCleanupWikiBot
                 sw.Write(text);
             }
         }
+
+        #region IModule Members
+
+        public void Run(Wiki wiki)
+        {
+            AddNavigationTemplate(wiki);
+            UpdatePages(wiki);
+            Analyze(wiki);
+            UpdateMainPage(wiki);
+            UpdateArchivePages(wiki);
+        }
+
+        #endregion
     }
 }

@@ -11,7 +11,7 @@ using Claymore.SharpMediaWiki;
 
 namespace Claymore.TalkCleanupWikiBot
 {
-    internal class Cleanup
+    internal class Cleanup : IModule
     {
         internal struct Localization
         {
@@ -487,5 +487,16 @@ namespace Claymore.TalkCleanupWikiBot
                 sw.Write(text);
             }
         }
+
+        #region IModule Members
+
+        public void Run(Wiki wiki)
+        {
+            Analyze(wiki);
+            UpdateMainPage(wiki);
+            UpdateArchivePages(wiki);
+        }
+
+        #endregion
     }
 }

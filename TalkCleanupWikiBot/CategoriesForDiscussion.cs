@@ -11,7 +11,7 @@ using System.Text;
 
 namespace Claymore.TalkCleanupWikiBot
 {
-    internal class CategoriesForDiscussion
+    internal class CategoriesForDiscussion : IModule
     {
         private readonly string _cacheDir;
         private readonly string _language;
@@ -453,5 +453,16 @@ namespace Claymore.TalkCleanupWikiBot
                 sw.Write(text);
             }
         }
+
+        #region IModule Members
+
+        public void Run(Wiki wiki)
+        {
+            Analyze(wiki);
+            UpdateMainPage(wiki);
+            UpdateArchivePages(wiki);
+        }
+
+        #endregion
     }
 }

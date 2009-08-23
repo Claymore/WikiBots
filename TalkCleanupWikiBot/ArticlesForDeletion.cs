@@ -11,7 +11,7 @@ using Claymore.SharpMediaWiki;
 
 namespace Claymore.TalkCleanupWikiBot
 {
-    internal class ArticlesForDeletion
+    internal class ArticlesForDeletion : IModule
     {
         private ArticlesForDeletionLocalization _l10i;
         private string _cacheDir;
@@ -796,5 +796,17 @@ namespace Claymore.TalkCleanupWikiBot
             }
             return comment;
         }
+
+        #region IModule Members
+
+        public void Run(Wiki wiki)
+        {
+            UpdatePages(wiki);
+            Analyse(wiki);
+            UpdateMainPage(wiki);
+            UpdateArchive(wiki);
+        }
+
+        #endregion
     }
 }

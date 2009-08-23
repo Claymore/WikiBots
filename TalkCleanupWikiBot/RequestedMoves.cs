@@ -11,7 +11,7 @@ using Claymore.SharpMediaWiki;
 
 namespace Claymore.TalkCleanupWikiBot
 {
-    internal class RequestedMoves
+    internal class RequestedMoves : IModule
     {
         private string _cacheDir;
         private string _language;
@@ -254,7 +254,6 @@ namespace Claymore.TalkCleanupWikiBot
                 int results = 0;
                 string pageName = page.Attributes["title"].Value;
                 string date = pageName.Substring("Википедия:К переименованию/".Length);
-                string starttimestamp = queryTimestamp;
                 string basetimestamp = page.FirstChild.FirstChild.Attributes["timestamp"].Value;
                 string editToken = page.Attributes["edittoken"].Value;
 
@@ -285,7 +284,6 @@ namespace Claymore.TalkCleanupWikiBot
                 {
                     Console.Out.WriteLine("Downloading " + pageName + "...");
                     text = wiki.LoadPage(pageName);
-                    starttimestamp = DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ");
                     using (FileStream fs = new FileStream(fileName, FileMode.Create))
                     using (GZipStream gs = new GZipStream(fs, CompressionMode.Compress))
                     using (StreamWriter sw = new StreamWriter(gs))
@@ -375,6 +373,13 @@ namespace Claymore.TalkCleanupWikiBot
                             DateTime movedAt;
 
                             DateTime start = day.Date;
+                            m = timeRE.Match(subsection.SectionText);
+                            if (m.Success)
+                            {
+                                start = DateTime.Parse(m.Groups[1].Value,
+                                    CultureInfo.CreateSpecificCulture("ru-RU"),
+                                    DateTimeStyles.AssumeUniversal);
+                            }
                             bool moved = MovedTo(wiki,
                                 link,
                                 start,
@@ -478,7 +483,7 @@ namespace Claymore.TalkCleanupWikiBot
                         WatchFlags.None,
                         SaveFlags.Replace,
                         basetimestamp,
-                        starttimestamp,
+                        "",
                         editToken);
 
                     using (FileStream fs = new FileStream(fileName, FileMode.Create))
@@ -998,5 +1003,23 @@ namespace Claymore.TalkCleanupWikiBot
             }
             return section.Reduce(aggregator, SubsectionsList);
         }
+
+        #region IModule Members
+
+        public void Run(Wiki wiki)
+        {
+            UpdatePages(wiki);
+            Analyze(wiki);
+            UpdateMainPage(wiki);
+            //rm.UpdateArchive(wiki, 2009, 7);
+            //rm.UpdateArchive(wiki, 2009, 6);
+            //rm.UpdateArchive(wiki, 2009, 5);
+            //rm.UpdateArchive(wiki, 2009, 4);
+            //rm.UpdateArchive(wiki, 2009, 3);
+            //rm.UpdateArchive(wiki, 2009, 2);
+            //rm.UpdateArchive(wiki, 2009, 1);
+        }
+
+        #endregion
     }
 }

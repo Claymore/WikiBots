@@ -11,7 +11,7 @@ using Claymore.SharpMediaWiki;
 
 namespace Claymore.TalkCleanupWikiBot
 {
-    internal class DeletionReview
+    internal class DeletionReview : IModule
     {
         private readonly string _cacheDir;
         private string _language;
@@ -671,7 +671,7 @@ namespace Claymore.TalkCleanupWikiBot
                                 events[0].User,
                                 events[0].Timestamp.ToUniversalTime().ToString("d MMMM yyyy в HH:mm (UTC)"),
                                 comment);
-                            if (titles.ContainsKey(title))
+                            if (!titles.ContainsKey(title))
                             {
                                 continue;
                             }
@@ -896,5 +896,18 @@ namespace Claymore.TalkCleanupWikiBot
                 }
             }
         }
+
+        #region IModule Members
+
+        public void Run(Wiki wiki)
+        {
+            AddNavigationTemplate(wiki);
+            UpdatePages(wiki);
+            Analyze(wiki);
+            UpdateMainPage(wiki);
+            UpdateArchivePages(wiki);
+        }
+
+        #endregion
     }
 }

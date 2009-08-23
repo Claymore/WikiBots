@@ -11,7 +11,7 @@ using Claymore.SharpMediaWiki;
 
 namespace Claymore.TalkCleanupWikiBot
 {
-    internal class ProposedSplits
+    internal class ProposedSplits : IModule
     {
         private string _cacheDir;
         private string _language;
@@ -503,5 +503,17 @@ namespace Claymore.TalkCleanupWikiBot
                 sw.Write(text);
             }
         }
+
+        #region IModule Members
+
+        public void Run(Wiki wiki)
+        {
+            AddNavigationTemplate(wiki);
+            Analyze(wiki);
+            UpdateMainPage(wiki);
+            UpdateArchivePages(wiki);
+        }
+
+        #endregion
     }
 }
