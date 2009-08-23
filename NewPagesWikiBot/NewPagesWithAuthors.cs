@@ -11,7 +11,7 @@ namespace Claymore.NewPagesWikiBot
         public string TimeFormat { get; private set; }
 
         public NewPagesWithAuthors(string category, string page, int pageLimit, string format, string timeFormat)
-            : base(category, page, pageLimit, format)
+            : base(category, page, pageLimit, format, false)
         {
             TimeFormat = timeFormat;
         }

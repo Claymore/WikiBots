@@ -8,7 +8,7 @@ namespace Claymore.NewPagesWikiBot
     {
         public NewTemplates(string category, string page, int pageLimit, string format)
             : base(category, page, pageLimit, format, "Cache\\output-templates-" + category + ".txt",
-                   "Cache\\input-templates-" + category + "-previous.txt")
+                   "Cache\\input-templates-" + category + "-previous.txt", true)
         {
         }
 

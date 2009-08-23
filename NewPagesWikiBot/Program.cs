@@ -1,15 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
+using System.Text.RegularExpressions;
 using Claymore.NewPagesWikiBot.Properties;
 using Claymore.SharpMediaWiki;
-using System.Text.RegularExpressions;
 
 namespace Claymore.NewPagesWikiBot
 {
     internal class Program
     {
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
             Wiki wiki = new Wiki("http://ru.wikipedia.org");
             wiki.SleepBetweenQueries = 2;
@@ -17,7 +18,7 @@ namespace Claymore.NewPagesWikiBot
                 string.IsNullOrEmpty(Settings.Default.Password))
             {
                 Console.Out.WriteLine("Please add login and password to the configuration file.");
-                return;
+                return 0;
             }
 
             Console.Out.WriteLine("Logging in as " + Settings.Default.Login + "...");
@@ -42,18 +43,19 @@ namespace Claymore.NewPagesWikiBot
             catch (WikiException e)
             {
                 Console.Out.WriteLine(e.Message);
-                return;
+                return 0;
             }
             Console.Out.WriteLine("Logged in as " + Settings.Default.Login + ".");
 
             List<Portal> portals = new List<Portal>
             {
                 new Portal("Математика", new IPortalModule[] { new ArticlesInCategory("Динамические системы", "Википедия:Проект:Математика/Динамические системы/watchlist", "* [[{0}]] ([[Обсуждение:{0}|обсуждение]])") }),
+                new Portal("Марий Эл", new IPortalModule[] { new NewPages("Марий Эл", "Портал:Марий Эл/Новые статьи") }),
                 new Portal("Криптография", new IPortalModule[] { new NewPages("Криптография", "Портал:Криптография/Новые статьи") }),
                 new Portal("Религия", new IPortalModule[] { new NewPages("Религия", "Портал:Религия/Новые статьи", 35, "* [[{0}]]") }),
                 new Portal("Италия", new IPortalModule[] { new NewPages("Италия", "Портал:Италия/Новые статьи", 35, "* [[{0}]]") }),
-                new Portal("Христианство", new IPortalModule[] { new NewPages("Христианство", "Портал:Христианство/Новые статьи", 25, "* [[{0}]]") }),
-                new Portal("Католицизм", new IPortalModule[] { new NewPages("Католицизм", "Портал:Католицизм/Новые статьи") }),
+                new Portal("Христианство", new IPortalModule[] { new NewPages("Христианство", "Портал:Христианство/Новые статьи", 25, "* [[{0}]]", false) }),
+                new Portal("Католицизм", new IPortalModule[] { new NewPages("Католицизм", "Портал:Католицизм/Новые статьи", 20, "* [[{0}]]", false) }),
                 new Portal("Религия", new IPortalModule[] { new NewPages("Перу", "Портал:Перу/Новые статьи", 20, "# [[{0}]]") }),
                 new Portal("Религия", new IPortalModule[] { new NewPages("Шотландия", "Портал:Шотландия/Новые статьи") }),
                 new Portal("Религия", new IPortalModule[] { new NewPages("Уэльс", "Портал:Уэльс/Новые статьи") }),
@@ -78,13 +80,13 @@ namespace Claymore.NewPagesWikiBot
                 new Portal("Религия", new IPortalModule[] { new NewPages("Камбоджа", "Портал:Камбоджа/Новые статьи") }),
                 new Portal("Религия", new IPortalModule[] { new NewPages("Таиланд", "Портал:Таиланд/Новые статьи") }),
                 new Portal("Татарстан", new IPortalModule[] { new NewPages("Татарстан", "Портал:Татарстан/Новые статьи") }),
-                new Portal("Религия", new IPortalModule[] { new NewPages("Православие", "Портал:Православие/Новые статьи", 25, "# [[{0}]]") }),
+                new Portal("Религия", new IPortalModule[] { new NewPages("Православие", "Портал:Православие/Новые статьи", 25, "# [[{0}]]", false) }),
                 new Portal("Религия", new IPortalModule[] { new NewPages("Тула", "Портал:Тула/Новые статьи", 20, "# [[{0}]]") }),
                 new Portal("Религия", new IPortalModule[] { new NewPages("Белоруссия", "Портал:Белоруссия/Новые статьи", 15, "* [[{0}]]") }),
                 new Portal("Мальта", new IPortalModule[] { new NewPages("Мальта", "Портал:Мальта/Новые статьи") }),
                 new Portal("Израиль", new IPortalModule[]
                 {
-                    new NewPages("Израиль", "Портал:Израиль/Новые статьи", 10, "* [[{0}]]"),
+                    new NewPagesWithProcessing("Израиль", "Портал:Израиль/Новые статьи", 10, "* [[{0}]]", "Статья проекта Израиль", false),
                     new NewTemplates("Израиль", "Википедия:Проект:Израиль/Блоки/Новые шаблоны", 10, "# [[Шаблон:{0}|]]"),
                     new NewCategories("Израиль", "Википедия:Проект:Израиль/Блоки/Новые категории", 10, "# {{{{cl|{0}|1}}}}"),
                     new PagesForDeletion("Израиль", "Википедия:Проект:Израиль/Блоки/К удалению", "* [[{0}]] — [[{1}#{0}|{2}]]"),
@@ -118,7 +120,11 @@ namespace Claymore.NewPagesWikiBot
                     {
                         new NewPagesWithArchive("Футбол на Украине", "Портал:Украинский футбол/Новые статьи", "Портал:Украинский футбол/Новые статьи/Архив", 20, "* {2} — [[{0}]]", "d MMMM yyyy"),
                     }),
-                
+                new Portal("Биология", new IPortalModule[] { new NewPagesWithAuthors("Биология", "Википедия:Проект:Биология/Новые статьи", 60, "{{{{Новая статья|{0}|{2}|{1}}}}}", "d MMMM yyyy") }),
+                new Portal("Армения", new IPortalModule[] { new NewPagesWithArchive("Армения", "Портал:Армения/Новые статьи", "Портал:Армения/Новые статьи/Архив", 25, "* [[{0}]] — [[User:{1}|]] {2}", "d MMMM yyyy") }),
+                new Portal("Карелия", new IPortalModule[] { new NewPagesWithAuthors("Карелия", "Портал:Карелия/Новые статьи", 20, "* [[{0}]] — <small>''{2}''</small>", "d MMMM yyyy") }),
+                new Portal("Буддизм", new IPortalModule[] { new NewPagesWithArchive("Буддизм", "Портал:Буддизм/Новые статьи", "Портал:Буддизм/Архив статей", 20, "* [[{0}]] — [[User:{1}|]] {2}", "d MMMM yyyy") }),
+                new Portal("Китай", new IPortalModule[] { new NewPagesWithArchive("Китай", "Портал:Китай/Новые статьи", "Портал:Китай/Новые статьи/Архив", 25, "{{{{Новая статья|{0}|{2}|{1}}}}}", "d MMMM yyyy") }),
                 new Portal("Индия", new IPortalModule[] { new NewPagesWithArchive("Индия", "Портал:Индия/Новые статьи", "Википедия:Проект:Индия/Новые статьи", 10, "{{{{Новая статья|{0}|{2}|{1}}}}}", "d MMMM yyyy") }),
                 new Portal("Сингапур", new IPortalModule[] { new NewPagesWithArchive("Сингапур", "Портал:Сингапур/Новые статьи", "Портал:Сингапур/Новые статьи/Архив", 20, "{{{{Новая статья|{0}|{2}|{1}}}}}", "d MMMM yyyy") }),
                 new Portal("Бурятия", new IPortalModule[] { new NewPagesWithArchive("Бурятия", "Портал:Бурятия/Новые статьи", "Портал:Бурятия/Новые статьи/Архив", 35, "{{{{Новая статья|{0}|{2}|{1}}}}}", "d MMMM yyyy") }),
@@ -177,7 +183,22 @@ namespace Claymore.NewPagesWikiBot
                 new Portal("Ядро энцкиплопедии", new IPortalModule[] { new EncyShell("Cache\\EncyShell") }),
             };
 
-            for (int i = 0; i < portals.Count; ++i)
+            if (!File.Exists("Errors.txt"))
+            {
+                using (FileStream stream = File.Create("Errors.txt")) { }
+            }
+
+            int lastIndex = 0;
+            using (TextReader streamReader = new StreamReader("Errors.txt"))
+            {
+                string line = streamReader.ReadToEnd();
+                if (!string.IsNullOrEmpty(line))
+                {
+                    lastIndex = int.Parse(line);
+                }
+            }
+
+            for (int i = lastIndex; i < portals.Count; ++i)
             {
                 try
                 {
@@ -187,23 +208,47 @@ namespace Claymore.NewPagesWikiBot
                 catch (WikiException e)
                 {
                     Console.Out.WriteLine("Failed to get data for " + portals[i].Name + ": " + e.Message);
+                    using (TextWriter streamWriter = new StreamWriter("Errors.txt"))
+                    {
+                        streamWriter.Write(i);
+                    }
+                    return -1;
                 }
                 catch (WebException e)
                 {
                     Console.Out.WriteLine("Failed to get data for " + portals[i].Name + ": " + e.Message);
+                    using (TextWriter streamWriter = new StreamWriter("Errors.txt"))
+                    {
+                        streamWriter.Write(i);
+                    }
+                    return -1;
                 }
-                for (int j = 0; j < 3; ++j)
+                int j = 0;
+                for (j = 0; j < 3; ++j)
                 {
                     try
                     {
                         portals[i].UpdatePages(wiki);
                         break;
                     }
-                    catch (WikiException e)
+                    catch (WikiException)
                     {
                     }
                 }
+                if (j == 3)
+                {
+                    using (TextWriter streamWriter = new StreamWriter("Errors.txt"))
+                    {
+                        streamWriter.Write(i);
+                    }
+                    return -1;
+                }
             }
+            if (File.Exists("Errors.txt"))
+            {
+                File.Delete("Errors.txt");
+            }
+            return 0;
         }
     }
 

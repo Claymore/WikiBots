@@ -11,7 +11,7 @@ namespace Claymore.NewPagesWikiBot
     {
         public NewCategories(string category, string page, int pageLimit, string format)
             : base(category, page, pageLimit, format, "Cache\\output-categories-" + category + ".txt",
-                   "Cache\\input-categories-" + category + "-previous.txt")
+                   "Cache\\input-categories-" + category + "-previous.txt", true)
         {
         }
 

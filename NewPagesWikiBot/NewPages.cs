@@ -16,19 +16,26 @@ namespace Claymore.NewPagesWikiBot
         protected int Hours { get; set; }
         protected string Output { get; set; }
         protected string Previous { get; set; }
+        public bool Skip { get; set; }
 
         public NewPages(string category, string page)
             : this(category, page, 20, "* [[{0}]]")
         {
         }
 
-        public NewPages(string category, string page, int pageLimit, string format)
+        public NewPages(string category, string page, int pageLimit, string format, bool skip)
             : this(category, page, pageLimit, format, "Cache\\output-" + category + ".txt",
-                   "Cache\\input-" + category + "-previous.txt")
+                   "Cache\\input-" + category + "-previous.txt", skip)
         {
         }
 
-        public NewPages(string category, string page, int pageLimit, string format, string output, string previous)
+        public NewPages(string category, string page, int pageLimit, string format)
+            : this(category, page, pageLimit, format, "Cache\\output-" + category + ".txt",
+                   "Cache\\input-" + category + "-previous.txt", true)
+        {
+        }
+
+        public NewPages(string category, string page, int pageLimit, string format, string output, string previous, bool skip)
         {
             Page = page;
             Category = category;
@@ -37,6 +44,7 @@ namespace Claymore.NewPagesWikiBot
             Hours = 720;
             Output = output;
             Previous = previous;
+            Skip = skip;
         }
 
         public virtual void GetData(Wiki wiki)
@@ -100,7 +108,7 @@ namespace Claymore.NewPagesWikiBot
                 string[] oldLines = oldText.Split(new string[] { "\n" }, StringSplitOptions.RemoveEmptyEntries);
                 string text = sr.ReadToEnd();
                 string[] lines = text.Split(new string[] { "\n" }, StringSplitOptions.RemoveEmptyEntries);
-                if (string.IsNullOrEmpty(text) || lines.Length < oldLines.Length)
+                if (string.IsNullOrEmpty(text) || (Skip && lines.Length < oldLines.Length))
                 {
                     Console.Out.WriteLine("Skipping " + Page);
                     return false;
