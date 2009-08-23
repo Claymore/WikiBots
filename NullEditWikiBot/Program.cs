@@ -2,6 +2,7 @@
 using System.Xml;
 using Claymore.NullEditWikiBot.Properties;
 using Claymore.SharpMediaWiki;
+using System.Collections.Generic;
 
 namespace Claymore.NullEditWikiBot
 {
@@ -43,48 +44,58 @@ namespace Claymore.NullEditWikiBot
             }
             Console.Out.WriteLine("Logged in as " + Settings.Default.Login + ".");
 
-            ParameterCollection parameters = new ParameterCollection();
-            parameters.Add("generator", "embeddedin");
-            parameters.Add("geititle", "Шаблон:Deleteslow");
-            parameters.Add("geilimit", "max");
-            parameters.Add("geinamespace", "0");
-            parameters.Add("prop", "categories");
-            parameters.Add("clcategories", "Категория:Википедия:К быстрому удалению");
+            Dictionary<string, string> templates = new Dictionary<string, string>();
+            templates.Add("Шаблон:Deleteslow", "Категория:Википедия:К быстрому удалению");
+            //templates.Add("Шаблон:К удалению", "Категория:Википедия:Просроченные подведения итогов по удалению страниц");
 
+            int index;
+            XmlNodeList pages;
             XmlDocument doc;
-            try
+            ParameterCollection parameters = new ParameterCollection();
+            foreach (var template in templates)
             {
-                doc = wiki.Enumerate(parameters, true);
-            }
-            catch (WikiException e)
-            {
-                Console.Out.WriteLine(e.Message);
-                return;
-            }
+                parameters.Clear();
+                parameters.Add("generator", "embeddedin");
+                parameters.Add("geititle", template.Key);
+                parameters.Add("geilimit", "max");
+                parameters.Add("geinamespace", "0");
+                parameters.Add("prop", "categories");
+                parameters.Add("clcategories", template.Value);
 
-            XmlNodeList pages = doc.SelectNodes("//page");
-            int index = 1;
-            foreach (XmlNode page in pages)
-            {
-                XmlNode category = page.SelectSingleNode("categories/cl");
-                if (category != null)
-                {
-                    continue;
-                }
-                string pageTitle = page.Attributes["title"].Value;
-                Console.Out.WriteLine(string.Format("Processing '{0}' ({1}/{2})...",
-                    pageTitle, index++, pages.Count));
                 try
                 {
-                    wiki.AppendTextToPage(pageTitle,
-                        "\n\n",
-                        "Сброс кеша нулевой правкой",
-                        MinorFlags.None,
-                        WatchFlags.Watch);
+                    doc = wiki.Enumerate(parameters, true);
                 }
                 catch (WikiException e)
                 {
                     Console.Out.WriteLine(e.Message);
+                    return;
+                }
+
+                pages = doc.SelectNodes("//page");
+                index = 1;
+                foreach (XmlNode page in pages)
+                {
+                    XmlNode category = page.SelectSingleNode("categories/cl");
+                    if (category != null)
+                    {
+                        continue;
+                    }
+                    string pageTitle = page.Attributes["title"].Value;
+                    Console.Out.WriteLine(string.Format("Processing '{0}' ({1}/{2})...",
+                        pageTitle, index++, pages.Count));
+                    try
+                    {
+                        wiki.AppendTextToPage(pageTitle,
+                            "\n\n",
+                            "Сброс кеша нулевой правкой",
+                            MinorFlags.None,
+                            WatchFlags.Watch);
+                    }
+                    catch (WikiException e)
+                    {
+                        Console.Out.WriteLine(e.Message);
+                    }
                 }
             }
 
@@ -129,6 +140,7 @@ namespace Claymore.NullEditWikiBot
                 catch (WikiException e)
                 {
                     Console.Out.WriteLine(e.Message);
+                    break;
                 }
             }
             Console.Out.WriteLine("Done.");
