@@ -10,7 +10,22 @@ namespace Claymore.NewPagesWikiBot
         public string ArchivePage { get; private set; }
 
         public NewPagesWithArchive(string category, string page, string archive, int pageLimit, string format, string timeFormat)
-            : base(category, page, pageLimit, format, timeFormat)
+            : base(category,
+                   page,
+                   pageLimit,
+                   format,
+                   timeFormat)
+        {
+            ArchivePage = archive;
+        }
+
+        public NewPagesWithArchive(IEnumerable<string> categories, string page, string archive, string output, int pageLimit, string format, string timeFormat)
+            : base(categories,
+                   page,
+                   output,
+                   pageLimit,
+                   format,
+                   timeFormat)
         {
             ArchivePage = archive;
         }
@@ -18,9 +33,9 @@ namespace Claymore.NewPagesWikiBot
         public override void ProcessData(Wiki wiki)
         {
             base.ProcessData(wiki);
-            using (TextWriter streamWriter = new StreamWriter("Cache\\output-" + Category + "-archive.txt"))
-            using (TextReader previousStream = new StreamReader("Cache\\input-" + Category + "-previous.txt"))
-            using (TextReader streamReader = new StreamReader("Cache\\output-" + Category + ".txt"))
+            using (TextWriter streamWriter = new StreamWriter(Output + ".archive"))
+            using (TextReader previousStream = new StreamReader(Previous))
+            using (TextReader streamReader = new StreamReader(Output))
             {
                 string text = streamReader.ReadToEnd();
                 HashSet<string> currentPages = new HashSet<string>(text.Split(new string[] { "\r\n" },
@@ -42,7 +57,7 @@ namespace Claymore.NewPagesWikiBot
             {
                 return false;
             }
-            using (TextReader sr = new StreamReader("Cache\\output-" + Category + "-archive.txt"))
+            using (TextReader sr = new StreamReader(Output + ".archive"))
             {
                 string text = sr.ReadToEnd();
                 if (string.IsNullOrEmpty(text))

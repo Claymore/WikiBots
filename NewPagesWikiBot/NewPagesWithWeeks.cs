@@ -23,48 +23,52 @@ namespace Claymore.NewPagesWikiBot
 
         public override void ProcessData(Wiki wiki)
         {
-            Console.Out.WriteLine("Processing data of " + Category);
             List<NewPage> newPages = new List<NewPage>();
-            using (TextReader streamReader = new StreamReader("Cache\\input-" + Category + ".txt"))
+            foreach (var category in Categories)
             {
-                ParameterCollection parameters = new ParameterCollection();
-                parameters.Add("prop", "revisions");
-                parameters.Add("rvprop", "timestamp|user");
-                parameters.Add("rvdir", "newer");
-                parameters.Add("rvlimit", "1");
-                parameters.Add("redirects");
+                Console.Out.WriteLine("Processing data of " + category);
 
-                string line;
-                while ((line = streamReader.ReadLine()) != null)
+                using (TextReader streamReader = new StreamReader("Cache\\input-" + category + ".txt"))
                 {
-                    string[] groups = line.Split(new char[] { '\t' });
-                    if (groups[0] == "0")
-                    {
-                        string title = groups[1].Replace('_', ' ');
+                    ParameterCollection parameters = new ParameterCollection();
+                    parameters.Add("prop", "revisions");
+                    parameters.Add("rvprop", "timestamp|user");
+                    parameters.Add("rvdir", "newer");
+                    parameters.Add("rvlimit", "1");
+                    parameters.Add("redirects");
 
-                        XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, new string[] { title });
-                        XmlNode node = xml.SelectSingleNode("//rev");
-                        if (node != null)
+                    string line;
+                    while ((line = streamReader.ReadLine()) != null)
+                    {
+                        string[] groups = line.Split(new char[] { '\t' });
+                        if (groups[0] == "0")
                         {
-                            title = xml.SelectSingleNode("//page").Attributes["title"].Value;
-                            string user = node.Attributes["user"].Value;
-                            string timestamp = node.Attributes["timestamp"].Value;
-                            DateTime time = DateTime.Parse(timestamp,
-                                null,
-                                DateTimeStyles.AssumeUniversal);
-                            newPages.Add(new NewPage(title, time, user));
+                            string title = groups[1].Replace('_', ' ');
+
+                            XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, new string[] { title });
+                            XmlNode node = xml.SelectSingleNode("//rev");
+                            if (node != null)
+                            {
+                                title = xml.SelectSingleNode("//page").Attributes["title"].Value;
+                                string user = node.Attributes["user"].Value;
+                                string timestamp = node.Attributes["timestamp"].Value;
+                                DateTime time = DateTime.Parse(timestamp,
+                                    null,
+                                    DateTimeStyles.AssumeUniversal);
+                                newPages.Add(new NewPage(title, time, user));
+                            }
                         }
                     }
                 }
             }
 
-            Directory.CreateDirectory("Cache\\" + Category);
+            Directory.CreateDirectory(Output);
             for (int i = 0; i < 7; ++i)
             {
                 DateTime end = DateTime.Today.AddDays(1 - i);
                 DateTime start = DateTime.Today.AddDays(-i);
                 string filename = string.Format("{0}.txt", start.ToString("d MMMM yyyy"));
-                using (TextWriter streamWriter = new StreamWriter("Cache\\" + Category + "\\" + filename))
+                using (TextWriter streamWriter = new StreamWriter(Output + "\\" + filename))
                 {
                     streamWriter.WriteLine("<noinclude>" + Head + "</noinclude>");
                     List<NewPage> pages = new List<NewPage>(newPages.Where(p => p.Time.ToUniversalTime() >= start && p.Time.ToUniversalTime() < end));
@@ -77,15 +81,15 @@ namespace Claymore.NewPagesWikiBot
                     streamWriter.WriteLine("<noinclude>" + Bottom + "</noinclude>");
                 }
 
-                using (TextReader sr = new StreamReader("Cache\\" + Category + "\\" + filename))
+                using (TextReader sr = new StreamReader(Output + "\\" + filename))
                 {
                     string text = sr.ReadToEnd();
                     if (string.IsNullOrEmpty(text))
                     {
-                        Console.Out.WriteLine("Skipping " + Category + "/" + filename);
+                        Console.Out.WriteLine("Skipping " + Output + "\\" + filename);
                         return;
                     }
-                    Console.Out.WriteLine("Updating " + Category + "/" + filename);
+                    Console.Out.WriteLine("Updating " + Output + "\\" + filename);
                     wiki.SavePage(Page + "/" + start.ToString("d MMMM yyyy"),
                         "0",
                         text,

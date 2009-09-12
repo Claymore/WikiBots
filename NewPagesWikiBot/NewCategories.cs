@@ -10,35 +10,46 @@ namespace Claymore.NewPagesWikiBot
     class NewCategories : NewPages
     {
         public NewCategories(string category, string page, int pageLimit, string format)
-            : base(category, page, pageLimit, format, "Cache\\output-categories-" + category + ".txt",
-                   "Cache\\input-categories-" + category + "-previous.txt", true)
+            : base(category,
+                   page,
+                   pageLimit,
+                   format,
+                   "Cache\\output-categories-" + category + ".txt",
+                   "Cache\\input-categories-" + category + "-previous.txt",
+                   true)
         {
         }
 
         public override void ProcessData(Wiki wiki)
         {
-            Console.Out.WriteLine("Processing data of " + Category);
+            int index = 0;
             using (TextWriter streamWriter = new StreamWriter(Output))
-            using (TextReader streamReader = new StreamReader("Cache\\input-" + Category + ".txt"))
             {
-                int index = 0;
-                string line;
-                while ((line = streamReader.ReadLine()) != null)
+                foreach (var category in Categories)
                 {
-                    string[] groups = line.Split(new char[] { '\t' });
-                    if (groups[0] == "14")
+                    Console.Out.WriteLine("Processing data of " + category);
+                    using (TextReader streamReader = new StreamReader("Cache\\input-" + category + ".txt"))
                     {
-                        string title = groups[1].Replace('_', ' ');
-                        streamWriter.WriteLine(string.Format(Format,
-                            title));
-                        ++index;
-                    }
-                    if (index >= PageLimit)
-                    {
-                        break;
+                        string line;
+                        while ((line = streamReader.ReadLine()) != null)
+                        {
+                            string[] groups = line.Split(new char[] { '\t' });
+                            if (groups[0] == "14")
+                            {
+                                string title = groups[1].Replace('_', ' ');
+                                streamWriter.WriteLine(string.Format(Format,
+                                    title));
+                                ++index;
+                            }
+                            if (index >= PageLimit)
+                            {
+                                break;
+                            }
+                        }
                     }
                 }
             }
+            
         }
     }
 }

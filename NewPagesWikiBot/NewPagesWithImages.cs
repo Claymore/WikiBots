@@ -28,54 +28,60 @@ namespace Claymore.NewPagesWikiBot
 
         public override void ProcessData(Wiki wiki)
         {
-            Console.Out.WriteLine("Processing data of " + Category);
-            using (TextWriter streamWriter = new StreamWriter("Cache\\output-" + Category + ".txt"))
-            using (TextReader streamReader = new StreamReader("Cache\\input-" + Category + ".txt"))
+            int index = 0;
+            using (TextWriter streamWriter = new StreamWriter(Output))
             {
-                ParameterCollection parameters = new ParameterCollection();
-                parameters.Add("redirects");
-                parameters.Add("prop", "revisions");
-                parameters.Add("rvprop", "content");
-                parameters.Add("rvsection", "0");
-
-                Console.Out.WriteLine("Quering author information for " + Category);
-
-                streamWriter.WriteLine(Head);
-
-                int index = 0;
-                string line;
-                while ((line = streamReader.ReadLine()) != null)
+                foreach (var category in Categories)
                 {
-                    string[] groups = line.Split(new char[] { '\t' });
-                    if (groups[0] == "0")
+                    Console.Out.WriteLine("Processing data of " + category);
+
+                    using (TextReader streamReader = new StreamReader("Cache\\input-" + category + ".txt"))
                     {
-                        string title = groups[1].Replace('_', ' ');
-                        XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, new string[] { title });
-                        XmlNode node = xml.SelectSingleNode("//rev");
-                        if (node != null)
+                        ParameterCollection parameters = new ParameterCollection();
+                        parameters.Add("redirects");
+                        parameters.Add("prop", "revisions");
+                        parameters.Add("rvprop", "content");
+                        parameters.Add("rvsection", "0");
+
+                        Console.Out.WriteLine("Quering author information for " + category);
+
+                        streamWriter.WriteLine(Head);
+
+                        string line;
+                        while ((line = streamReader.ReadLine()) != null)
                         {
-                            title = xml.SelectSingleNode("//page").Attributes["title"].Value;
-                            string content = node.FirstChild == null ? "" : node.FirstChild.Value;
-                            Match m = _regex.Match(content);
-                            if (m.Success)
+                            string[] groups = line.Split(new char[] { '\t' });
+                            if (groups[0] == "0")
                             {
-                                string file = m.Groups["fileName"].Value.Trim();
-                                if (string.IsNullOrEmpty(file))
+                                string title = groups[1].Replace('_', ' ');
+                                XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, new string[] { title });
+                                XmlNode node = xml.SelectSingleNode("//rev");
+                                if (node != null)
                                 {
-                                    continue;
+                                    title = xml.SelectSingleNode("//page").Attributes["title"].Value;
+                                    string content = node.FirstChild == null ? "" : node.FirstChild.Value;
+                                    Match m = _regex.Match(content);
+                                    if (m.Success)
+                                    {
+                                        string file = m.Groups["fileName"].Value.Trim();
+                                        if (string.IsNullOrEmpty(file))
+                                        {
+                                            continue;
+                                        }
+                                        streamWriter.WriteLine(string.Format(Format,
+                                            title, file));
+                                        ++index;
+                                    }
                                 }
-                                streamWriter.WriteLine(string.Format(Format,
-                                    title, file));
-                                ++index;
+                            }
+                            if (index >= PageLimit)
+                            {
+                                break;
                             }
                         }
-                    }
-                    if (index >= PageLimit)
-                    {
-                        break;
+                        streamWriter.WriteLine(Bottom);
                     }
                 }
-                streamWriter.WriteLine(Bottom);
             }
         }
     }

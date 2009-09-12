@@ -24,23 +24,26 @@ namespace Claymore.NewPagesWikiBot
             parameters.Add("eititle", "Шаблон:" + Template);
             XmlDocument xml = wiki.Enumerate(parameters, true);
 
+            int index = 0;
             List<string> titles = new List<string>();
-            using (TextReader streamReader = new StreamReader("Cache\\input-" + Category + ".txt"))
+            foreach (var category in Categories)
             {
-                int index = 0;
-                string line;
-                while ((line = streamReader.ReadLine()) != null)
+                using (TextReader streamReader = new StreamReader("Cache\\input-" + category + ".txt"))
                 {
-                    string[] groups = line.Split(new char[] { '\t' });
-                    if (groups[0] == "0")
+                    string line;
+                    while ((line = streamReader.ReadLine()) != null)
                     {
-                        string title = groups[1].Replace('_', ' ');
-                        titles.Add(title);
-                        ++index;
-                    }
-                    if (index >= PageLimit)
-                    {
-                        break;
+                        string[] groups = line.Split(new char[] { '\t' });
+                        if (groups[0] == "0")
+                        {
+                            string title = groups[1].Replace('_', ' ');
+                            titles.Add(title);
+                            ++index;
+                        }
+                        if (index >= PageLimit)
+                        {
+                            break;
+                        }
                     }
                 }
             }

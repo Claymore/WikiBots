@@ -14,25 +14,31 @@ namespace Claymore.NewPagesWikiBot
 
         public override void ProcessData(Wiki wiki)
         {
-            Console.Out.WriteLine("Processing data of " + Category);
+            int index = 0;
             using (TextWriter streamWriter = new StreamWriter(Output))
-            using (TextReader streamReader = new StreamReader("Cache\\input-" + Category + ".txt"))
             {
-                int index = 0;
-                string line;
-                while ((line = streamReader.ReadLine()) != null)
+                foreach (var category in Categories)
                 {
-                    string[] groups = line.Split(new char[] { '\t' });
-                    if (groups[0] == "10")
+                    Console.Out.WriteLine("Processing data of " + category);
+                    using (TextReader streamReader = new StreamReader("Cache\\input-" + category + ".txt"))
                     {
-                        string title = groups[1].Replace('_', ' ');
-                        streamWriter.WriteLine(string.Format(Format,
-                            title));
-                        ++index;
-                    }
-                    if (index >= PageLimit)
-                    {
-                        break;
+                        
+                        string line;
+                        while ((line = streamReader.ReadLine()) != null)
+                        {
+                            string[] groups = line.Split(new char[] { '\t' });
+                            if (groups[0] == "10")
+                            {
+                                string title = groups[1].Replace('_', ' ');
+                                streamWriter.WriteLine(string.Format(Format,
+                                    title));
+                                ++index;
+                            }
+                            if (index >= PageLimit)
+                            {
+                                break;
+                            }
+                        }
                     }
                 }
             }
