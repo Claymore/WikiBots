@@ -143,6 +143,51 @@ namespace Claymore.NullEditWikiBot
                     break;
                 }
             }
+
+            parameters.Clear();
+            parameters.Add("generator", "categorymembers");
+            parameters.Add("gcmtitle", "Категория:Файлы:Перенесённые ботом");
+            parameters.Add("gcmlimit", "max");
+            parameters.Add("gcmnamespace", "6");
+            parameters.Add("prop", "categories");
+            parameters.Add("clcategories", "Категория:Файлы:Перенесённые на Викисклад");
+
+            try
+            {
+                doc = wiki.Enumerate(parameters, true);
+            }
+            catch (WikiException e)
+            {
+                Console.Out.WriteLine(e.Message);
+                return;
+            }
+
+            pages = doc.SelectNodes("//page");
+            index = 1;
+            foreach (XmlNode page in pages)
+            {
+                XmlNode category = page.SelectSingleNode("categories/cl");
+                if (category != null)
+                {
+                    continue;
+                }
+                string pageTitle = page.Attributes["title"].Value;
+                Console.Out.WriteLine(string.Format("Processing '{0}' ({1}/{2})...",
+                    pageTitle, index++, pages.Count));
+                try
+                {
+                    wiki.AppendTextToPage(pageTitle,
+                        "\n\n",
+                        "Сброс кеша нулевой правкой",
+                        MinorFlags.None,
+                        WatchFlags.Watch);
+                }
+                catch (WikiException e)
+                {
+                    Console.Out.WriteLine(e.Message);
+                    break;
+                }
+            }
             Console.Out.WriteLine("Done.");
         }
     }
