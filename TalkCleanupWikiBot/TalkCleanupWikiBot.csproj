@@ -47,6 +47,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AdministratorIntervention.cs" />
+    <Compile Include="Archive.cs" />
     <Compile Include="ArticlesForDeletion.cs" />
     <Compile Include="CategoriesForDiscussion.cs" />
     <Compile Include="Cleanup.cs" />

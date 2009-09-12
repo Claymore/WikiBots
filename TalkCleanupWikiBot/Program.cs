@@ -209,7 +209,7 @@ namespace Claymore.TalkCleanupWikiBot
             l10i.Template = "Удаление статей";
             l10i.TopTemplate = "/Заголовок";
             l10i.BottomTemplate = "/Подвал";
-            l10i.Results = new string[] { "Итог", "Общий итог", "Автоматический итог" };
+            l10i.Results = new string[] { "Итог", "Общий итог", "Автоматический итог", "Автоитог" };
             l10i.Language = "ru";
             l10i.MainPageUpdateComment = "обновление";
             l10i.ArchiveTemplate = "Статьи, вынесенные на удаление";
@@ -220,13 +220,21 @@ namespace Claymore.TalkCleanupWikiBot
             l10i.AutoResultMessage = "Страница была удалена {1} администратором [[User:{0}|]]. Была указана следующая причина: «{2}». Данное сообщение было автоматически сгенерировано ботом ~~~~.\n";
             l10i.DateFormat = "d MMMM yyyy в HH:mm (UTC)";
             l10i.AutoResultComment = " и подведение итогов";
-            l10i.AutoResultSection = "Автоматический итог";
+            l10i.AutoResultSection = "Автоитог";
             l10i.NotificationTemplate = "Оставлено";
             l10i.EmptyResult = "Пустой итог";
 
             List<IModule> modules = new List<IModule>()
             {
-                new AdministratorIntervention(),
+                new Archive("Википедия:Форум патрулирующих", "Википедия:Форум патрулирующих\\/Архив\\/yyyy\\/MM", "Форум патрулирующих", 168, Archive.Period.Month, false),
+                new Archive("Википедия:Форум ботоводов", "Википедия:Форум ботоводов\\/Архив\\/yyyy", "Форум ботоводов", 720, Archive.Period.Year, false),
+                new Archive("Википедия:Форум администраторов", "Википедия:Форум администраторов\\/Архив\\/yyyy\\/MM", "Форум администраторов", 336, Archive.Period.Month, false),
+                new Archive("Википедия:Установка защиты", "Википедия:Установка защиты\\/Архив\\/yyyy", "Установка защиты", 48, Archive.Period.Year),
+                new Archive("Википедия:Снятие защиты", "Википедия:Снятие защиты\\/Архив\\/yyyy", "Снятие защиты", 48, Archive.Period.Year),
+                new Archive("Википедия:Запросы к администраторам", "Википедия:Запросы к администраторам\\/Архив\\/yyyy\\/MM", "Запросы к администраторам", 72, Archive.Period.Month),
+                new Archive("Википедия:Заявки на статус патрулирующего", "Википедия:Заявки на статус патрулирующего\\/Архив\\/yyyy-MM", "Заявки на статус патрулирующего", 24, Archive.Period.Month),
+                new Archive("Википедия:Заявки на снятие статуса патрулирующего", "Википедия:Заявки на снятие статуса патрулирующего\\/Архив\\/yyyy", "Заявки на снятие статуса патрулирующего", 48, Archive.Period.Year),
+                new Archive("Википедия:Заявки на статус автопатрулируемого", "Википедия:Заявки на статус автопатрулируемого\\/Архив\\/yyyy", "Заявки на статус автопатрулируемого", 24, Archive.Period.Year),
                 new CategoriesForDiscussion(),
                 new DeletionReview(),
                 new ProposedSplits(),
