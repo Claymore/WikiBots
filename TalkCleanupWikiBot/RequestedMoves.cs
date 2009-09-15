@@ -138,6 +138,11 @@ namespace Claymore.TalkCleanupWikiBot
                         RemoveStrikeOut(section);
                         StrikeOutSection(section);
 
+                        if (section.SectionText.ToLower().Contains("{{mark out}}"))
+                        {
+                            section.Title = "{{mark out|" + section.Title.Trim() + "}}";
+                        }
+
                         bool hasVerdict = section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0;
                         bool hasAutoVerdict = section.Subsections.Count(s => s.Title.Trim() == "Автоматический итог") > 0;
                         if (hasVerdict || hasAutoVerdict || section.Title.Contains("<s>"))
@@ -175,6 +180,11 @@ namespace Claymore.TalkCleanupWikiBot
                         section.Reduce(sections, SubsectionsList);
                         foreach (WikiPageSection subsection in sections)
                         {
+                            if (subsection.SectionText.ToLower().Contains("{{mark out}}"))
+                            {
+                                subsection.Title = "{{mark out|" + subsection.Title.Trim() + "}}";
+                            }
+
                             result = "";
                             hasVerdict = subsection.Subsections.Count(s => s.Title.Trim() == "Итог") > 0;
                             hasAutoVerdict = subsection.Subsections.Count(s => s.Title.Trim() == "Автоматический итог") > 0;
@@ -691,6 +701,7 @@ namespace Claymore.TalkCleanupWikiBot
                     StringBuilder sb = new StringBuilder();
                     foreach (Day day in days)
                     {
+                        
                         sb.Append("{{Переименование статей/День|" + day.Date.ToString("yyyy-M-d") + "|\n");
                         if (!day.Exists)
                         {
