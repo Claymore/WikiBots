@@ -50,6 +50,7 @@ namespace Claymore.NewPagesWikiBot
             List<Portal> portals = new List<Portal>
             {
                 new Portal("Математика", new IPortalModule[] { new ArticlesInCategory("Динамические системы", "Википедия:Проект:Математика/Динамические системы/watchlist", "* [[{0}]] ([[Обсуждение:{0}|обсуждение]])") }),
+                new Portal("Ленинградская область", new IPortalModule[] { new NewPages("Ленинградская область", "Портал:Ленинградская область/Новые статьи") }),
                 new Portal("Санкт-Петербург", new IPortalModule[] { new NewPages("Санкт-Петербург", "Портал:Санкт-Петербург/Новые статьи", 45, "* [[{0}]]", false) }),
                 new Portal("Биология", new IPortalModule[] { new NewPages("Биология", "Портал:Биология/Новые статьи", 30, "* [[{0}]]") }),
                 new Portal("Криптография", new IPortalModule[] { new NewPages("Криптография", "Портал:Криптография/Новые статьи") }),
@@ -121,6 +122,7 @@ namespace Claymore.NewPagesWikiBot
                     {
                         new NewPagesWithArchive("Футбол на Украине", "Портал:Украинский футбол/Новые статьи", "Портал:Украинский футбол/Новые статьи/Архив", 20, "* {2} — [[{0}]]", "d MMMM yyyy"),
                     }),
+                new Portal("Квебек", new IPortalModule[] { new NewPagesWithAuthors("Квебек", "Портал:Квебек/Новые статьи", 20, "* [[{0}]] ''{2}''", "yyyy-MM-dd") }),
                 new Portal("Биология", new IPortalModule[] { new NewPagesWithAuthors("Биология", "Википедия:Проект:Биология/Новые статьи", 60, "{{{{Новая статья|{0}|{2}|{1}}}}}", "d MMMM yyyy") }),
                 new Portal("Тюменская область", new IPortalModule[] { new NewPagesWithAuthors("Тюменская область", "Портал:Тюменская область/Новые статьи", 10, "{{{{Новая статья|{0}|{2}|{1}}}}}", "d MMMM yyyy") }),
                 new Portal("Армения", new IPortalModule[] { new NewPagesWithArchive("Армения", "Портал:Армения/Новые статьи", "Портал:Армения/Новые статьи/Архив", 25, "* [[{0}]] — [[User:{1}|{1}]] {2}", "d MMMM yyyy") }),
