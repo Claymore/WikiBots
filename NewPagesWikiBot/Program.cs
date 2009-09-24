@@ -49,6 +49,7 @@ namespace Claymore.NewPagesWikiBot
 
             List<Portal> portals = new List<Portal>
             {
+                new Portal("География", new IPortalModule[] { new NewPages("География", "Портал:География/Новые статьи", 10, "* [[{0}]]") }),
                 new Portal("Искусство", new IPortalModule[] { new NewPages("Искусство", "Портал:Искусство/Новые статьи", 10, "* [[{0}]]") }),
                 new Portal("Математика", new IPortalModule[] { new ArticlesInCategory("Динамические системы", "Википедия:Проект:Математика/Динамические системы/watchlist", "* [[{0}]] ([[Обсуждение:{0}|обсуждение]])") }),
                 new Portal("Ленинградская область", new IPortalModule[] { new NewPages("Ленинградская область", "Портал:Ленинградская область/Новые статьи") }),
