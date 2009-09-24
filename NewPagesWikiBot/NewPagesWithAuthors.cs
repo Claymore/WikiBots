@@ -48,6 +48,21 @@ namespace Claymore.NewPagesWikiBot
             TimeFormat = timeFormat;
         }
 
+        public NewPagesWithAuthors(IEnumerable<string> categories, IEnumerable<string> categoriesToIgnore,
+            string page, string output, int pageLimit, string format, string timeFormat, string delimeter)
+            : base(categories,
+                   page,
+                   pageLimit,
+                   format,
+                   "Cache\\output-" + output + ".txt",
+                   "Cache\\input-" + output + "-previous.txt",
+                   delimeter,
+                   false,
+                   categoriesToIgnore)
+        {
+            TimeFormat = timeFormat;
+        }
+
         public NewPagesWithAuthors(string category, string page, int pageLimit, string format, string timeFormat, string delimeter)
             : base(new string[] { category },
                    page,
@@ -61,8 +76,27 @@ namespace Claymore.NewPagesWikiBot
             TimeFormat = timeFormat;
         }
 
+
         public override void ProcessData(Wiki wiki)
         {
+            HashSet<string> ignore = new HashSet<string>();
+            foreach (var category in CategoriesToIgnore)
+            {
+                using (TextReader streamReader = new StreamReader("Cache\\input-" + category + ".txt"))
+                {
+                    string line;
+                    while ((line = streamReader.ReadLine()) != null)
+                    {
+                        string[] groups = line.Split(new char[] { '\t' });
+                        if (groups[0] == "0")
+                        {
+                            string title = groups[1].Replace('_', ' ');
+                            ignore.Add(title);
+                        }
+                    }
+                }
+            }
+
             List<string> pages = new List<string>();
             int index = 0;
             
@@ -87,7 +121,10 @@ namespace Claymore.NewPagesWikiBot
                         if (groups[0] == "0")
                         {
                             string title = groups[1].Replace('_', ' ');
-
+                            if (ignore.Contains(title))
+                            {
+                                continue;
+                            }
                             XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, new string[] { title });
                             XmlNode node = xml.SelectSingleNode("//rev");
                             if (node != null)

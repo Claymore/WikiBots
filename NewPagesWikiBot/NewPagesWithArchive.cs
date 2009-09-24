@@ -30,6 +30,21 @@ namespace Claymore.NewPagesWikiBot
             ArchivePage = archive;
         }
 
+        public NewPagesWithArchive(IEnumerable<string> categories,
+                                   IEnumerable<string> categoriesToIgnore,
+                                   string page, string archive, string output, int pageLimit, string format, string timeFormat)
+            : base(categories,
+                   categoriesToIgnore,
+                   page,
+                   output,
+                   pageLimit,
+                   format,
+                   timeFormat,
+                   "\n")
+        {
+            ArchivePage = archive;
+        }
+
         public override void ProcessData(Wiki wiki)
         {
             base.ProcessData(wiki);
@@ -38,7 +53,7 @@ namespace Claymore.NewPagesWikiBot
             using (TextReader streamReader = new StreamReader(Output))
             {
                 string text = streamReader.ReadToEnd();
-                HashSet<string> currentPages = new HashSet<string>(text.Split(new string[] { "\r\n" },
+                HashSet<string> currentPages = new HashSet<string>(text.Split(new string[] { "\n" },
                     System.StringSplitOptions.RemoveEmptyEntries));
                 string line;
                 while ((line = previousStream.ReadLine()) != null)

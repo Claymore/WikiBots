@@ -9,6 +9,7 @@ namespace Claymore.NewPagesWikiBot
     internal class NewPages : IPortalModule
     {
         private List<string> _categories;
+        private List<string> _categoriesToIgnore;
         public string Page { get; private set; }
         public string Format { get; private set; }
         public string Head { get; set; }
@@ -23,6 +24,11 @@ namespace Claymore.NewPagesWikiBot
         public IEnumerable<string> Categories
         {
             get { return _categories; }
+        }
+
+        public IEnumerable<string> CategoriesToIgnore
+        {
+            get { return _categoriesToIgnore; }
         }
 
         public NewPages(string category, string page)
@@ -45,6 +51,7 @@ namespace Claymore.NewPagesWikiBot
         public NewPages(string category, string page, int pageLimit, string format, string output, string previous, bool skip)
         {
             _categories = new List<string> { category };
+            _categoriesToIgnore = new List<string>();
             Page = page;
             PageLimit = pageLimit;
             Format = format;
@@ -64,6 +71,7 @@ namespace Claymore.NewPagesWikiBot
                         bool skip)
         {
             _categories = new List<string>(categories);
+            _categoriesToIgnore = new List<string>();
             Page = page;
             PageLimit = pageLimit;
             Format = format;
@@ -84,6 +92,29 @@ namespace Claymore.NewPagesWikiBot
                         bool skip)
         {
             _categories = new List<string>(categories);
+            _categoriesToIgnore = new List<string>();
+            Page = page;
+            PageLimit = pageLimit;
+            Format = format;
+            Hours = 720;
+            Output = output;
+            Previous = previous;
+            Skip = skip;
+            Delimeter = delimeter;
+        }
+
+        public NewPages(IEnumerable<string> categories,
+                        string page,
+                        int pageLimit,
+                        string format,
+                        string output,
+                        string previous,
+                        string delimeter,
+                        bool skip,
+                        IEnumerable<string> categoriesToIgnore)
+        {
+            _categories = new List<string>(categories);
+            _categoriesToIgnore = new List<string>(categoriesToIgnore);
             Page = page;
             PageLimit = pageLimit;
             Format = format;
@@ -115,12 +146,50 @@ namespace Claymore.NewPagesWikiBot
                     }
                 }
             }
+
+            foreach (var category in CategoriesToIgnore)
+            {
+                Console.Out.WriteLine("Downloading data for " + category);
+                string url = string.Format("http://toolserver.org/~daniel/WikiSense/CategoryIntersect.php?wikilang=ru&wikifam=.wikipedia.org&basecat={0}&basedeep=7&mode=rc&hours={1}&onlynew=on&go=Сканировать&format=csv&userlang=ru",
+                    Uri.EscapeDataString(category), Hours);
+                WebClient client = new WebClient();
+                client.DownloadFile(url, "Cache\\input-" + category + ".txt");
+                using (TextWriter streamWriter = new StreamWriter(Previous))
+                {
+                    try
+                    {
+                        string text = wiki.LoadPage(Page);
+                        streamWriter.Write(text);
+                    }
+                    catch (WikiPageNotFound)
+                    {
+                    }
+                }
+            }
         }
 
         public virtual void ProcessData(Wiki wiki)
         {
             List<string> pages = new List<string>();
             int index = 0;
+
+            HashSet<string> ignore = new HashSet<string>();
+            foreach (var category in CategoriesToIgnore)
+            {
+                using (TextReader streamReader = new StreamReader("Cache\\input-" + category + ".txt"))
+                {
+                    string line;
+                    while ((line = streamReader.ReadLine()) != null)
+                    {
+                        string[] groups = line.Split(new char[] { '\t' });
+                        if (groups[0] == "0")
+                        {
+                            string title = groups[1].Replace('_', ' ');
+                            ignore.Add(title);
+                        }
+                    }
+                }
+            }
             
             foreach (var category in Categories)
             {
@@ -134,9 +203,12 @@ namespace Claymore.NewPagesWikiBot
                         if (groups[0] == "0")
                         {
                             string title = groups[1].Replace('_', ' ');
-                            pages.Add(string.Format(Format,
-                                title));
-                            ++index;
+                            if (!ignore.Contains(title))
+                            {
+                                pages.Add(string.Format(Format,
+                                    title));
+                                ++index;
+                            }
                         }
                         if (index >= PageLimit)
                         {
