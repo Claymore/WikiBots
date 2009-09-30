@@ -776,10 +776,10 @@ namespace Claymore.TalkCleanupWikiBot
 
         private static string FilterWikiMarkup(string line)
         {
-            Regex commentRE = new Regex(@"\[{2}(File|Файл|Image|Изображение|Category|Категория):(.+?)\]{2}");
+            Regex commentRE = new Regex(@"\[{2}(File|Файл|Image|Изображение|Category|Категория):(.+?)(\|.+)?(\]{2})?$");
             string comment = line;
             comment = comment.Replace("{{", "<nowiki>{{").Replace("}}", "}}</nowiki>").Replace("'''", "").Replace("''", "").Trim();
-            comment = commentRE.Replace(comment, "[[:$1:$2]]");
+            comment = commentRE.Replace(comment, "<nowiki>[[</nowiki>[[:$1:$2]]<nowiki>$3]]</nowiki>");
             if (comment.Contains("<nowiki>"))
             {
                 for (int index = comment.IndexOf("<nowiki>");
