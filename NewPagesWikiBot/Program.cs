@@ -65,6 +65,7 @@ namespace Claymore.NewPagesWikiBot
                 new Portal("Инки", new IPortalModule[] { new NewPages("Империя Инков", "Портал:Инки/Новые статьи") }),
                 new Portal("География", new IPortalModule[] { new NewPages("География", "Портал:География/Новые статьи", 10, "* [[{0}]]") }),
                 new Portal("Искусство", new IPortalModule[] { new NewPages("Искусство", "Портал:Искусство/Новые статьи", 10, "* [[{0}]]") }),
+                new Portal("История", new IPortalModule[] { new NewPages("История", "Портал:История/Новые статьи", 20, "* [[{0}]]") }),
                 new Portal("Математика", new IPortalModule[] { new ArticlesInCategory("Динамические системы", "Википедия:Проект:Математика/Динамические системы/watchlist", "* [[{0}]] ([[Обсуждение:{0}|обсуждение]])") }),
                 new Portal("Ленинградская область", new IPortalModule[] { new NewPages("Ленинградская область", "Портал:Ленинградская область/Новые статьи") }),
                 new Portal("Санкт-Петербург", new IPortalModule[] { new NewPages("Санкт-Петербург", "Портал:Санкт-Петербург/Новые статьи", 45, "* [[{0}]]", false) }),
