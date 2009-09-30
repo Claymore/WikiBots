@@ -32,6 +32,7 @@ namespace Claymore.TalkCleanupWikiBot
             public string ArchiveTemplate;
             public string ArchivePage;
             public string EmptyArchive;
+            public string NavigationTemplate;
         }
 
         public delegate string TitleProcessor(WikiPageSection section);
@@ -389,6 +390,49 @@ namespace Claymore.TalkCleanupWikiBot
             }
         }
 
+        internal void AddNavigationTemplate(Wiki wiki)
+        {
+            ParameterCollection parameters = new ParameterCollection();
+            parameters.Add("list", "embeddedin");
+            parameters.Add("eititle", "Template:" + _l10i.NavigationTemplate);
+            parameters.Add("eilimit", "max");
+            parameters.Add("einamespace", "4");
+            parameters.Add("eifilterredir", "nonredirects");
+
+            XmlDocument doc = wiki.Enumerate(parameters, true);
+
+            List<string> titles = new List<string>();
+            DateTime end = DateTime.Today;
+            DateTime start = end.AddDays(-7);
+            while (start <= end)
+            {
+                string pageDate = start.ToString("d MMMM yyyy", _l10i.Culture);
+                string prefix = _l10i.MainPage + "/";
+                string pageName = prefix + pageDate;
+                if (doc.SelectSingleNode("//ei[@title='" + pageName + "']") == null)
+                {
+                    titles.Add(pageName);
+                }
+                start = start.AddDays(1);
+            }
+
+            parameters.Clear();
+            parameters.Add("prop", "info");
+            XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, titles);
+            foreach (XmlNode node in xml.SelectNodes("//page"))
+            {
+                if (node.Attributes["missing"] == null)
+                {
+                    Console.Out.WriteLine("Updating " + node.Attributes["title"].Value + "...");
+                    wiki.PrependTextToPage(node.Attributes["title"].Value,
+                        "{{" + _l10i.NavigationTemplate + "}}\n",
+                        _l10i.MainPageUpdateComment,
+                        MinorFlags.Minor,
+                        WatchFlags.None);
+                }
+            }
+        }
+
         internal static int CompareDays(Day x, Day y)
         {
             return y.Date.CompareTo(x.Date);
@@ -492,6 +536,7 @@ namespace Claymore.TalkCleanupWikiBot
 
         public void Run(Wiki wiki)
         {
+            AddNavigationTemplate(wiki);
             Analyze(wiki);
             UpdateMainPage(wiki);
             UpdateArchivePages(wiki);

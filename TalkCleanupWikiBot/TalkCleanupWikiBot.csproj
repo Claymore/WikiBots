@@ -62,6 +62,7 @@
     <Compile Include="ProposedMerges.cs" />
     <Compile Include="ProposedSplits.cs" />
     <Compile Include="RequestedMoves.cs" />
+    <Compile Include="ReviewArchive.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

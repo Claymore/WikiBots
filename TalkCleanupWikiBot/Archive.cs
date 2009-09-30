@@ -114,6 +114,22 @@ namespace Claymore.TalkCleanupWikiBot
                         archivedSections.Add(section);
                     }
                 }
+                if (IsMovedSection(section))
+                {
+                    section.SectionText = section.SectionText.Trim(new char[] {' ', '\t', '\n'}) + "\n~~~~";
+                    DateTime published = new DateTime(DateTime.Today.Year, UsePeriod == Period.Month ? DateTime.Today.Month : 1, 1);
+                    if (archives.ContainsKey(published))
+                    {
+                        archives[published].Add(section);
+                    }
+                    else
+                    {
+                        List<WikiPageSection> sections = new List<WikiPageSection>();
+                        sections.Add(section);
+                        archives.Add(published, sections);
+                    }
+                    archivedSections.Add(section);
+                }
             }
 
             if (archivedSections.Count == 0)
@@ -148,6 +164,7 @@ namespace Claymore.TalkCleanupWikiBot
                 WikiPage archivePage = WikiPage.Parse(pageName, text);
                 foreach (WikiPageSection section in archives[period])
                 {
+                    section.Title = ProcessSectionTitle(section.Title);
                     archivePage.Sections.Add(section);
                 }
                 archivePage.Sections.Sort(CompareSections);
@@ -197,6 +214,18 @@ namespace Claymore.TalkCleanupWikiBot
                     }
                 }
             }
+        }
+
+        protected virtual string ProcessSectionTitle(string title)
+        {
+            return title;
+        }
+
+        static bool IsMovedSection(WikiPageSection section)
+        {
+            Regex re = new Regex(@"^\s*\{\{(moved|перенесено на|обсуждение перенесено|moved to|перенесено в)\|(.+?)\}\}\s*$", RegexOptions.IgnoreCase);
+            Match m = re.Match(section.SectionText);
+            return m.Success;
         }
 
         static string FilterQuotes(string text)
@@ -282,5 +311,18 @@ namespace Claymore.TalkCleanupWikiBot
         }
 
         #endregion
+    }
+
+    internal class SpamlistArchive : Archive
+    {
+        protected override string ProcessSectionTitle(string title)
+        {
+            return title.Replace("http://", "");
+        }
+
+        public SpamlistArchive(string mainPage, string format, string dirName, int delay)
+            : base(mainPage, format, dirName, delay, Period.Month, true)
+        {
+        }
     }
 }

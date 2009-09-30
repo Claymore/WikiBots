@@ -110,6 +110,7 @@ namespace Claymore.TalkCleanupWikiBot
             cleanupL10i.ArchiveTemplate = "Статті, що необхідно поліпшити";
             cleanupL10i.ArchivePage = "Вікіпедія:Статті, що необхідно поліпшити/Архів/";
             cleanupL10i.EmptyArchive = "обговорення не розпочато";
+            cleanupL10i.NavigationTemplate = "ВППОЛ-навігація";
 
             List<IModule> modules = new List<IModule>()
             {
@@ -201,6 +202,7 @@ namespace Claymore.TalkCleanupWikiBot
             cleanupL10i.ArchiveTemplate = "Статьи, вынесенные на улучшение";
             cleanupL10i.ArchivePage = "Википедия:К улучшению/Архив/";
             cleanupL10i.EmptyArchive = "нет обсуждений";
+            cleanupL10i.NavigationTemplate = "ВПКУЛ-Навигация";
 
             ArticlesForDeletionLocalization l10i = new ArticlesForDeletionLocalization();
             l10i.Category = "Категория:Википедия:Незакрытые обсуждения удаления страниц";
@@ -226,6 +228,8 @@ namespace Claymore.TalkCleanupWikiBot
 
             List<IModule> modules = new List<IModule>()
             {
+                new ReviewArchive("Википедия:Статьи для рецензирования", "Википедия:Статьи для рецензирования/Архив", "Статьи для рецензирования", 336),
+                new SpamlistArchive("Википедия:Изменение спам-листа", "Википедия:Изменение спам-листа\\/Архив\\/yyyy\\/MM", "Изменение спам-листа", 72),
                 new Archive("Википедия:Форум/Общий", "Википедия:Форум\\/Архив\\/Общий\\/yyyy\\/MM", "Общий форум", 240, Archive.Period.Month, false),
                 new Archive("Википедия:Форум/Новости", "Википедия:Форум\\/Архив\\/Новости\\/yyyy\\/MM", "Форум Новости", 240, Archive.Period.Month, false),
                 new Archive("Википедия:Форум/Предложения", "Википедия:Форум\\/Архив\\/Предложения\\/yyyy\\/MM", "Форум Предложения", 240, Archive.Period.Month, false),
