@@ -143,7 +143,7 @@ namespace Claymore.TalkCleanupWikiBot
                             section.Title = "{{mark out|" + section.Title.Trim() + "}}";
                         }
 
-                        bool hasVerdict = section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0;
+                        bool hasVerdict = section.Subsections.Count(s => s.Title.ToLower().Trim() == "итог") > 0;
                         bool hasAutoVerdict = section.Subsections.Count(s => s.Title.Trim() == "Автоматический итог") > 0;
                         if (hasVerdict || hasAutoVerdict || section.Title.Contains("<s>"))
                         {
@@ -186,7 +186,7 @@ namespace Claymore.TalkCleanupWikiBot
                             }
 
                             result = "";
-                            hasVerdict = subsection.Subsections.Count(s => s.Title.Trim() == "Итог") > 0;
+                            hasVerdict = subsection.Subsections.Count(s => s.Title.ToLower().Trim() == "итог") > 0;
                             hasAutoVerdict = subsection.Subsections.Count(s => s.Title.Trim() == "Автоматический итог") > 0;
                             if (hasVerdict || hasAutoVerdict || subsection.Title.Contains("<s>"))
                             {
@@ -343,7 +343,7 @@ namespace Claymore.TalkCleanupWikiBot
                         }
 
                         if (section.Subsections.Count(s => s.Title.Trim() == "Оспоренный итог") == 0 &&
-                            section.Subsections.Count(s => s.Title.Trim() == "Итог") == 0 &&
+                            section.Subsections.Count(s => s.Title.ToLower().Trim() == "итог") == 0 &&
                             section.Subsections.Count(s => s.Title.Trim() == "Автоматический итог") == 0 &&
                             moved && !string.IsNullOrEmpty(movedTo))
                         {
@@ -406,7 +406,7 @@ namespace Claymore.TalkCleanupWikiBot
                             }
 
                             if (subsection.Subsections.Count(s => s.Title.Trim() == "Оспоренный итог") == 0 &&
-                                subsection.Subsections.Count(s => s.Title.Trim() == "Итог") == 0 &&
+                                subsection.Subsections.Count(s => s.Title.ToLower().Trim() == "итог") == 0 &&
                                 subsection.Subsections.Count(s => s.Title.Trim() == "Автоматический итог") == 0 &&
                                 moved && !string.IsNullOrEmpty(movedTo))
                             {
@@ -714,7 +714,7 @@ namespace Claymore.TalkCleanupWikiBot
                         {
                             string filler = "";
                             string result = "";
-                            bool hasVerdict = section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0;
+                            bool hasVerdict = section.Subsections.Count(s => s.Title.ToLower().Trim() == "итог") > 0;
                             bool hasAutoVerdict = section.Subsections.Count(s => s.Title.Trim() == "Автоматический итог") > 0;
                             if (hasVerdict || hasAutoVerdict || section.Title.Contains("<s>"))
                             {
@@ -752,7 +752,7 @@ namespace Claymore.TalkCleanupWikiBot
                             foreach (WikiPageSection subsection in sections)
                             {
                                 result = "";
-                                hasVerdict = subsection.Subsections.Count(s => s.Title.Trim() == "Итог") > 0;
+                                hasVerdict = subsection.Subsections.Count(s => s.Title.ToLower().Trim() == "итог") > 0;
                                 hasAutoVerdict = subsection.Subsections.Count(s => s.Title.Trim() == "Автоматический итог") > 0;
                                 if (hasVerdict || hasAutoVerdict || subsection.Title.Contains("<s>"))
                                 {
@@ -967,7 +967,7 @@ namespace Claymore.TalkCleanupWikiBot
         {
             Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
 
-            if (section.Subsections.Count(s => s.Title.Trim() == "Итог" ||
+            if (section.Subsections.Count(s => s.Title.ToLower().Trim() == "итог" ||
                 s.Title.Trim() == "Автоматический итог") > 0)
             {
                 if (!section.Title.Contains("<s>"))
@@ -991,7 +991,7 @@ namespace Claymore.TalkCleanupWikiBot
 
         private void RemoveStrikeOut(WikiPageSection section)
         {
-            if (section.Subsections.Count(s => s.Title.Trim() == "Итог") == 0 &&
+            if (section.Subsections.Count(s => s.Title.ToLower().Trim() == "итог") == 0 &&
                 section.Subsections.Count(s => s.Title.Trim() == "Автоматический итог") == 0)
             {
                 if (section.Title.Contains("<s>"))
