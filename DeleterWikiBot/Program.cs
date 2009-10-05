@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml;
 using Claymore.DeleterWikiBot.Properties;
@@ -48,23 +47,27 @@ namespace Claymore.DeleterWikiBot
             }
             Console.Out.WriteLine("Logged in as " + Settings.Default.Login + ".");
 
-            string listText = wiki.LoadPage("Википедия:Список подводящих итоги");
-            WikiPage listPage = WikiPage.Parse("Википедия:Список подводящих итоги", listText);
-            WikiPageSection usersSection = listPage.Sections.FirstOrDefault(ss => ss.Title.ToLower().Trim() == "участники");
-            if (usersSection == null)
+            string listText;
+            try
             {
-                return 0;
+                listText = wiki.LoadPage("Шаблон:Список подводящих итоги");
             }
-            StringReader reader = new StringReader(usersSection.SectionText);
+            catch (WikiException e)
+            {
+                Console.Out.WriteLine(e.Message);
+                return -1;
+            }
+
+            StringReader reader = new StringReader(listText);
             HashSet<string> users = new HashSet<string>();
-            Regex userRE = new Regex(@"^\*\s*(.+)\s*$");
+            Regex userRE = new Regex(@"^\*\s*\[\[(User|Участник):(.+)\|.+\]\]\s*$", RegexOptions.IgnoreCase);
             string line;
             while ((line = reader.ReadLine()) != null)
             {
                 Match m = userRE.Match(line);
                 if (m.Success)
                 {
-                    users.Add(m.Groups[1].Value);
+                    users.Add(m.Groups[2].Value);
                 }
             }
 
@@ -76,7 +79,18 @@ namespace Claymore.DeleterWikiBot
             parameters.Add("intoken", "delete");
 
             Regex templateRE = new Regex(@"\{\{db-discussion\|(\d+)\|(.+?)\}\}", RegexOptions.IgnoreCase);
-            XmlDocument doc = wiki.Enumerate(parameters, false);
+            XmlDocument doc;
+            try
+            {
+                doc = wiki.Enumerate(parameters, true);
+            }
+            catch (WikiException e)
+            {
+                Console.Out.WriteLine(e.Message);
+                return -1;
+            }
+
+            bool failed = false;
             foreach (XmlNode page in doc.SelectNodes("//page"))
             {
                 string title = page.Attributes["title"].Value;
@@ -85,8 +99,23 @@ namespace Claymore.DeleterWikiBot
                 parameters.Add("rvprop", "content");
                 parameters.Add("rvlimit", "1");
 
-                XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, new string[] { title });
+                XmlDocument xml;
+                try
+                {
+                    xml = wiki.Query(QueryBy.Titles, parameters, new string[] { title });
+                }
+                catch (WikiException e)
+                {
+                    Console.Out.WriteLine(e.Message);
+                    failed = true;
+                    continue;
+                }
                 XmlNode node = xml.SelectSingleNode("//rev");
+                if (node == null || node.FirstChild == null)
+                {
+                    failed = true;
+                    continue;
+                }
                 string content = node.FirstChild.Value;
                 
                 Match m = templateRE.Match(content);
@@ -101,7 +130,16 @@ namespace Claymore.DeleterWikiBot
                     parameters.Add("rvstart", timestamp);
                     parameters.Add("rvdir", "newer");
 
-                    xml = wiki.Query(QueryBy.Titles, parameters, new string[] { title });
+                    try
+                    {
+                        xml = wiki.Query(QueryBy.Titles, parameters, new string[] { title });
+                    }
+                    catch (WikiException e)
+                    {
+                        Console.Out.WriteLine(e.Message);
+                        failed = true;
+                        continue;
+                    }
                     node = xml.SelectSingleNode("//rev");
                     if (node != null && users.Contains(node.Attributes["user"].Value))
                     {
@@ -114,12 +152,21 @@ namespace Claymore.DeleterWikiBot
                                 m.Groups[2].Value);
 
                             string token = page.Attributes["deletetoken"].Value;
-                            wiki.DeletePage(title, reason, token);
+                            try
+                            {
+                                wiki.DeletePage(title, reason, token);
+                            }
+                            catch (WikiException e)
+                            {
+                                Console.Out.WriteLine(e.Message);
+                                failed = true;
+                                continue;
+                            }
                         }
                     }
                 }
             }
-            return 0;
+            return failed ? -1 : 0;
         }
     }
 }
