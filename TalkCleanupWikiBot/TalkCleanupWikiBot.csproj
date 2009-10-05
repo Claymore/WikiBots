@@ -46,8 +46,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AdministratorIntervention.cs" />
-    <Compile Include="Archive.cs" />
     <Compile Include="ArticlesForDeletion.cs" />
     <Compile Include="CategoriesForDiscussion.cs" />
     <Compile Include="Cleanup.cs" />
@@ -62,7 +60,6 @@
     <Compile Include="ProposedMerges.cs" />
     <Compile Include="ProposedSplits.cs" />
     <Compile Include="RequestedMoves.cs" />
-    <Compile Include="ReviewArchive.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
