@@ -51,32 +51,35 @@ namespace Claymore.NewPagesWikiBot
             {
                 new Portal("Лингвистика", new IPortalModule[]
                 {
-                    new NewPagesWithAuthors(
+                    new NewPagesWithArchive(
                         new string[] {"Языки", "Языки Австралии и Океании", "Языки Африки", "Языки Евразии", "Языки Северной Америки", "Языки Южной Америки", "Индоевропейские языки" },
                         new string[]
                         {
                             "Категории по языкам",
-                            "Компьютерные языки"
+                            "Компьютерные языки",
+                            "Лингвисты"
                         },
                         "Википедия:Проект:Лингвистика/Новые статьи:Языки",
+                        "Википедия:Проект:Лингвистика/Новые статьи:Языки/Архив",
                         "Лингвистика-Языки",
-                        500,
+                        20,
                         "* [[{0}]] — <small>[[User:{1}|{1}]] {2}</small>",
-                        "dd.MM.yyyy",
-                        "\n"),
-                    new NewPagesWithAuthors(
+                        "dd.MM.yyyy"),
+                    new NewPagesWithArchive(
                         "Лингвисты",
                         "Википедия:Проект:Лингвистика/Новые статьи:Лингвисты",
-                        500,
+                        "Википедия:Проект:Лингвистика/Новые статьи:Лингвисты/Архив",
+                        20,
                         "* [[{0}]] — <small>[[User:{1}|{1}]] {2}</small>",
                         "dd.MM.yyyy"),
-                    new NewPagesWithAuthors(
+                    new NewPagesWithArchive(
                         "Письменность",
                         "Википедия:Проект:Лингвистика/Новые статьи:Письменности",
-                        500,
+                        "Википедия:Проект:Лингвистика/Новые статьи:Письменности/Архив",
+                        20,
                         "* [[{0}]] — <small>[[User:{1}|{1}]] {2}</small>",
                         "dd.MM.yyyy"),
-                    new NewPagesWithAuthors(
+                    new NewPagesWithArchive(
                         new string[] {"Лингвистика", "Звуки речи", "Морфология (лингвистика)" },
                         new string[]
                         {
@@ -93,11 +96,11 @@ namespace Claymore.NewPagesWikiBot
                             "Компьютерные языки"
                         },
                         "Википедия:Проект:Лингвистика/Новые статьи:Теория",
+                        "Википедия:Проект:Лингвистика/Новые статьи:Теория/Архив",
                         "Лингвистика-Теория",
-                        500,
+                        20,
                         "* [[{0}]] — <small>[[User:{1}|{1}]] {2}</small>",
-                        "dd.MM.yyyy",
-                        "\n"),
+                        "dd.MM.yyyy"),
                 }),
                 new Portal("Армения", new IPortalModule[] { new NewPagesWithArchive(new string[] {"Армения"},
                                                                                     new string[] {"Нагорный Карабах"},
@@ -235,7 +238,7 @@ namespace Claymore.NewPagesWikiBot
 
                 new Portal("Музыка", new IPortalModule[] { new NewPagesWithWeeks("Музыка", "Википедия:Проект:Музыка/Статьи", "* {2} — [[{0}]] &nbsp; <small>{{{{u|{1}}}}}</small>", "HH:mm",
                     "{{МСВС}}", "{{МСВС-предупреждение}}") }),
-                new Portal("Религия", new IPortalModule[] { new NewPagesWithWeeks("Футбол", "Википедия:Проект:Футбол/Статьи", "* {2} — [[{0}]] &nbsp; <small>{{{{u|{1}}}}}</small>", "HH:mm",
+                new Portal("Футбол", new IPortalModule[] { new NewPagesWithWeeks("Футбол", "Википедия:Проект:Футбол/Статьи", "* {2} — [[{0}]] &nbsp; <small>{{{{u|{1}}}}}</small>", "HH:mm",
                     "{{ФСВС}}", "{{ФСВС-предупреждение}}") }),
                 new Portal("Япония", new IPortalModule[]
                 {

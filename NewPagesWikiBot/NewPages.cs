@@ -239,7 +239,8 @@ namespace Claymore.NewPagesWikiBot
                 string[] oldLines = oldText.Split(new string[] { "\n" }, StringSplitOptions.RemoveEmptyEntries);
                 string text = sr.ReadToEnd();
                 string[] lines = text.Split(new string[] { "\n" }, StringSplitOptions.RemoveEmptyEntries);
-                if (string.IsNullOrEmpty(text) || (Skip && lines.Length < oldLines.Length))
+                if (string.IsNullOrEmpty(text) ||
+                    (Skip && lines.Length < PageLimit && lines.Length < oldLines.Length))
                 {
                     Console.Out.WriteLine("Skipping " + Page);
                     return false;
