@@ -70,12 +70,14 @@ namespace Claymore.ArchiveWikiBot
             parameters.Add("redirects");
 
             XmlDocument doc = wiki.Enumerate(parameters, true);
-            foreach (XmlNode page in doc.SelectNodes("//page"))
+            foreach (XmlNode node in doc.SelectNodes("//page"))
             {
-                string pageName = page.Attributes["title"].Value;
-                string text = wiki.LoadPage(pageName);
+                string title = node.Attributes["title"].Value;
+                string path = @"Cache\ru\" + Cache.EscapePath(title) + @"\";
+                Directory.CreateDirectory(path);
+                WikiPage page = Cache.Load(wiki, title, path);
                 Archive archive;
-                if (TryParse(pageName, text, pages.Contains(pageName), out archive))
+                if (TryParse(page, path, pages.Contains(page.Title), out archive))
                 {
                     try
                     {
@@ -89,29 +91,63 @@ namespace Claymore.ArchiveWikiBot
             return 0;
         }
 
-        public static bool TryParse(string pageName,
-                                    string text,
+        private static bool TryParseTemplate(string text, out Dictionary<string, string> parameters)
+        {
+            parameters = null;
+            Regex templateRE = new Regex(@"\{\{(Участник|User):ClaymoreBot/Архиваци(я).",
+                RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            Match m = templateRE.Match(text);
+            if (!m.Success)
+            {
+                return false;
+            }
+            int index = 1;
+            int begin = m.Groups[2].Index + 1;
+            int end = -1;
+            for (int i = begin; i < text.Length - 1; ++i)
+            {
+                if (text[i] == '{' && text[i + 1] == '{')
+                {
+                    ++index;
+                }
+                else if (text[i] == '}' && text[i + 1] == '}')
+                {
+                    --index;
+                    if (index == 0)
+                    {
+                        end = i;
+                        break;
+                    }
+                }
+            }
+
+            if (end == -1)
+            {
+                return false;
+            }
+
+            parameters = new Dictionary<string, string>();
+            string parameterString = text.Substring(begin, end - begin);
+            string[] ps = parameterString.Split(new char[] { '|' });
+            foreach (var p in ps)
+            {
+                string[] keyvalue = p.Split(new char[] { '=' });
+                if (keyvalue.Length == 2)
+                {
+                    parameters.Add(keyvalue[0].Trim().ToLower(), keyvalue[1].Trim());
+                }
+            }
+            return true;
+        }
+
+        public static bool TryParse(WikiPage page,
+                                    string directory,
                                     bool allowSource,
                                     out Archive archive)
         {
             archive = null;
-            Regex templateRE = new Regex(@"\{\{(Участник|User):ClaymoreBot/Архивация(.+?)\}\}",
-                RegexOptions.IgnoreCase | RegexOptions.Singleline);
-            Match m = templateRE.Match(text);
-            var values = new Dictionary<string, string>();
-            if (m.Success)
-            {
-                string[] ps = m.Groups[2].Value.Split(new char[] { '|' });
-                foreach (var p in ps)
-                {
-                    string[] keyvalue = p.Split(new char[] { '=' });
-                    if (keyvalue.Length == 2)
-                    {
-                        values.Add(keyvalue[0].Trim().ToLower(), keyvalue[1].Trim());
-                    }
-                }
-            }
-            else
+            Dictionary<string, string> values;
+            if (!TryParseTemplate(page.Text, out values))
             {
                 return false;
             }
@@ -142,26 +178,32 @@ namespace Claymore.ArchiveWikiBot
                 }
             }
 
-            string page = pageName;
+            string pageName = page.Title;
             if (allowSource && values.ContainsKey("обрабатывать"))
             {
-                page = values["обрабатывать"];
+                pageName = values["обрабатывать"];
             }
 
             string format = pageName + "/Архив/%(номер)";
             if (values.ContainsKey("формат"))
             {
-                format = page + "/" + values["формат"];
+                format = pageName + "/" + values["формат"];
+            }
+
+            string header = "{{closed}}\n";
+            if (values.ContainsKey("заголовок"))
+            {
+                header = values["заголовок"];
             }
 
             if (values.ContainsKey("страница"))
             {
-                format = page + "/" + values["страница"];
+                format = pageName + "/" + values["страница"];
             }
 
             if (allowSource && values.ContainsKey("абсолютный путь"))
             {
-                format = values["абсолютный путь"];
+                format = values["формат"];
             }
 
             int topics = 0;
@@ -182,27 +224,27 @@ namespace Claymore.ArchiveWikiBot
                 string t = values["тип"].ToLower();
                 if (t == "страница")
                 {
-                    archive = new Archive(page, days, format, checkForResult, newSectionsDown);
+                    archive = new Archive(pageName, directory, days, format, header, checkForResult, newSectionsDown);
                 }
                 else if (t == "месяц")
                 {
-                    archive = new ArchiveByMonth(page, days, format, checkForResult, newSectionsDown);
+                    archive = new ArchiveByMonth(pageName, directory, days, format, header, checkForResult, newSectionsDown);
                 }
                 else if (t == "год")
                 {
-                    archive = new ArchiveByYear(page, days, format, checkForResult, newSectionsDown);
+                    archive = new ArchiveByYear(pageName, directory, days, format, header, checkForResult, newSectionsDown);
                 }
                 else if (t == "полгода")
                 {
-                    archive = new ArchiveByHalfYear(page, days, format, checkForResult, newSectionsDown);
+                    archive = new ArchiveByHalfYear(pageName, directory, days, format, header, checkForResult, newSectionsDown);
                 }
                 else if (t == "статьи для рецензирования")
                 {
-                    archive = new ReviewArchive(page, days, format);
+                    archive = new ReviewArchive(pageName, directory, days, format, header);
                 }
                 else if (t == "нумерация" && topics > 0)
                 {
-                    archive = new ArchiveByTopicNumber(page, days, format, checkForResult, newSectionsDown, topics);
+                    archive = new ArchiveByTopicNumber(pageName, directory, days, format, header, checkForResult, newSectionsDown, topics);
                 }
             }
             if (archive != null)

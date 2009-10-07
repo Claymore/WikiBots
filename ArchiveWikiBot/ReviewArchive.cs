@@ -10,8 +10,8 @@ namespace Claymore.ArchiveWikiBot
 {
     internal class ReviewArchive : Archive
     {
-        public ReviewArchive(string title, int days, string archive)
-            : base(title, days, archive, false, false)
+        public ReviewArchive(string title, string directory, int days, string archive, string header)
+            : base(title, directory, days, archive, header, false, false)
         {
         }
 
@@ -27,12 +27,12 @@ namespace Claymore.ArchiveWikiBot
             string pageFileName = _cacheDir + "archive.txt";
             XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, new string[] { Format });
             XmlNode node = xml.SelectSingleNode("//page");
-            string text = LoadPageFromCache(pageFileName, node.Attributes["lastrevid"].Value, Format);
+            string text = Cache.LoadPageFromCache(pageFileName, node.Attributes["lastrevid"].Value, Format);
             if (string.IsNullOrEmpty(text))
             {
                 Console.Out.WriteLine("Downloading " + Format + "...");
                 text = wiki.LoadPage(Format);
-                CachePage(pageFileName, node.Attributes["lastrevid"].Value, text);
+                Cache.CachePage(pageFileName, node.Attributes["lastrevid"].Value, text);
             }
             var arch = WikiPage.Parse(Format, text);
 
@@ -174,7 +174,8 @@ namespace Claymore.ArchiveWikiBot
                         page.Token);
             if (revid != null)
             {
-                CachePage(MainPage, revid, page.Text);
+                string fileName = _cacheDir + Cache.EscapePath(MainPage);
+                Cache.CachePage(fileName, revid, page.Text);
             }
             foreach (var archive in archives)
             {

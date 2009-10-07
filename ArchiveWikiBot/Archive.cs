@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml;
@@ -21,52 +19,24 @@ namespace Claymore.ArchiveWikiBot
         protected int Delay { get; set; }
         protected bool CheckForResult { get; set; }
         protected bool NewSectionsDown { get; set; }
+        protected string Header { get; set; }
         public TitleProcessor Processor;
 
-        public Archive(string title, int days, string format, bool checkForResult, bool newSectionsDown)
+        public Archive(string title,
+                       string directory,
+                       int days,
+                       string format,
+                       string header,
+                       bool checkForResult,
+                       bool newSectionsDown)
         {
-            string _language = "ru";
             MainPage = title;
-            Regex charsRE = new Regex(@"[:/\*\?<>\|]");
-            string dirName = charsRE.Replace(MainPage, "_").Replace('"', '_').Replace('\\', '_');
-            _cacheDir = "Cache\\" + _language + "\\" + dirName + "\\";
+            _cacheDir = directory;
             Format = format;
             Delay = days * 24;
             CheckForResult = checkForResult;
             NewSectionsDown = newSectionsDown;
-            Directory.CreateDirectory(_cacheDir);
-        }
-
-        public WikiPage Load(Wiki wiki, string title)
-        {
-            ParameterCollection parameters = new ParameterCollection();
-            parameters.Add("prop", "info|revisions");
-            parameters.Add("intoken", "edit");
-            parameters.Add("rvprop", "timestamp");
-            XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, new string[] { title });
-            XmlNode node = xml.SelectSingleNode("//rev");
-            string baseTimeStamp = null;
-            if (node != null && node.Attributes["timestamp"] != null)
-            {
-                baseTimeStamp = node.Attributes["timestamp"].Value;
-            }
-            node = xml.SelectSingleNode("//page");
-            string editToken = node.Attributes["edittoken"].Value;
-
-            string pageFileName = _cacheDir + "input.txt";
-            string text = LoadPageFromCache(pageFileName, node.Attributes["lastrevid"].Value, MainPage);
-
-            if (string.IsNullOrEmpty(text))
-            {
-                Console.Out.WriteLine("Downloading " + MainPage + "...");
-                text = wiki.LoadPage(MainPage);
-                CachePage(pageFileName, node.Attributes["lastrevid"].Value, text);
-            }
-
-            WikiPage page = WikiPage.Parse(MainPage, text);
-            page.BaseTimestamp = baseTimeStamp;
-            page.Token = editToken;
-            return page;
+            Header = header;
         }
 
         public virtual Dictionary<string, string> Process(Wiki wiki, WikiPage page)
@@ -114,25 +84,25 @@ namespace Claymore.ArchiveWikiBot
             ParameterCollection parameters = new ParameterCollection();
             parameters.Add("prop", "info");
             string pageName = Format;
-            string pageFileName = _cacheDir + pageName.Replace('/', '-').Replace(':', '-');
+            string pageFileName = _cacheDir + Cache.EscapePath(pageName);
             XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, new string[] { pageName });
             XmlNode node = xml.SelectSingleNode("//page");
             string text;
             if (node.Attributes["missing"] == null)
             {
-                text = LoadPageFromCache(pageFileName,
+                text = Cache.LoadPageFromCache(pageFileName,
                         node.Attributes["lastrevid"].Value, pageName);
 
                 if (string.IsNullOrEmpty(text))
                 {
                     Console.Out.WriteLine("Downloading " + pageName + "...");
                     text = wiki.LoadPage(pageName);
-                    CachePage(pageFileName, node.Attributes["lastrevid"].Value, text);
+                    Cache.CachePage(pageFileName, node.Attributes["lastrevid"].Value, text);
                 }
             }
             else
             {
-                text = "{{closed}}\n";
+                text = Header;
             }
 
             WikiPage archivePage = WikiPage.Parse(pageName, text);
@@ -176,7 +146,8 @@ namespace Claymore.ArchiveWikiBot
                         page.Token);
             if (revid != null)
             {
-                CachePage(MainPage, revid, page.Text);
+                string fileName = _cacheDir + Cache.EscapePath(MainPage);
+                Cache.CachePage(fileName, revid, page.Text);
             }
             foreach (var archive in archives)
             {
@@ -204,7 +175,7 @@ namespace Claymore.ArchiveWikiBot
 
         public void Archivate(Wiki wiki)
         {
-            WikiPage page = Load(wiki, MainPage);
+            WikiPage page = Cache.Load(wiki, MainPage, _cacheDir);
             var pages = Process(wiki, page);
             if (pages.Count > 0)
             {
@@ -308,38 +279,6 @@ namespace Claymore.ArchiveWikiBot
                 publishedY = DateTime.MinValue;
             }
             return publishedX.CompareTo(publishedY);
-        }
-
-        protected static string LoadPageFromCache(string fileName,
-            string revisionId,
-            string pageName)
-        {
-            if (File.Exists(fileName))
-            {
-                using (FileStream fs = new FileStream(fileName, FileMode.Open))
-                using (GZipStream gs = new GZipStream(fs, CompressionMode.Decompress))
-                using (TextReader sr = new StreamReader(gs))
-                {
-                    string revid = sr.ReadLine();
-                    if (revid == revisionId)
-                    {
-                        Console.Out.WriteLine("Loading " + pageName + "...");
-                        return sr.ReadToEnd();
-                    }
-                }
-            }
-            return null;
-        }
-
-        protected static void CachePage(string fileName, string revisionId, string text)
-        {
-            using (FileStream fs = new FileStream(fileName, FileMode.Create))
-            using (GZipStream gs = new GZipStream(fs, CompressionMode.Compress))
-            using (StreamWriter sw = new StreamWriter(gs))
-            {
-                sw.WriteLine(revisionId);
-                sw.Write(text);
-            }
         }
     }
 }

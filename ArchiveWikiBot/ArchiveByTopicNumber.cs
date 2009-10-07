@@ -12,8 +12,15 @@ namespace Claymore.ArchiveWikiBot
     {
         private int Topics { get; set; }
 
-        public ArchiveByTopicNumber(string title, int days, string format, bool checkForResult, bool newSectionsDown, int topics)
-            : base(title, days, format, checkForResult, newSectionsDown)
+        public ArchiveByTopicNumber(string title,
+                               string directory,
+                               int days,
+                               string format,
+                               string header,
+                               bool checkForResult,
+                               bool newSectionsDown,
+                               int topics)
+            : base(title, directory, days, format, header, checkForResult, newSectionsDown)
         {
             Topics = topics;
             Format = format.Replace("%(номер)", "{0}");
@@ -95,15 +102,15 @@ namespace Claymore.ArchiveWikiBot
             XmlNode node = xml.SelectSingleNode("//page");
             if (node.Attributes["missing"] == null)
             {
-                string pageFileName = _cacheDir + pageName.Replace('/', '-').Replace(':', '-');
-                string text = LoadPageFromCache(pageFileName,
+                string pageFileName = _cacheDir + Cache.EscapePath(pageName);
+                string text = Cache.LoadPageFromCache(pageFileName,
                                 node.Attributes["lastrevid"].Value, pageName);
 
                 if (string.IsNullOrEmpty(text))
                 {
                     Console.Out.WriteLine("Downloading " + pageName + "...");
                     text = wiki.LoadPage(pageName);
-                    CachePage(pageFileName, node.Attributes["lastrevid"].Value, text);
+                    Cache.CachePage(pageFileName, node.Attributes["lastrevid"].Value, text);
                 }
                 WikiPage archivePage = WikiPage.Parse(pageName, text);
                 if (archivePage.Sections.Count < Topics)
@@ -128,7 +135,7 @@ namespace Claymore.ArchiveWikiBot
             }
             if (index < archivedSections.Count)
             {
-                string text = "{{closed}}\n";
+                string text = Header;
                 pageName = string.Format(Format, maxNumber + 1);
                 WikiPage archivePage = WikiPage.Parse(pageName, text);
                 for (; index < archivedSections.Count; ++index)

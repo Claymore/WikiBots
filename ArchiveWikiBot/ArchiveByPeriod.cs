@@ -10,8 +10,14 @@ namespace Claymore.ArchiveWikiBot
 {
     internal class ArchiveByPeriod : Archive
     {
-        public ArchiveByPeriod(string title, int days, string format, bool checkForResult, bool newSectionsDown)
-            : base(title, days, format, checkForResult, newSectionsDown)
+        public ArchiveByPeriod(string title,
+                               string directory,
+                               int days,
+                               string format,
+                               string header,
+                               bool checkForResult,
+                               bool newSectionsDown)
+            : base(title, directory, days, format, header, checkForResult, newSectionsDown)
         {
             Regex escapeChars = new Regex(@"([dfFghHKmMstyYz:/OoRrsuGTU])");
             Format = escapeChars.Replace(format, "\\$1");
@@ -76,25 +82,25 @@ namespace Claymore.ArchiveWikiBot
                 ParameterCollection parameters = new ParameterCollection();
                 parameters.Add("prop", "info");
                 string pageName = DateToPageName(period);
-                string pageFileName = _cacheDir + period.ToString(Format).Replace('/', '-').Replace(':', '-');
+                string pageFileName = _cacheDir + Cache.EscapePath(period.ToString(Format));
                 XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, new string[] { pageName });
                 XmlNode node = xml.SelectSingleNode("//page");
                 string text;
                 if (node.Attributes["missing"] == null)
                 {
-                    text = LoadPageFromCache(pageFileName,
+                    text = Cache.LoadPageFromCache(pageFileName,
                             node.Attributes["lastrevid"].Value, pageName);
 
                     if (string.IsNullOrEmpty(text))
                     {
                         Console.Out.WriteLine("Downloading " + pageName + "...");
                         text = wiki.LoadPage(pageName);
-                        CachePage(pageFileName, node.Attributes["lastrevid"].Value, text);
+                        Cache.CachePage(pageFileName, node.Attributes["lastrevid"].Value, text);
                     }
                 }
                 else
                 {
-                    text = "{{closed}}\n";
+                    text = Header;
                 }
 
                 WikiPage archivePage = WikiPage.Parse(pageName, text);
@@ -134,8 +140,14 @@ namespace Claymore.ArchiveWikiBot
 
     internal class ArchiveByMonth : ArchiveByPeriod
     {
-        public ArchiveByMonth(string title, int days, string format, bool checkForResult, bool newSectionsDown)
-            : base(title, days, format, checkForResult, newSectionsDown)
+        public ArchiveByMonth(string title,
+                               string directory,
+                               int days,
+                               string format,
+                               string header,
+                               bool checkForResult,
+                               bool newSectionsDown)
+            : base(title, directory, days, format, header, checkForResult, newSectionsDown)
         {
         }
 
@@ -147,8 +159,14 @@ namespace Claymore.ArchiveWikiBot
 
     internal class ArchiveByYear : ArchiveByPeriod
     {
-        public ArchiveByYear(string title, int days, string format, bool checkForResult, bool newSectionsDown)
-            : base(title, days, format, checkForResult, newSectionsDown)
+        public ArchiveByYear(string title,
+                               string directory,
+                               int days,
+                               string format,
+                               string header,
+                               bool checkForResult,
+                               bool newSectionsDown)
+            : base(title, directory, days, format, header, checkForResult, newSectionsDown)
         {
         }
 
@@ -160,11 +178,17 @@ namespace Claymore.ArchiveWikiBot
 
     internal class ArchiveByHalfYear : ArchiveByPeriod
     {
-        public ArchiveByHalfYear(string title, int days, string format, bool checkForResult, bool newSectionsDown)
-            : base(title, days, format, checkForResult, newSectionsDown)
+        public ArchiveByHalfYear(string title,
+                               string directory,
+                               int days,
+                               string format,
+                               string header,
+                               bool checkForResult,
+                               bool newSectionsDown)
+            : base(title, directory, days, format, header, checkForResult, newSectionsDown)
         {
             Regex escapeChars = new Regex(@"([dfFghHKmMstyYz:/OoRrsuGTU])");
-            Format = escapeChars.Replace(MainPage + "/" + format, "\\$1");
+            Format = escapeChars.Replace(format, "\\$1");
             Format = Format.Replace("%(год)", "yyyy").Replace("%(полугодие)", "{0}");
         }
 
