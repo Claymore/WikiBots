@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Xml;
+using System.Linq;
 using Claymore.SharpMediaWiki;
 
 namespace Claymore.NewPagesWikiBot
@@ -97,9 +98,7 @@ namespace Claymore.NewPagesWikiBot
                 }
             }
 
-            List<string> pages = new List<string>();
-            int index = 0;
-            
+            var pages = new List<Cache.PageInfo>();
             HashSet<string> currentPages = new HashSet<string>();
             foreach (var category in Categories)
             {
@@ -107,15 +106,8 @@ namespace Claymore.NewPagesWikiBot
 
                 using (TextReader streamReader = new StreamReader("Cache\\input-" + category + ".txt"))
                 {
-                    ParameterCollection parameters = new ParameterCollection();
-                    parameters.Add("prop", "revisions");
-                    parameters.Add("rvprop", "timestamp|user");
-                    parameters.Add("rvdir", "newer");
-                    parameters.Add("rvlimit", "1");
-                    parameters.Add("redirects");
-
                     string line;
-                    while ((line = streamReader.ReadLine()) != null && index < PageLimit)
+                    while ((line = streamReader.ReadLine()) != null)
                     {
                         string[] groups = line.Split(new char[] { '\t' });
                         if (groups[0] == "0")
@@ -125,34 +117,41 @@ namespace Claymore.NewPagesWikiBot
                             {
                                 continue;
                             }
-                            XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, new string[] { title });
-                            XmlNode node = xml.SelectSingleNode("//rev");
-                            if (node != null)
+                            Cache.PageInfo page = Cache.LoadPageInformation(wiki, title);
+                            if (page != null && !currentPages.Contains(page.Title))
                             {
-                                title = xml.SelectSingleNode("//page").Attributes["title"].Value;
-                                string user = node.Attributes["user"].Value;
-                                string timestamp = node.Attributes["timestamp"].Value;
-                                DateTime time = DateTime.Parse(timestamp,
-                                    null,
-                                    DateTimeStyles.AssumeUniversal);
-                                string result = string.Format(Format,
-                                    title, user, time.ToUniversalTime().ToString(TimeFormat));
-                                if (!currentPages.Contains(result))
-                                {
-                                    currentPages.Add(result);
-                                    pages.Add(result);
-                                    ++index;
-                                }
+                                currentPages.Add(page.Title);
+                                pages.Add(page);
                             }
                         }
                     }
                 }
             }
 
+            pages.Sort(ComparePages);
+
+            int count = pages.Count < PageLimit ? pages.Count : PageLimit;
+            string[] subset = new string[count];
+
+            int index = 0;
+            foreach (var el in pages.Take(count))
+            {
+                string result = string.Format(Format,
+                                    el.Title,
+                                    el.Author,
+                                    el.FirstEdit.ToUniversalTime().ToString(TimeFormat));
+                subset[index++] = result;
+            }
+
             using (TextWriter streamWriter = new StreamWriter(Output))
             {
-                streamWriter.Write(string.Join(Delimeter, pages.ToArray()));
+                streamWriter.Write(string.Join(Delimeter, subset));
             }
+        }
+
+        private int ComparePages(Cache.PageInfo x, Cache.PageInfo y)
+        {
+            return y.FirstEdit.CompareTo(x.FirstEdit);
         }
     }
 }

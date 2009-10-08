@@ -113,7 +113,7 @@ namespace Claymore.NewPagesWikiBot
     {
         public PagesForMerging(string category, string page, string format)
             : base(category,
-                   "К объединению",
+                   "К объединению\namerge",
                    "Википедия:К объединению/",
                     "Cache\\PagesForMerging",
                     page,
