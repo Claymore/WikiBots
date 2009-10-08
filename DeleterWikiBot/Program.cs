@@ -147,7 +147,7 @@ namespace Claymore.DeleterWikiBot
                         m = templateRE.Match(content);
                         if (m.Success && m.Groups[1].Value == timestamp)
                         {
-                            string reason = string.Format("[[User:{0}|{0}]], {1}",
+                            string reason = string.Format("удалил [[User:{0}|{0}]]: {1}",
                                 node.Attributes["user"].Value,
                                 m.Groups[2].Value);
 
