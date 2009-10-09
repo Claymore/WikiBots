@@ -5,91 +5,83 @@ using Claymore.SharpMediaWiki;
 
 namespace Claymore.NewPagesWikiBot
 {
-    internal class NewPagesWithArchive : NewPagesWithAuthors
+    internal class NewPagesWithArchive : NewPages
     {
         public string ArchivePage { get; private set; }
 
-        public NewPagesWithArchive(string category, string page, string archive, int pageLimit, string format, string timeFormat)
-            : base(category,
-                   page,
-                   pageLimit,
-                   format,
-                   timeFormat)
-        {
-            ArchivePage = archive;
-        }
-
-        public NewPagesWithArchive(IEnumerable<string> categories, string page, string archive, string output, int pageLimit, string format, string timeFormat)
-            : base(categories,
-                   page,
-                   output,
-                   pageLimit,
-                   format,
-                   timeFormat)
-        {
-            ArchivePage = archive;
-        }
-
-        public NewPagesWithArchive(IEnumerable<string> categories,
-                                   IEnumerable<string> categoriesToIgnore,
-                                   string page, string archive, string output, int pageLimit, string format, string timeFormat)
-            : base(categories,
+        public NewPagesWithArchive(PortalModule module,
+                        IEnumerable<string> categories,
+                        IEnumerable<string> categoriesToIgnore,
+                        string page,
+                        string archive,
+                        int depth,
+                        int hours,
+                        int maxItems,
+                        string format,
+                        string delimeter)
+            : base(module,
+                   categories,
                    categoriesToIgnore,
                    page,
-                   output,
-                   pageLimit,
+                   depth,
+                   hours,
+                   maxItems,
                    format,
-                   timeFormat,
-                   "\n")
+                   delimeter)
         {
             ArchivePage = archive;
         }
 
-        public override void ProcessData(Wiki wiki)
+        public override void Update(Wiki wiki)
         {
-            base.ProcessData(wiki);
-            using (TextWriter streamWriter = new StreamWriter(Output + ".archive"))
-            using (TextReader previousStream = new StreamReader(Previous))
-            using (TextReader streamReader = new StreamReader(Output))
+            string text = GetData(wiki);
+            string newText = "";
+            if (Categories.Count == 1)
             {
-                string text = streamReader.ReadToEnd();
-                HashSet<string> currentPages = new HashSet<string>(text.Split(new string[] { "\n" },
-                    System.StringSplitOptions.RemoveEmptyEntries));
-                string line;
-                while ((line = previousStream.ReadLine()) != null)
-                {
-                    if (!currentPages.Contains(line))
-                    {
-                        streamWriter.WriteLine(line);
-                    }
-                }
+                newText = ProcessCategory(wiki, text);
             }
-        }
-
-        public override bool UpdatePage(Wiki wiki)
-        {
-            if (!base.UpdatePage(wiki))
+            else if (Categories.Count > 1)
             {
-                return false;
+                newText = ProcessData(wiki, text);
             }
-            using (TextReader sr = new StreamReader(Output + ".archive"))
+            if (!string.IsNullOrEmpty(newText) && newText != text)
             {
-                string text = sr.ReadToEnd();
-                if (string.IsNullOrEmpty(text))
-                {
-                    Console.Out.WriteLine("Skipping " + ArchivePage);
-                    return false;
-                }
-                Console.Out.WriteLine("Updating " + ArchivePage);
-                wiki.SavePage(ArchivePage,
+                Console.Out.WriteLine("Updating " + Page);
+                wiki.SavePage(Page,
                     "",
-                    text,
-                    "обновление",
+                    newText,
+                    Module.UpdateComment,
                     MinorFlags.Minor,
                     CreateFlags.None,
                     WatchFlags.None,
-                    SaveFlags.Prepend);
-                return true;
+                    SaveFlags.Replace);
+            }
+
+            string[] items = text.Split(new string[] { Delimeter },
+                       StringSplitOptions.RemoveEmptyEntries);
+            var newItems = new HashSet<string>(newText.Split(new string[] { Delimeter },
+                       StringSplitOptions.RemoveEmptyEntries));
+            var archiveItems = new List<string>();
+            for (int i = 0; i < items.Length; ++i)
+            {
+                if (!newItems.Contains(items[i]))
+                {
+                    archiveItems.Add(items[i]);
+                }
+            }
+
+            if (archiveItems.Count != 0)
+            {
+                Console.Out.WriteLine("Updating " + ArchivePage);
+                string archiveText = string.Join(Delimeter, archiveItems.ToArray());
+                wiki.SavePage(ArchivePage,
+                        "",
+                        archiveText,
+                        Module.UpdateComment,
+                        MinorFlags.Minor,
+                        CreateFlags.None,
+                        WatchFlags.None,
+                        SaveFlags.Prepend);
             }
         }
     }
