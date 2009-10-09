@@ -129,12 +129,21 @@ namespace Claymore.ArchiveWikiBot
             parameters = new Dictionary<string, string>();
             string parameterString = text.Substring(begin, end - begin);
             string[] ps = parameterString.Split(new char[] { '|' });
+            string lastKey = "";
             foreach (var p in ps)
             {
                 string[] keyvalue = p.Split(new char[] { '=' });
                 if (keyvalue.Length == 2)
                 {
                     parameters.Add(keyvalue[0].Trim().ToLower(), keyvalue[1].Trim());
+                    lastKey = keyvalue[0].Trim().ToLower();
+                }
+                else if (keyvalue.Length == 1)
+                {
+                    if (!string.IsNullOrEmpty(lastKey))
+                    {
+                        parameters[lastKey] = parameters[lastKey] + "|" + keyvalue[0].Trim();
+                    }
                 }
             }
             return true;
