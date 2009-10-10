@@ -1,42 +1,46 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Xml;
+using System.Net;
 using Claymore.SharpMediaWiki;
 
 namespace Claymore.NewPagesWikiBot
 {
     internal class NewPagesWithWeeks : NewPages
     {
-        public string TimeFormat { get; private set; }
-
-        public NewPagesWithWeeks(string category, string page, string format, string timeFormat, string top, string bottom)
-            : base(category, page, 0, format)
+        public NewPagesWithWeeks(PortalModule module,
+                        IEnumerable<string> categories,
+                        IEnumerable<string> categoriesToIgnore,
+                        string page,
+                        int depth,
+                        int maxItems,
+                        string format,
+                        string delimeter,
+                        string header,
+                        string footer)
+            : base(module,
+                   categories,
+                   categoriesToIgnore,
+                   page,
+                   depth,
+                   192,
+                   maxItems,
+                   format,
+                   delimeter,
+                   header,
+                   footer)
         {
-            TimeFormat = timeFormat;
-            Hours = 192;
-            Head = top;
-            Bottom = bottom;
         }
 
-        public override void ProcessData(Wiki wiki)
+        public Dictionary<string, string> Process(Wiki wiki)
         {
-            List<NewPage> newPages = new List<NewPage>();
-            foreach (var category in Categories)
+            HashSet<string> ignore = new HashSet<string>();
+            foreach (var category in CategoriesToIgnore)
             {
-                Console.Out.WriteLine("Processing data of " + category);
-
-                using (TextReader streamReader = new StreamReader("Cache\\input-" + category + ".txt"))
+                string fileName = "Cache\\" + Module.Language + "\\NewPages\\" + Cache.EscapePath(category) + ".txt";
+                using (TextReader streamReader = new StreamReader(fileName))
                 {
-                    ParameterCollection parameters = new ParameterCollection();
-                    parameters.Add("prop", "revisions");
-                    parameters.Add("rvprop", "timestamp|user");
-                    parameters.Add("rvdir", "newer");
-                    parameters.Add("rvlimit", "1");
-                    parameters.Add("redirects");
-
                     string line;
                     while ((line = streamReader.ReadLine()) != null)
                     {
@@ -44,72 +48,104 @@ namespace Claymore.NewPagesWikiBot
                         if (groups[0] == "0")
                         {
                             string title = groups[1].Replace('_', ' ');
+                            ignore.Add(title);
+                        }
+                    }
+                }
+            }
 
-                            XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, new string[] { title });
-                            XmlNode node = xml.SelectSingleNode("//rev");
-                            if (node != null)
+            var pageList = new List<Cache.PageInfo>();
+            var pages = new HashSet<string>();
+            foreach (var category in Categories)
+            {
+                string fileName = "Cache\\" + Module.Language + "\\NewPages\\" + Cache.EscapePath(category) + ".txt";
+                Console.Out.WriteLine("Processing data of " + category);
+                using (TextReader streamReader = new StreamReader(fileName))
+                {
+                    string line;
+                    while ((line = streamReader.ReadLine()) != null)
+                    {
+                        string[] groups = line.Split(new char[] { '\t' });
+                        if (groups[0] == "0")
+                        {
+                            string title = groups[1].Replace('_', ' ');
+                            if (ignore.Contains(title))
                             {
-                                title = xml.SelectSingleNode("//page").Attributes["title"].Value;
-                                string user = node.Attributes["user"].Value;
-                                string timestamp = node.Attributes["timestamp"].Value;
-                                DateTime time = DateTime.Parse(timestamp,
-                                    null,
-                                    DateTimeStyles.AssumeUniversal);
-                                newPages.Add(new NewPage(title, time, user));
+                                continue;
+                            }
+                            Cache.PageInfo page = Cache.LoadPageInformation(wiki, Module.Language, title);
+                            if (page != null && !pages.Contains(page.Title))
+                            {
+                                pages.Add(page.Title);
+                                pageList.Add(page);
                             }
                         }
                     }
                 }
             }
 
-            Directory.CreateDirectory(Output);
+            pageList.Sort(CompareTime);
+
+            Dictionary<string, string> wikiPages = new Dictionary<string, string>();
             for (int i = 0; i < 7; ++i)
             {
                 DateTime end = DateTime.Today.AddDays(1 - i);
                 DateTime start = DateTime.Today.AddDays(-i);
-                string filename = string.Format("{0}.txt", start.ToString("d MMMM yyyy"));
-                using (TextWriter streamWriter = new StreamWriter(Output + "\\" + filename))
-                {
-                    streamWriter.WriteLine("<noinclude>" + Head + "</noinclude>");
-                    List<NewPage> pages = new List<NewPage>(newPages.Where(p => p.Time.ToUniversalTime() >= start && p.Time.ToUniversalTime() < end));
-                    pages.Sort(CompareTime);
-                    foreach (NewPage page in pages)
-                    {
-                        streamWriter.WriteLine(string.Format(Format,
-                                page.Name, page.Author, page.Time.ToUniversalTime().ToString(TimeFormat)));
-                    }
-                    streamWriter.WriteLine("<noinclude>" + Bottom + "</noinclude>");
-                }
 
-                using (TextReader sr = new StreamReader(Output + "\\" + filename))
+                var subset = new List<Cache.PageInfo>(pageList.Where(p =>
+                    p.FirstEdit.ToUniversalTime() >= start &&
+                    p.FirstEdit.ToUniversalTime() < end));
+
+                var result = new List<string>();
+                foreach (var el in subset)
                 {
-                    string text = sr.ReadToEnd();
-                    if (string.IsNullOrEmpty(text))
-                    {
-                        Console.Out.WriteLine("Skipping " + Output + "\\" + filename);
-                        return;
-                    }
-                    Console.Out.WriteLine("Updating " + Output + "\\" + filename);
-                    wiki.SavePage(Page + "/" + start.ToString("d MMMM yyyy"),
-                        "0",
-                        text,
-                        "обновление",
-                        MinorFlags.Minor,
-                        CreateFlags.None,
-                        WatchFlags.None,
-                        SaveFlags.Replace);
+                    result.Add(string.Format(Format,
+                        el.Title,
+                        el.Author,
+                        el.FirstEdit.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")));
                 }
+                if (result.Count != 0)
+                {
+                    string pageName = Page + "/" + start.ToString("d MMMM yyyy");
+                    string resultText = Header + string.Join(Delimeter, result.ToArray()) + Footer;
+                    wikiPages.Add(pageName, resultText);
+                }
+            }
+
+            return wikiPages; 
+        }
+
+        public override void Update(Wiki wiki)
+        {
+            WebClient client = new WebClient();
+            foreach (var category in Categories)
+            {
+                Cache.LoadPageList(client, category, Module.Language, Depth, Hours);
+            }
+
+            foreach (var category in CategoriesToIgnore)
+            {
+                Cache.LoadPageList(client, category, Module.Language, Depth, Hours);
+            }
+
+            Dictionary<string, string> pages = Process(wiki);
+            foreach (var page in pages)
+            {
+                Console.Out.WriteLine("Updating " + page.Key);
+                wiki.SavePage(page.Key,
+                    "",
+                    page.Value,
+                    Module.UpdateComment,
+                    MinorFlags.Minor,
+                    CreateFlags.None,
+                    WatchFlags.None,
+                    SaveFlags.Replace);
             }
         }
 
-        public override bool UpdatePage(Wiki wiki)
+        private static int CompareTime(Cache.PageInfo x, Cache.PageInfo y)
         {
-            return false;
-        }
-
-        private static int CompareTime(NewPage x, NewPage y)
-        {
-            return x.Time.CompareTo(y.Time);
+            return x.FirstEdit.CompareTo(y.FirstEdit);
         }
     }
 }

@@ -395,6 +395,19 @@ namespace Claymore.NewPagesWikiBot
                             footer,
                             regex);
                 }
+                else if (t == "списки новых статей по дням")
+                {
+                    module = new NewPagesWithWeeks(portal,
+                            categories,
+                            categoriesToIgnore,
+                            title,
+                            depth,
+                            maxItems,
+                            format,
+                            delimeter,
+                            header,
+                            footer);
+                }
             }
             return module != null;
         }
