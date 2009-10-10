@@ -13,6 +13,8 @@ namespace Claymore.NewPagesWikiBot
         private List<string> _categoriesToIgnore;
         public string Page { get; private set; }
         public string Format { get; private set; }
+        public string Header { get; private set; }
+        public string Footer { get; private set; }
         public int MaxItems { get; private set; }
         protected int Hours { get; private set; }
         public string Delimeter { get; private set; }
@@ -37,7 +39,9 @@ namespace Claymore.NewPagesWikiBot
                         int hours,
                         int maxItems,
                         string format,
-                        string delimeter)
+                        string delimeter,
+                        string header,
+                        string footer)
         {
             _categories = new List<string>(categories);
             _categoriesToIgnore = new List<string>(categoriesToIgnore);
@@ -48,6 +52,8 @@ namespace Claymore.NewPagesWikiBot
             Module = module;
             Delimeter = delimeter;
             Depth = depth;
+            Header = header;
+            Footer = footer;
         }
 
         public virtual string GetData(Wiki wiki)
@@ -133,7 +139,16 @@ namespace Claymore.NewPagesWikiBot
 
             if (pageList.Count < MaxItems)
             {
-                string[] items = text.Split(new string[] { Delimeter },
+                string oldText = text;
+                if (!string.IsNullOrEmpty(Header))
+                {
+                    oldText = oldText.Replace(Header, "");
+                }
+                if (!string.IsNullOrEmpty(Footer))
+                {
+                    oldText = oldText.Replace(Footer, "");
+                }
+                string[] items = oldText.Split(new string[] { Delimeter },
                        StringSplitOptions.RemoveEmptyEntries);
                 for (int i = 0; i < items.Length && pages.Count < MaxItems; ++i)
                 {
@@ -144,7 +159,7 @@ namespace Claymore.NewPagesWikiBot
                 }
             }
 
-            return string.Join(Delimeter, result.ToArray());
+            return Header + "\n" + string.Join(Delimeter, result.ToArray()) + "\n" + Footer;
         }
 
         public virtual string ProcessData(Wiki wiki, string text)
@@ -213,7 +228,16 @@ namespace Claymore.NewPagesWikiBot
 
             if (subset.Count < MaxItems)
             {
-                string[] items = text.Split(new string[] { Delimeter },
+                string oldText = text;
+                if (!string.IsNullOrEmpty(Header))
+                {
+                    oldText = oldText.Replace(Header, "");
+                }
+                if (!string.IsNullOrEmpty(Footer))
+                {
+                    oldText = oldText.Replace(Footer, "");
+                }
+                string[] items = oldText.Split(new string[] { Delimeter },
                        StringSplitOptions.RemoveEmptyEntries);
                 for (int i = 0; i < items.Length && subset.Count < MaxItems; ++i)
                 {
@@ -224,7 +248,7 @@ namespace Claymore.NewPagesWikiBot
                 }
             }
 
-            return string.Join(Delimeter, subset.ToArray());
+            return Header + "\n" + string.Join(Delimeter, subset.ToArray()) + "\n" + Footer;
         }
 
         public virtual void Update(Wiki wiki)

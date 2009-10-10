@@ -237,6 +237,18 @@ namespace Claymore.NewPagesWikiBot
                 archive = options["архив"];
             }
 
+            string header = "";
+            if (options.ContainsKey("шапка"))
+            {
+                header = options["шапка"];
+            }
+
+            string footer = "";
+            if (options.ContainsKey("подвал"))
+            {
+                footer = options["подвал"];
+            }
+
             string format = "";
             if (options.ContainsKey("формат элемента"))
             {
@@ -312,7 +324,9 @@ namespace Claymore.NewPagesWikiBot
                             hours,
                             maxItems,
                             format,
-                            delimeter);
+                            delimeter,
+                            header,
+                            footer);
                     }
                     else
                     {
@@ -325,7 +339,9 @@ namespace Claymore.NewPagesWikiBot
                             hours,
                             maxItems,
                             format,
-                            delimeter);
+                            delimeter,
+                            header,
+                            footer);
                     }
                 }
                 else if (t == "список наблюдения")

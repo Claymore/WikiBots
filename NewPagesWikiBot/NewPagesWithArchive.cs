@@ -18,7 +18,9 @@ namespace Claymore.NewPagesWikiBot
                         int hours,
                         int maxItems,
                         string format,
-                        string delimeter)
+                        string delimeter,
+                        string header,
+                        string footer)
             : base(module,
                    categories,
                    categoriesToIgnore,
@@ -27,7 +29,9 @@ namespace Claymore.NewPagesWikiBot
                    hours,
                    maxItems,
                    format,
-                   delimeter)
+                   delimeter,
+                   header,
+                   footer)
         {
             ArchivePage = archive;
         }
@@ -56,8 +60,20 @@ namespace Claymore.NewPagesWikiBot
                     WatchFlags.None,
                     SaveFlags.Replace);
             }
+            
 
-            string[] items = text.Split(new string[] { Delimeter },
+            string oldText = text;
+            if (!string.IsNullOrEmpty(Header))
+            {
+                oldText = oldText.Replace(Header, "");
+                newText = newText.Replace(Header, "");
+            }
+            if (!string.IsNullOrEmpty(Footer))
+            {
+                oldText = oldText.Replace(Footer, "");
+                newText = newText.Replace(Footer, "");
+            }
+            string[] items = oldText.Split(new string[] { Delimeter },
                        StringSplitOptions.RemoveEmptyEntries);
             var newItems = new HashSet<string>(newText.Split(new string[] { Delimeter },
                        StringSplitOptions.RemoveEmptyEntries));
