@@ -12,20 +12,27 @@ namespace Claymore.NewPagesWikiBot
     internal class EncyShell : IPortalModule
     {
         public string Page { get; private set; }
-        private string _directory;
+        public string LongColor { get; private set; }
+        public string NormalColor { get; private set; }
+        public string ShortColor { get; private set; }
+        public PortalModule Module { get; private set; }
+        public int Normal { get; private set; }
+        public int Short { get; private set; }
 
-        public EncyShell(string directory)
+        public EncyShell(PortalModule module, string page, int s, int n, string sc, string nc, string lc)
         {
-            Page = "Википедия:Проект:Ядро энциклопедии/Отсортированный список статей, которые должны быть во всех проектах";
-            _directory = directory;
-            Directory.CreateDirectory(directory);
+            Page = page;
+            Module = module;
+            LongColor = lc;
+            NormalColor = nc;
+            ShortColor = sc;
+            Normal = n;
+            Short = s;
         }
 
-        #region IPortalModule Members
-
-        public void GetData(Wiki wiki)
+        public string GetData(Wiki wiki)
         {
-            Console.Out.WriteLine("Downloading data for EncyShell");
+            Console.Out.WriteLine("Downloading data " + Page + "...");
             string text = wiki.LoadPage(Page);
             HashSet<string> names = new HashSet<string>();
             StringReader reader = new StringReader(text);
@@ -164,38 +171,38 @@ namespace Claymore.NewPagesWikiBot
                 }
             }
 
-            using (TextWriter streamWriter = new StreamWriter(_directory + "\\output.txt"))
-            {
-                streamWriter.WriteLine("{{/Шапка}}");
-                streamWriter.WriteLine("{| class=\"wikitable sortable\" |");
-                streamWriter.WriteLine("! № !! !! Название !! Размер");
+            StringBuilder result = new StringBuilder();
 
-                for (int i = 0; i < items.Count; ++i)
+            result.AppendLine("{{/Шапка}}");
+            result.AppendLine("{| class=\"wikitable sortable\" |");
+            result.AppendLine("! № !! !! Название !! Размер");
+
+            for (int i = 0; i < items.Count; ++i)
+            {
+                string style;
+                Item item = items[i];
+                if (item.Size < Short)
                 {
-                    string style;
-                    Item item = items[i];
-                    if (item.Size < 15 * 1000)
-                    {
-                        style = " bgcolor=#FFE8E9";
-                    }
-                    else if (item.Size < 40 * 1000)
-                    {
-                        style = " bgcolor=#FFFDE8";
-                    }
-                    else
-                    {
-                        style = " bgcolor=#F2FFF2";
-                    }
-                    streamWriter.WriteLine("|-" + style);
-                    streamWriter.WriteLine(string.Format("| {3} || {2} || [[{0}]] || {1}",
-                        item.Name,
-                        item.Size,
-                        item.GetTemplate(),
-                        i + 1,
-                        style));
+                    style = " bgcolor=" + ShortColor;
                 }
-                streamWriter.WriteLine("|}");
+                else if (item.Size < Normal)
+                {
+                    style = " bgcolor=" + NormalColor;
+                }
+                else
+                {
+                    style = " bgcolor=" + LongColor;
+                }
+                result.AppendLine("|-" + style);
+                result.AppendLine(string.Format("| {3} || {2} || [[{0}]] || {1}",
+                    item.Name,
+                    item.Size,
+                    item.GetTemplate(),
+                    i + 1,
+                    style));
             }
+            result.AppendLine("|}");
+            return result.ToString();
         }
 
         private static int CompareItems(Item x, Item y)
@@ -203,23 +210,22 @@ namespace Claymore.NewPagesWikiBot
             return x.Size.CompareTo(y.Size);
         }
 
-        public bool UpdatePage(Wiki wiki)
+        public void Update(Wiki wiki)
         {
-            using (TextReader sr = new StreamReader(_directory + "\\output.txt"))
+            string text = GetData(wiki);
+            if (!string.IsNullOrEmpty(text))
             {
-                string text = sr.ReadToEnd();
                 Console.Out.WriteLine("Updating " + Page);
-                wiki.SavePage(Page, text, "обновление");
-                return true;
+                wiki.SavePage(Page,
+                    "",
+                    text,
+                    Module.UpdateComment,
+                    MinorFlags.Minor,
+                    CreateFlags.None,
+                    WatchFlags.None,
+                    SaveFlags.Replace);
             }
         }
-
-        public void ProcessData(Wiki wiki)
-        {
-            
-        }
-
-        #endregion
 
         private class Item
         {
