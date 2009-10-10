@@ -12,7 +12,7 @@ namespace Claymore.NewPagesWikiBot
         private List<string> _categories;
         private List<string> _categoriesToIgnore;
         public string Page { get; private set; }
-        public string Format { get; private set; }
+        public string Format { get; protected set; }
         public string Header { get; private set; }
         public string Footer { get; private set; }
         public int MaxItems { get; private set; }
@@ -140,13 +140,13 @@ namespace Claymore.NewPagesWikiBot
             if (pageList.Count < MaxItems)
             {
                 string oldText = text;
-                if (!string.IsNullOrEmpty(Header))
+                if (!string.IsNullOrEmpty(Header) && text.StartsWith(Header))
                 {
-                    oldText = oldText.Replace(Header, "");
+                    oldText = oldText.Substring(Header.Length);
                 }
-                if (!string.IsNullOrEmpty(Footer))
+                if (!string.IsNullOrEmpty(Footer) && oldText.EndsWith(Footer))
                 {
-                    oldText = oldText.Replace(Footer, "");
+                    oldText = oldText.Substring(0, oldText.Length - Footer.Length);
                 }
                 string[] items = oldText.Split(new string[] { Delimeter },
                        StringSplitOptions.RemoveEmptyEntries);
@@ -229,13 +229,13 @@ namespace Claymore.NewPagesWikiBot
             if (subset.Count < MaxItems)
             {
                 string oldText = text;
-                if (!string.IsNullOrEmpty(Header))
+                if (!string.IsNullOrEmpty(Header) && text.StartsWith(Header))
                 {
-                    oldText = oldText.Replace(Header, "");
+                    oldText = oldText.Substring(Header.Length);
                 }
-                if (!string.IsNullOrEmpty(Footer))
+                if (!string.IsNullOrEmpty(Footer) && oldText.EndsWith(Footer))
                 {
-                    oldText = oldText.Replace(Footer, "");
+                    oldText = oldText.Substring(0, oldText.Length - Footer.Length);
                 }
                 string[] items = oldText.Split(new string[] { Delimeter },
                        StringSplitOptions.RemoveEmptyEntries);
@@ -248,7 +248,7 @@ namespace Claymore.NewPagesWikiBot
                 }
             }
 
-            return Header + "\n" + string.Join(Delimeter, subset.ToArray()) + "\n" + Footer;
+            return Header + string.Join(Delimeter, subset.ToArray()) + Footer;
         }
 
         public virtual void Update(Wiki wiki)

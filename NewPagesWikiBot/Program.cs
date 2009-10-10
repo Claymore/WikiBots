@@ -143,18 +143,21 @@ namespace Claymore.NewPagesWikiBot
             string lastKey = "";
             foreach (var p in ps)
             {
-                string[] keyvalue = p.Split(new char[] { '=' });
-                if (keyvalue.Length == 2)
-                {
-                    parameters.Add(keyvalue[0].Trim().ToLower(), keyvalue[1].Trim());
-                    lastKey = keyvalue[0].Trim().ToLower();
-                }
-                else if (keyvalue.Length == 1)
+                int i = p.IndexOf('=');
+                if (i == -1)
                 {
                     if (!string.IsNullOrEmpty(lastKey))
                     {
-                        parameters[lastKey] = parameters[lastKey] + "|" + keyvalue[0].Trim();
+                        parameters[lastKey] = parameters[lastKey] + "|" + p.Trim();
                     }
+                }
+                else
+                {
+                    string[] keyvalue = new string[2];
+                    keyvalue[0] = p.Substring(0, i);
+                    keyvalue[1] = p.Substring(i + 1);
+                    parameters.Add(keyvalue[0].Trim().ToLower(), keyvalue[1].Trim());
+                    lastKey = keyvalue[0].Trim().ToLower();
                 }
             }
             return true;
@@ -240,13 +243,13 @@ namespace Claymore.NewPagesWikiBot
             string header = "";
             if (options.ContainsKey("шапка"))
             {
-                header = options["шапка"];
+                header = options["шапка"].Replace("\\n", "\n");
             }
 
             string footer = "";
             if (options.ContainsKey("подвал"))
             {
-                footer = options["подвал"];
+                footer = options["подвал"].Replace("\\n", "\n");
             }
 
             string format = "";
@@ -306,7 +309,7 @@ namespace Claymore.NewPagesWikiBot
             string delimeter = "\n";
             if (options.ContainsKey("разделитель"))
             {
-                delimeter = options["разделитель"].Replace("\"", "");
+                delimeter = options["разделитель"].Replace("\"", "").Replace("\\n", "\n");
             }
 
             if (options.ContainsKey("тип"))
@@ -361,6 +364,36 @@ namespace Claymore.NewPagesWikiBot
                         shortColor,
                         normalColor,
                         longColor);
+                }
+                else if (t == "список новых статей с изображениями в карточке")
+                {
+                    module = new NewPagesWithImages(portal,
+                            categories,
+                            categoriesToIgnore,
+                            title,
+                            depth,
+                            hours,
+                            maxItems,
+                            format,
+                            delimeter,
+                            header,
+                            footer);
+                }
+                else if (t == "список новых статей с изображениями")
+                {
+                    Regex regex = new Regex(@"\[{2}(Image|File|Файл|Изображение):(?'fileName'.+?)\|");
+                    module = new NewPagesWithImages(portal,
+                            categories,
+                            categoriesToIgnore,
+                            title,
+                            depth,
+                            hours,
+                            maxItems,
+                            format,
+                            delimeter,
+                            header,
+                            footer,
+                            regex);
                 }
             }
             return module != null;

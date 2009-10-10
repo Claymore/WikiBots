@@ -65,13 +65,25 @@ namespace Claymore.NewPagesWikiBot
             string oldText = text;
             if (!string.IsNullOrEmpty(Header))
             {
-                oldText = oldText.Replace(Header, "");
-                newText = newText.Replace(Header, "");
+                if (oldText.StartsWith(Header))
+                {
+                    oldText = oldText.Substring(Header.Length);
+                }
+                if (newText.StartsWith(Header))
+                {
+                    newText = newText.Substring(Header.Length);
+                }
             }
             if (!string.IsNullOrEmpty(Footer))
             {
-                oldText = oldText.Replace(Footer, "");
-                newText = newText.Replace(Footer, "");
+                if (oldText.EndsWith(Footer))
+                {
+                    oldText = oldText.Substring(0, oldText.Length - Footer.Length);
+                }
+                if (newText.EndsWith(Footer))
+                {
+                    newText = newText.Substring(0, oldText.Length - Footer.Length);
+                }
             }
             string[] items = oldText.Split(new string[] { Delimeter },
                        StringSplitOptions.RemoveEmptyEntries);
