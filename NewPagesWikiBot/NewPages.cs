@@ -81,7 +81,8 @@ namespace Claymore.NewPagesWikiBot
             HashSet<string> ignore = new HashSet<string>();
             foreach (var category in CategoriesToIgnore)
             {
-                using (TextReader streamReader = new StreamReader("Cache\\NewPages\\" + Cache.EscapePath(category) + ".txt"))
+                string fileName = "Cache\\" + Module.Language + "\\NewPages\\" + Cache.EscapePath(category) + ".txt";
+                using (TextReader streamReader = new StreamReader(fileName))
                 {
                     string line;
                     while ((line = streamReader.ReadLine()) != null)
@@ -96,8 +97,9 @@ namespace Claymore.NewPagesWikiBot
                 }
             }
 
+            string file = "Cache\\" + Module.Language + "\\NewPages\\" + Cache.EscapePath(_categories[0]) + ".txt";
             Console.Out.WriteLine("Processing data of " + _categories[0]);
-            using (TextReader streamReader = new StreamReader("Cache\\NewPages\\" + Cache.EscapePath(_categories[0]) + ".txt"))
+            using (TextReader streamReader = new StreamReader(file))
             {
                 string line;
                 while ((line = streamReader.ReadLine()) != null)
@@ -150,7 +152,8 @@ namespace Claymore.NewPagesWikiBot
             HashSet<string> ignore = new HashSet<string>();
             foreach (var category in CategoriesToIgnore)
             {
-                using (TextReader streamReader = new StreamReader("Cache\\NewPages\\" + Cache.EscapePath(category) + ".txt"))
+                string fileName = "Cache\\" + Module.Language + "\\NewPages\\" + Cache.EscapePath(category) + ".txt";
+                using (TextReader streamReader = new StreamReader(fileName))
                 {
                     string line;
                     while ((line = streamReader.ReadLine()) != null)
@@ -169,8 +172,9 @@ namespace Claymore.NewPagesWikiBot
             var pages = new HashSet<string>();
             foreach (var category in Categories)
             {
+                string fileName = "Cache\\" + Module.Language + "\\NewPages\\" + Cache.EscapePath(category) + ".txt";
                 Console.Out.WriteLine("Processing data of " + category);
-                using (TextReader streamReader = new StreamReader("Cache\\NewPages\\" + Cache.EscapePath(category) + ".txt"))
+                using (TextReader streamReader = new StreamReader(fileName))
                 {
                     string line;
                     while ((line = streamReader.ReadLine()) != null)

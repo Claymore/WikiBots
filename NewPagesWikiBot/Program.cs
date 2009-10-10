@@ -56,7 +56,7 @@ namespace Claymore.NewPagesWikiBot
             Console.Out.WriteLine("Logged in as " + Settings.Default.Login + ".");
 
             PortalModule portal = new PortalModule(args[0], args[1]);
-            Directory.CreateDirectory("Cache\\NewPages\\");
+            Directory.CreateDirectory("Cache\\" + args[0] + "\\NewPages\\");
 
             ParameterCollection parameters = new ParameterCollection();
             parameters.Add("generator", "embeddedin");
@@ -289,6 +289,14 @@ namespace Claymore.NewPagesWikiBot
                             format,
                             delimeter);
                     }
+                }
+                else if (t == "список наблюдения")
+                {
+                    module = new WatchList(portal,
+                        categories[0],
+                        title,
+                        format,
+                        depth);
                 }
             }
             return module != null;

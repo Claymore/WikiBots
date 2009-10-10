@@ -27,7 +27,7 @@ namespace Claymore.NewPagesWikiBot
 
         public static void LoadPageList(WebClient client, string category, string language, int depth, int hours)
         {
-            string fileName = "Cache\\NewPages\\" + Cache.EscapePath(category) + ".txt";
+            string fileName = "Cache\\" + language + "\\NewPages\\" + Cache.EscapePath(category) + ".txt";
             if (!File.Exists(fileName) ||
                 (DateTime.Now - File.GetCreationTime(fileName)).TotalHours > 1)
             {
@@ -161,6 +161,25 @@ namespace Claymore.NewPagesWikiBot
             {
                 sw.WriteLine(revisionId);
                 sw.Write(text);
+            }
+        }
+
+        internal static void LoadPageList(WebClient client, string language, string category, int depth)
+        {
+            string fileName = "Cache\\" + language + "\\NewPages\\" + Cache.EscapePath(category) + ".txt";
+            if (!File.Exists(fileName) ||
+                (DateTime.Now - File.GetCreationTime(fileName)).TotalHours > 1)
+            {
+                Console.Out.WriteLine("Downloading data for " + category);
+                string query = string.Format("language={0}&depth={2}&categories={1}&sortby=title&format=tsv&doit=submit",
+                    language,
+                    Uri.EscapeDataString(category),
+                    depth);
+
+                UriBuilder ub = new UriBuilder("http://toolserver.org");
+                ub.Path = "/~magnus/catscan_rewrite.php";
+                ub.Query = query;
+                client.DownloadFile(ub.Uri, fileName);
             }
         }
     }
