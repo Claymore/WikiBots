@@ -193,7 +193,11 @@ namespace Claymore.NewPagesWikiBot
                     StringSplitOptions.RemoveEmptyEntries);
                 for (int i = 0; i < cats.Length; ++i)
                 {
-                    categories.Add(cats[i].Replace("\"", "").Trim());
+                    string cat = cats[i].Replace("\"", "").Trim();
+                    if (!string.IsNullOrEmpty(cat))
+                    {
+                        categories.Add(cat);
+                    }
                 }
             }
 
@@ -213,7 +217,11 @@ namespace Claymore.NewPagesWikiBot
                     StringSplitOptions.RemoveEmptyEntries);
                 for (int i = 0; i < cats.Length; ++i)
                 {
-                    categoriesToIgnore.Add(cats[i].Replace("\"", "").Trim());
+                    string cat = cats[i].Replace("\"", "").Trim();
+                    if (!string.IsNullOrEmpty(cat))
+                    {
+                        categoriesToIgnore.Add(cat);
+                    }
                 }
             }
 
@@ -251,6 +259,36 @@ namespace Claymore.NewPagesWikiBot
             if (options.ContainsKey("элементов"))
             {
                 int.TryParse(options["элементов"], out maxItems);
+            }
+
+            int normalSize = 40 * 1000;
+            if (options.ContainsKey("нормальная"))
+            {
+                int.TryParse(options["нормальная"], out normalSize);
+            }
+
+            int shortSize = 10 * 1000;
+            if (options.ContainsKey("небольшая"))
+            {
+                int.TryParse(options["небольшая"], out shortSize);
+            }
+
+            string longColor = "#F2FFF2";
+            if (options.ContainsKey("цвет крупной"))
+            {
+                longColor = options["цвет крупной"];
+            }
+
+            string shortColor = "#FFE8E9";
+            if (options.ContainsKey("цвет небольшой"))
+            {
+                archive = options["цвет небольшой"];
+            }
+
+            string normalColor = "#FFFDE8";
+            if (options.ContainsKey("цвет нормальной"))
+            {
+                archive = options["цвет нормальной"];
             }
 
             string delimeter = "\n";
@@ -297,6 +335,16 @@ namespace Claymore.NewPagesWikiBot
                         title,
                         format,
                         depth);
+                }
+                else if (t == "отсортированный список статей, которые должны быть во всех проектах")
+                {
+                    module = new EncyShell(portal,
+                        title,
+                        shortSize,
+                        normalSize,
+                        shortColor,
+                        normalColor,
+                        longColor);
                 }
             }
             return module != null;
