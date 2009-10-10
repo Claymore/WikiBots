@@ -11,114 +11,117 @@ namespace Claymore.NewPagesWikiBot
     {
         public string Prefix { get; private set; }
 
-        public CategoryIntersectionAndTalkPages(string mainCategory,
-            string category,
-            string prefix,
-            string directory,
-            string page,
-            string format)
-            : base(mainCategory, category, directory, page, format)
+        public CategoryIntersectionAndTalkPages(PortalModule module,
+                        IEnumerable<string> categories,
+                        IEnumerable<string> categoriesToIgnore,
+                        string templates,
+                        string prefix,
+                        string page,
+                        int depth,
+                        int hours,
+                        int maxItems,
+                        string format,
+                        string delimeter,
+                        string header,
+                        string footer,
+                        string onEmpty)
+            : base(module,
+                   categories,
+                   categoriesToIgnore,
+                   templates,
+                   page,
+                   depth,
+                   hours,
+                   maxItems,
+                   format,
+                   delimeter,
+                   header,
+                   footer,
+                   onEmpty)
         {
             Prefix = prefix;
         }
 
-        public override void ProcessData(Wiki wiki)
+        public override string ProcessData(Wiki wiki)
         {
-            Console.Out.WriteLine("Processing data of " + MainCategory);
-            using (TextWriter streamWriter = new StreamWriter(_directory + "\\output-" + MainCategory + ".txt"))
-            using (TextReader streamReader = new StreamReader(_directory + "\\input-" + MainCategory + ".txt"))
+            HashSet<string> ignore = new HashSet<string>();
+            foreach (var category in CategoriesToIgnore)
             {
-                streamReader.ReadLine();
-                streamReader.ReadLine();
-                string line;
-                while ((line = streamReader.ReadLine()) != null)
+                string fileName = "Cache\\" + Module.Language + "\\PagesInCategoryWithTemplates\\" + Cache.EscapePath(category + "-" + Templates) + ".txt";
+                using (TextReader streamReader = new StreamReader(fileName))
                 {
-                    string[] groups = line.Split(new char[] { '\t' });
-                    string title = groups[0].Replace('_', ' ');
-
-                    ParameterCollection parameters = new ParameterCollection();
-                    parameters.Add("list", "backlinks");
-                    parameters.Add("bltitle", title);
-                    parameters.Add("blnamespace", "4");
-                    parameters.Add("bllimit", "max");
-
-                    List<DateTime> dates = new List<DateTime>();
-                    XmlDocument xml = wiki.Enumerate(parameters, true);
-                    foreach (XmlNode node in xml.SelectNodes("//bl"))
+                    streamReader.ReadLine();
+                    streamReader.ReadLine();
+                    string line;
+                    while ((line = streamReader.ReadLine()) != null)
                     {
-                        if (node.Attributes["title"].Value.StartsWith(Prefix))
-                        {
-
-                            string page = node.Attributes["title"].Value;
-                            string dateString = page.Replace(Prefix, "");
-                            DateTime date;
-                            if (DateTime.TryParse(dateString, null,
-                                System.Globalization.DateTimeStyles.AssumeUniversal, out date))
-                            {
-                                dates.Add(date);
-                            }
-                        }
-                    }
-                    if (dates.Count > 0)
-                    {
-                        DateTime talkDate = dates.Max();
-                        string page = string.Format("{0}{1}", Prefix, talkDate.ToString("d MMMM yyyy"));
-                        streamWriter.WriteLine(string.Format(Format, title, page, talkDate.ToString("d MMMM yyyy")));
+                        string[] groups = line.Split(new char[] { '\t' });
+                        string title = groups[0].Replace('_', ' ');
+                        ignore.Add(title);
                     }
                 }
             }
-        }
-    }
 
-    internal class PagesForDeletion : CategoryIntersectionAndTalkPages
-    {
-        public PagesForDeletion(string category, string page, string format)
-            : base(category,
-                   "К удалению",
-                   "Википедия:К удалению/",
-                    "Cache\\PagesForDeletion",
-                    page,
-                    format)
-        {
-        }
-    }
+            var pageList = new List<string>();
+            var pages = new HashSet<string>();
+            foreach (var category in Categories)
+            {
+                string fileName = "Cache\\" + Module.Language + "\\PagesInCategoryWithTemplates\\" + Cache.EscapePath(category + "-" + Templates) + ".txt";
+                Console.Out.WriteLine("Processing data of " + category);
+                using (TextReader streamReader = new StreamReader(fileName))
+                {
+                    streamReader.ReadLine();
+                    streamReader.ReadLine();
+                    string line;
+                    while ((line = streamReader.ReadLine()) != null)
+                    {
+                        string[] groups = line.Split(new char[] { '\t' });
+                        string title = groups[0].Replace('_', ' ');
+                        if (ignore.Contains(title))
+                        {
+                            continue;
+                        }
+                        if (!pages.Contains(title))
+                        {
+                            ParameterCollection parameters = new ParameterCollection();
+                            parameters.Add("list", "backlinks");
+                            parameters.Add("bltitle", title);
+                            parameters.Add("blnamespace", "4");
+                            parameters.Add("bllimit", "max");
 
-    internal class PagesForCleanup : CategoryIntersectionAndTalkPages
-    {
-        public PagesForCleanup(string category, string page, string format)
-            : base(category,
-                   "К улучшению",
-                   "Википедия:К улучшению/",
-                    "Cache\\PagesForCleanup",
-                    page,
-                    format)
-        {
-        }
-    }
+                            List<DateTime> dates = new List<DateTime>();
+                            XmlDocument xml = wiki.Enumerate(parameters, true);
+                            foreach (XmlNode node in xml.SelectNodes("//bl"))
+                            {
+                                if (node.Attributes["title"].Value.StartsWith(Prefix))
+                                {
 
-    internal class PagesForMoving : CategoryIntersectionAndTalkPages
-    {
-        public PagesForMoving(string category, string page, string format)
-            : base(category,
-                   "К переименованию",
-                   "Википедия:К переименованию/",
-                    "Cache\\PagesForMoving",
-                    page,
-                    format)
-        {
-        }
-    }
+                                    string page = node.Attributes["title"].Value;
+                                    string dateString = page.Replace(Prefix, "");
+                                    DateTime date;
+                                    if (DateTime.TryParse(dateString, null,
+                                        System.Globalization.DateTimeStyles.AssumeUniversal, out date))
+                                    {
+                                        dates.Add(date);
+                                    }
+                                }
+                            }
+                            if (dates.Count > 0)
+                            {
+                                DateTime talkDate = dates.Max();
+                                pageList.Add(string.Format(Format, title, "", talkDate.ToString("d MMMM yyyy")));
+                                pages.Add(title);
+                            }
+                        }
+                    }
+                }
+            }
 
-    internal class PagesForMerging : CategoryIntersectionAndTalkPages
-    {
-        public PagesForMerging(string category, string page, string format)
-            : base(category,
-                   "К объединению\namerge",
-                   "Википедия:К объединению/",
-                    "Cache\\PagesForMerging",
-                    page,
-                    format)
-        {
+            if (pageList.Count == 0)
+            {
+                return OnEmpty;
+            }
+            return Header + string.Join(Delimeter, pageList.ToArray()) + Footer;
         }
     }
 }

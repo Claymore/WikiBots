@@ -242,6 +242,12 @@ namespace Claymore.NewPagesWikiBot
                 archive = options["архив"];
             }
 
+            string prefix = "";
+            if (options.ContainsKey("префикс"))
+            {
+                prefix = options["префикс"];
+            }
+
             string onEmpty = "";
             if (options.ContainsKey("если пусто"))
             {
@@ -428,6 +434,23 @@ namespace Claymore.NewPagesWikiBot
                             categories,
                             categoriesToIgnore,
                             templates,
+                            title,
+                            depth,
+                            hours,
+                            maxItems,
+                            format,
+                            delimeter,
+                            header,
+                            footer,
+                            onEmpty);
+                }
+                else if (t == "список страниц с заданными категориями, шаблонами и обсуждением")
+                {
+                    module = new CategoryIntersectionAndTalkPages(portal,
+                            categories,
+                            categoriesToIgnore,
+                            templates,
+                            prefix,
                             title,
                             depth,
                             hours,

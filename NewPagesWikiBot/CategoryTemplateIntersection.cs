@@ -53,7 +53,7 @@ namespace Claymore.NewPagesWikiBot
             }
         }
 
-        public string ProcessData(Wiki wiki)
+        public virtual string ProcessData(Wiki wiki)
         {
             HashSet<string> ignore = new HashSet<string>();
             foreach (var category in CategoriesToIgnore)

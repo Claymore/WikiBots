@@ -47,6 +47,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Cache.cs" />
+    <Compile Include="CategoryIntersectionAndTalkPages.cs" />
     <Compile Include="CategoryTemplateIntersection.cs" />
     <Compile Include="EncyShell.cs" />
     <Compile Include="NewPages.cs" />
