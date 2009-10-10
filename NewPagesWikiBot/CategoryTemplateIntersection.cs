@@ -1,148 +1,133 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
-using Claymore.SharpMediaWiki;
 using System.Net;
+using Claymore.SharpMediaWiki;
 
 namespace Claymore.NewPagesWikiBot
 {
-    internal class CategoryTemplateIntersection : IPortalModule
+    internal class CategoryTemplateIntersection : NewPages
     {
-        public string Page { get; private set; }
-        public string MainCategory { get; private set; }
-        public string Template { get; private set; }
-        public string Format { get; private set; }
-        protected string _directory;
+        public string Templates { get; private set; }
+        public string OnEmpty { get; private set; }
 
-        public CategoryTemplateIntersection(string mainCategory,
-            string template,
-            string directory,
-            string page,
-            string format)
+        public CategoryTemplateIntersection(PortalModule module,
+                        IEnumerable<string> categories,
+                        IEnumerable<string> categoriesToIgnore,
+                        string templates,
+                        string page,
+                        int depth,
+                        int hours,
+                        int maxItems,
+                        string format,
+                        string delimeter,
+                        string header,
+                        string footer,
+                        string onEmpty)
+            : base(module,
+                   categories,
+                   categoriesToIgnore,
+                   page,
+                   depth,
+                   hours,
+                   maxItems,
+                   format,
+                   delimeter,
+                   header,
+                   footer)
         {
-            MainCategory = mainCategory;
-            Format = format;
-            Page = page;
-            Template = template;
-            _directory = directory;
-            Directory.CreateDirectory(_directory);
+            Templates = templates;
+            OnEmpty = onEmpty;
         }
 
-        public void GetData(Wiki wiki)
+        public void GetData(WebClient client)
         {
-            Console.Out.WriteLine("Downloading data for " + MainCategory);
+            foreach (var category in Categories)
+            {
+                Cache.LoadPageList(client, category, Templates, Module.Language, Depth);
+            }
 
-            string query = string.Format("language={0}&depth=15&categories={1}&templates_any={2}&sortby=title&format=tsv&doit=submit",
-                "ru",
-                Uri.EscapeDataString(MainCategory),
-                Uri.EscapeDataString(Template));
+            foreach (var category in CategoriesToIgnore)
+            {
+                Cache.LoadPageList(client, category, Templates, Module.Language, Depth);
+            }
+        }
 
-            UriBuilder ub = new UriBuilder("http://toolserver.org");
-            ub.Path = "/~magnus/catscan_rewrite.php";
-            ub.Query = query;
+        public string ProcessData(Wiki wiki)
+        {
+            HashSet<string> ignore = new HashSet<string>();
+            foreach (var category in CategoriesToIgnore)
+            {
+                string fileName = "Cache\\" + Module.Language + "\\PagesInCategoryWithTemplates\\" + Cache.EscapePath(category + "-" + Templates) + ".txt";
+                using (TextReader streamReader = new StreamReader(fileName))
+                {
+                    streamReader.ReadLine();
+                    streamReader.ReadLine();
+                    string line;
+                    while ((line = streamReader.ReadLine()) != null)
+                    {
+                        string[] groups = line.Split(new char[] { '\t' });
+                        string title = groups[0].Replace('_', ' ');
+                        ignore.Add(title);
+                    }
+                }
+            }
 
+            var pageList = new List<string>();
+            var pages = new HashSet<string>();
+            foreach (var category in Categories)
+            {
+                string fileName = "Cache\\" + Module.Language + "\\PagesInCategoryWithTemplates\\" + Cache.EscapePath(category + "-" + Templates) + ".txt";
+                Console.Out.WriteLine("Processing data of " + category);
+                using (TextReader streamReader = new StreamReader(fileName))
+                {
+                    streamReader.ReadLine();
+                    streamReader.ReadLine();
+                    string line;
+                    while ((line = streamReader.ReadLine()) != null)
+                    {
+                        string[] groups = line.Split(new char[] { '\t' });
+                        string title = groups[0].Replace('_', ' ');
+                        if (ignore.Contains(title))
+                        {
+                            continue;
+                        }
+                        if (!pages.Contains(title))
+                        {
+                            pages.Add(title);
+                            pageList.Add(title);
+                        }
+                    }
+                }
+            }
+
+            var result = new List<string>();
+
+            foreach (var el in pageList)
+            {
+                result.Add(string.Format(Format, el));
+            }
+            if (result.Count == 0)
+            {
+                return OnEmpty;
+            }
+            return Header + string.Join(Delimeter, result.ToArray()) + Footer;
+        }
+
+        public override void Update(Wiki wiki)
+        {
             WebClient client = new WebClient();
-            client.DownloadFile(ub.Uri, _directory + "\\input-" + MainCategory + ".txt");
-        }
-
-        public virtual void ProcessData(Wiki wiki)
-        {
-            Console.Out.WriteLine("Processing data of " + MainCategory);
-            using (TextWriter streamWriter = new StreamWriter(_directory + "\\output-" + MainCategory + ".txt"))
-            using (TextReader streamReader = new StreamReader(_directory + "\\input-" + MainCategory + ".txt"))
-            {
-                streamReader.ReadLine();
-                streamReader.ReadLine();
-                string line;
-                while ((line = streamReader.ReadLine()) != null)
-                {
-                    string[] groups = line.Split(new char[] { '\t' });
-                    string title = groups[0].Replace('_', ' ');
-                    streamWriter.WriteLine(string.Format(Format, title));
-                }
-            }
-        }
-
-        public bool UpdatePage(Wiki wiki)
-        {
-            using (TextReader sr = new StreamReader(_directory + "\\output-" + MainCategory + ".txt"))
-            {
-                string text = sr.ReadToEnd();
-                if (string.IsNullOrEmpty(text))
-                {
-                    Console.Out.WriteLine("Skipping " + Page);
-                    return false;
-                }
-                Console.Out.WriteLine("Updating " + Page);
-                wiki.SavePage(Page,
-                    "",
-                    text,
-                    "обновление",
-                    MinorFlags.Minor,
-                    CreateFlags.None,
-                    WatchFlags.None,
-                    SaveFlags.Replace);
-                return true;
-            }
-        }
-    }
-
-    internal class FeaturedArticleCandidates : CategoryTemplateIntersection
-    {
-        public FeaturedArticleCandidates(string category, string page, string format)
-            : base(category,
-                   "Кандидат в избранные статьи\nХорошая статья и кандидат в избранные",
-                   "Cache\\FeaturedArticleCandidates",
-                   page,
-                   format)
-        {
-        }
-    }
-
-    internal class GoodArticleCandidates : CategoryTemplateIntersection
-    {
-        public GoodArticleCandidates(string category, string page, string format)
-            : base(category,
-                   "Кандидат в хорошие статьи",
-                   "Cache\\GoodArticleCandidates",
-                   page,
-                   format)
-        {
-        }
-    }
-
-    internal class FeaturedArticles : CategoryTemplateIntersection
-    {
-        public FeaturedArticles(string category, string page, string format)
-            : base(category,
-                   "Избранная статья",
-                    "Cache\\FeaturedArticles",
-                    page,
-                    format)
-        {
-        }
-    }
-
-    internal class GoodArticles : CategoryTemplateIntersection
-    {
-        public GoodArticles(string category, string page, string format)
-            : base(category,
-                   "Хорошая статья",
-                   "Cache\\GoodArticles",
-                   page,
-                   format)
-        {
-        }
-    }
-
-    internal class FeaturedLists : CategoryTemplateIntersection
-    {
-        public FeaturedLists(string category, string page, string format)
-            : base(category,
-                   "Избранный список или портал",
-                    "Cache\\FeaturedLists",
-                    page,
-                    format)
-        {
+            GetData(client);
+            string newText = ProcessData(wiki);
+            Console.Out.WriteLine("Updating " + Page);
+            wiki.SavePage(Page,
+                "",
+                newText,
+                Module.UpdateComment,
+                MinorFlags.Minor,
+                CreateFlags.None,
+                WatchFlags.None,
+                SaveFlags.Replace);
         }
     }
 }

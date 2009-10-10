@@ -57,6 +57,8 @@ namespace Claymore.NewPagesWikiBot
 
             PortalModule portal = new PortalModule(args[0], args[1]);
             Directory.CreateDirectory("Cache\\" + args[0] + "\\NewPages\\");
+            Directory.CreateDirectory("Cache\\" + args[0] + "\\PagesInCategory\\");
+            Directory.CreateDirectory("Cache\\" + args[0] + "\\PagesInCategoryWithTemplates\\");
 
             ParameterCollection parameters = new ParameterCollection();
             parameters.Add("generator", "embeddedin");
@@ -240,6 +242,12 @@ namespace Claymore.NewPagesWikiBot
                 archive = options["архив"];
             }
 
+            string onEmpty = "";
+            if (options.ContainsKey("если пусто"))
+            {
+                onEmpty = options["если пусто"];
+            }
+
             string header = "";
             if (options.ContainsKey("шапка"))
             {
@@ -250,6 +258,12 @@ namespace Claymore.NewPagesWikiBot
             if (options.ContainsKey("подвал"))
             {
                 footer = options["подвал"].Replace("\\n", "\n");
+            }
+
+            string templates = "";
+            if (options.ContainsKey("шаблоны"))
+            {
+                templates = options["шаблоны"].Replace("\\n", "\n");
             }
 
             string format = "";
@@ -407,6 +421,22 @@ namespace Claymore.NewPagesWikiBot
                             delimeter,
                             header,
                             footer);
+                }
+                else if (t == "список страниц с заданными категориями и шаблонами")
+                {
+                    module = new CategoryTemplateIntersection(portal,
+                            categories,
+                            categoriesToIgnore,
+                            templates,
+                            title,
+                            depth,
+                            hours,
+                            maxItems,
+                            format,
+                            delimeter,
+                            header,
+                            footer,
+                            onEmpty);
                 }
             }
             return module != null;

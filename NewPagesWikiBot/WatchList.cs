@@ -46,7 +46,7 @@ namespace Claymore.NewPagesWikiBot
         {
             StringBuilder result = new StringBuilder();
             Console.Out.WriteLine("Processing data of " + Category);
-            string fileName = "Cache\\" + Module.Language + "\\NewPages\\" + Cache.EscapePath(Category) + ".txt";
+            string fileName = "Cache\\" + Module.Language + "\\PagesInCategory\\" + Cache.EscapePath(Category) + ".txt";
             using (TextReader streamReader = new StreamReader(fileName))
             {
                 streamReader.ReadLine();

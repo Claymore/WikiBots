@@ -96,7 +96,7 @@ namespace Claymore.NewPagesWikiBot
 
         public static string EscapePath(string path)
         {
-            Regex charsRE = new Regex(@"[:/\*\?<>\|]");
+            Regex charsRE = new Regex(@"[:/\*\?<>\|\n]");
             return charsRE.Replace(path, "_").Replace('"', '_').Replace('\\', '_');
         }
 
@@ -166,7 +166,7 @@ namespace Claymore.NewPagesWikiBot
 
         internal static void LoadPageList(WebClient client, string language, string category, int depth)
         {
-            string fileName = "Cache\\" + language + "\\NewPages\\" + Cache.EscapePath(category) + ".txt";
+            string fileName = "Cache\\" + language + "\\PagesInCategory\\" + Cache.EscapePath(category) + ".txt";
             if (!File.Exists(fileName) ||
                 (DateTime.Now - File.GetCreationTime(fileName)).TotalHours > 1)
             {
@@ -174,6 +174,26 @@ namespace Claymore.NewPagesWikiBot
                 string query = string.Format("language={0}&depth={2}&categories={1}&sortby=title&format=tsv&doit=submit",
                     language,
                     Uri.EscapeDataString(category),
+                    depth);
+
+                UriBuilder ub = new UriBuilder("http://toolserver.org");
+                ub.Path = "/~magnus/catscan_rewrite.php";
+                ub.Query = query;
+                client.DownloadFile(ub.Uri, fileName);
+            }
+        }
+
+        internal static void LoadPageList(WebClient client, string category, string templates, string language, int depth)
+        {
+            string fileName = "Cache\\" + language + "\\PagesInCategoryWithTemplates\\" + Cache.EscapePath(category + "-" + templates) + ".txt";
+            if (!File.Exists(fileName) ||
+                (DateTime.Now - File.GetCreationTime(fileName)).TotalHours > 1)
+            {
+                Console.Out.WriteLine("Downloading data for " + category);
+                string query = string.Format("language={0}&depth={3}&categories={1}&templates_any={2}&sortby=title&format=tsv&doit=submit",
+                    language,
+                    Uri.EscapeDataString(category),
+                    templates,
                     depth);
 
                 UriBuilder ub = new UriBuilder("http://toolserver.org");
