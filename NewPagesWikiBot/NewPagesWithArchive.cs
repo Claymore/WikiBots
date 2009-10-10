@@ -73,7 +73,7 @@ namespace Claymore.NewPagesWikiBot
             if (archiveItems.Count != 0)
             {
                 Console.Out.WriteLine("Updating " + ArchivePage);
-                string archiveText = string.Join(Delimeter, archiveItems.ToArray());
+                string archiveText = string.Join(Delimeter, archiveItems.ToArray()) + "\n";
                 wiki.SavePage(ArchivePage,
                         "",
                         archiveText,

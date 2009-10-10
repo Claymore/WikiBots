@@ -66,13 +66,22 @@ namespace Claymore.NewPagesWikiBot
             parameters.Add("intoken", "edit");
             parameters.Add("redirects");
 
+            string path = @"Cache\" + args[0] + @"\";
+            Directory.CreateDirectory(path);
+
+            List<string> pages = new List<string>();
             XmlDocument doc = wiki.Enumerate(parameters, true);
             foreach (XmlNode node in doc.SelectNodes("//page"))
             {
                 string title = node.Attributes["title"].Value;
-                string path = @"Cache\"+ args[1] + @"\";
-                Directory.CreateDirectory(path);
-                WikiPage page = Cache.Load(wiki, title, path);
+                pages.Add(title);
+            }
+
+            pages.Sort();
+
+            for (int i = 0; i < pages.Count; ++i)
+            {
+                WikiPage page = Cache.Load(wiki, pages[i], path);
                 IPortalModule module;
                 if (TryParse(page, path, portal, out module))
                 {
@@ -83,8 +92,12 @@ namespace Claymore.NewPagesWikiBot
                     catch (WikiException)
                     {
                     }
+                    catch (System.Net.WebException)
+                    {
+                    }
                 }
             }
+
             Console.Out.WriteLine("Done.");
             return 0;
         }
@@ -222,7 +235,7 @@ namespace Claymore.NewPagesWikiBot
                 format = options["формат элемента"].Replace("{", "{{").Replace("}", "}}");
             }
 
-            int depth = 7;
+            int depth = 15;
             if (options.ContainsKey("глубина"))
             {
                 int.TryParse(options["глубина"], out depth);
@@ -243,7 +256,7 @@ namespace Claymore.NewPagesWikiBot
             string delimeter = "\n";
             if (options.ContainsKey("разделитель"))
             {
-                delimeter = options["разделитель"];
+                delimeter = options["разделитель"].Replace("\"", "");
             }
 
             if (options.ContainsKey("тип"))

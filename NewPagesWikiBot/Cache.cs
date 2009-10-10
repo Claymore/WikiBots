@@ -43,13 +43,13 @@ namespace Claymore.NewPagesWikiBot
 
         public static PageInfo LoadPageInformation(Wiki wiki, string language, string title)
         {
-            if (!File.Exists(@"Cache\pages.txt"))
+            if (!File.Exists(string.Format(@"Cache\{0}\pages.txt", language)))
             {
-                FileStream stream = File.Create(@"Cache\pages.txt");
+                FileStream stream = File.Create(string.Format(@"Cache\{0}\pages.txt", language));
                 stream.Close();
             }
 
-            using (TextReader streamReader = new StreamReader(string.Format(@"Cache\{1}\pages.txt", language)))
+            using (TextReader streamReader = new StreamReader(string.Format(@"Cache\{0}\pages.txt", language)))
             {
                 string line;
                 while ((line = streamReader.ReadLine()) != null)
@@ -82,7 +82,7 @@ namespace Claymore.NewPagesWikiBot
                 DateTime time = DateTime.Parse(timestamp,
                                     null,
                                     DateTimeStyles.AssumeUniversal);
-                using (TextWriter streamWriter = new StreamWriter(string.Format(@"Cache\{1}\pages.txt", language), true))
+                using (TextWriter streamWriter = new StreamWriter(string.Format(@"Cache\{0}\pages.txt", language), true))
                 {
                     streamWriter.WriteLine("{0}\t{1}\t{2}",
                         pageName,
