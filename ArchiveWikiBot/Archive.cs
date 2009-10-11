@@ -72,7 +72,7 @@ namespace Claymore.ArchiveWikiBot
                 }
                 if (IsMovedSection(section))
                 {
-                    section.SectionText = section.SectionText.Trim(new char[] { ' ', '\t', '\n' }) + "\n~~~~";
+                    section.SectionText = section.SectionText.Trim(new char[] { ' ', '\t', '\n' }) + "\n~~~~\n";
                 }
             }
             
