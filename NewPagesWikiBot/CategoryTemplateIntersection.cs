@@ -9,25 +9,25 @@ namespace Claymore.NewPagesWikiBot
     internal class CategoryTemplateIntersection : NewPages
     {
         public string Templates { get; private set; }
-        public string OnEmpty { get; private set; }
 
         public CategoryTemplateIntersection(PortalModule module,
                         IEnumerable<string> categories,
                         IEnumerable<string> categoriesToIgnore,
                         string templates,
                         string page,
+                        int ns,
                         int depth,
                         int hours,
                         int maxItems,
                         string format,
                         string delimeter,
                         string header,
-                        string footer,
-                        string onEmpty)
+                        string footer)
             : base(module,
                    categories,
                    categoriesToIgnore,
                    page,
+                   ns,
                    depth,
                    hours,
                    maxItems,
@@ -37,7 +37,6 @@ namespace Claymore.NewPagesWikiBot
                    footer)
         {
             Templates = templates;
-            OnEmpty = onEmpty;
         }
 
         public void GetData(WebClient client)
@@ -67,8 +66,11 @@ namespace Claymore.NewPagesWikiBot
                     while ((line = streamReader.ReadLine()) != null)
                     {
                         string[] groups = line.Split(new char[] { '\t' });
-                        string title = groups[0].Replace('_', ' ');
-                        ignore.Add(title);
+                        if (groups[2] == Namespace.ToString())
+                        {
+                            string title = groups[0].Replace('_', ' ');
+                            ignore.Add(title);
+                        }
                     }
                 }
             }
@@ -87,15 +89,18 @@ namespace Claymore.NewPagesWikiBot
                     while ((line = streamReader.ReadLine()) != null)
                     {
                         string[] groups = line.Split(new char[] { '\t' });
-                        string title = groups[0].Replace('_', ' ');
-                        if (ignore.Contains(title))
+                        if (groups[2] == Namespace.ToString())
                         {
-                            continue;
-                        }
-                        if (!pages.Contains(title))
-                        {
-                            pages.Add(title);
-                            pageList.Add(title);
+                            string title = groups[0].Replace('_', ' ');
+                            if (ignore.Contains(title))
+                            {
+                                continue;
+                            }
+                            if (!pages.Contains(title))
+                            {
+                                pages.Add(title);
+                                pageList.Add(title);
+                            }
                         }
                     }
                 }
@@ -109,7 +114,7 @@ namespace Claymore.NewPagesWikiBot
             }
             if (result.Count == 0)
             {
-                return OnEmpty;
+                return "";
             }
             return Header + string.Join(Delimeter, result.ToArray()) + Footer;
         }

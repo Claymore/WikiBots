@@ -17,27 +17,27 @@ namespace Claymore.NewPagesWikiBot
                         string templates,
                         string prefix,
                         string page,
+                        int ns,
                         int depth,
                         int hours,
                         int maxItems,
                         string format,
                         string delimeter,
                         string header,
-                        string footer,
-                        string onEmpty)
+                        string footer)
             : base(module,
                    categories,
                    categoriesToIgnore,
                    templates,
                    page,
+                   ns,
                    depth,
                    hours,
                    maxItems,
                    format,
                    delimeter,
                    header,
-                   footer,
-                   onEmpty)
+                   footer)
         {
             Prefix = prefix;
         }
@@ -56,8 +56,11 @@ namespace Claymore.NewPagesWikiBot
                     while ((line = streamReader.ReadLine()) != null)
                     {
                         string[] groups = line.Split(new char[] { '\t' });
-                        string title = groups[0].Replace('_', ' ');
-                        ignore.Add(title);
+                        if (groups[2] == Namespace.ToString())
+                        {
+                            string title = groups[0].Replace('_', ' ');
+                            ignore.Add(title);
+                        }
                     }
                 }
             }
@@ -76,41 +79,51 @@ namespace Claymore.NewPagesWikiBot
                     while ((line = streamReader.ReadLine()) != null)
                     {
                         string[] groups = line.Split(new char[] { '\t' });
-                        string title = groups[0].Replace('_', ' ');
-                        if (ignore.Contains(title))
+                        if (groups[2] == Namespace.ToString())
                         {
-                            continue;
-                        }
-                        if (!pages.Contains(title))
-                        {
-                            ParameterCollection parameters = new ParameterCollection();
-                            parameters.Add("list", "backlinks");
-                            parameters.Add("bltitle", title);
-                            parameters.Add("blnamespace", "4");
-                            parameters.Add("bllimit", "max");
-
-                            List<DateTime> dates = new List<DateTime>();
-                            XmlDocument xml = wiki.Enumerate(parameters, true);
-                            foreach (XmlNode node in xml.SelectNodes("//bl"))
+                            string title = groups[0].Replace('_', ' ');
+                            if (ignore.Contains(title))
                             {
-                                if (node.Attributes["title"].Value.StartsWith(Prefix))
+                                continue;
+                            }
+                            if (!pages.Contains(title))
+                            {
+                                if (Namespace != 0)
                                 {
+                                    title = wiki.GetNamespace(Namespace) + ":" + title;
+                                }
 
-                                    string page = node.Attributes["title"].Value;
-                                    string dateString = page.Replace(Prefix, "");
-                                    DateTime date;
-                                    if (DateTime.TryParse(dateString, null,
-                                        System.Globalization.DateTimeStyles.AssumeUniversal, out date))
+                                ParameterCollection parameters = new ParameterCollection();
+                                parameters.Add("list", "backlinks");
+                                parameters.Add("bltitle", title);
+                                parameters.Add("blnamespace", "4");
+                                parameters.Add("bllimit", "max");
+
+                                List<DateTime> dates = new List<DateTime>();
+                                XmlDocument xml = wiki.Enumerate(parameters, true);
+                                foreach (XmlNode node in xml.SelectNodes("//bl"))
+                                {
+                                    if (node.Attributes["title"].Value.StartsWith(Prefix))
                                     {
-                                        dates.Add(date);
+                                        string page = node.Attributes["title"].Value;
+                                        string dateString = page.Replace(Prefix, "");
+                                        DateTime date;
+                                        if (DateTime.TryParse(dateString, null,
+                                            System.Globalization.DateTimeStyles.AssumeUniversal, out date))
+                                        {
+                                            dates.Add(date);
+                                        }
                                     }
                                 }
-                            }
-                            if (dates.Count > 0)
-                            {
-                                DateTime talkDate = dates.Max();
-                                pageList.Add(string.Format(Format, title, "", talkDate.ToString("d MMMM yyyy")));
-                                pages.Add(title);
+                                if (dates.Count > 0)
+                                {
+                                    DateTime talkDate = dates.Max();
+                                    pageList.Add(string.Format(Format,
+                                        Namespace != 0 ? title.Substring(wiki.GetNamespace(Namespace).Length + 1) : title,
+                                        "",
+                                        talkDate.ToString("d MMMM yyyy")));
+                                    pages.Add(title);
+                                }
                             }
                         }
                     }
@@ -119,7 +132,7 @@ namespace Claymore.NewPagesWikiBot
 
             if (pageList.Count == 0)
             {
-                return OnEmpty;
+                return "";
             }
             return Header + string.Join(Delimeter, pageList.ToArray()) + Footer;
         }

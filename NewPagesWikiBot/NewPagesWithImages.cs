@@ -15,6 +15,7 @@ namespace Claymore.NewPagesWikiBot
                         IEnumerable<string> categories,
                         IEnumerable<string> categoriesToIgnore,
                         string page,
+                        int ns,
                         int depth,
                         int hours,
                         int maxItems,
@@ -26,6 +27,7 @@ namespace Claymore.NewPagesWikiBot
                    categories,
                    categoriesToIgnore,
                    page,
+                   ns,
                    depth,
                    hours,
                    maxItems,
@@ -42,6 +44,7 @@ namespace Claymore.NewPagesWikiBot
                         IEnumerable<string> categories,
                         IEnumerable<string> categoriesToIgnore,
                         string page,
+                        int ns,
                         int depth,
                         int hours,
                         int maxItems,
@@ -54,6 +57,7 @@ namespace Claymore.NewPagesWikiBot
                    categories,
                    categoriesToIgnore,
                    page,
+                   ns,
                    depth,
                    hours,
                    maxItems,
@@ -81,7 +85,7 @@ namespace Claymore.NewPagesWikiBot
                     while ((line = streamReader.ReadLine()) != null)
                     {
                         string[] groups = line.Split(new char[] { '\t' });
-                        if (groups[0] == "0")
+                        if (groups[0] == Namespace.ToString())
                         {
                             string title = groups[1].Replace('_', ' ');
                             ignore.Add(title);
@@ -104,18 +108,23 @@ namespace Claymore.NewPagesWikiBot
                 while ((line = streamReader.ReadLine()) != null)
                 {
                     string[] groups = line.Split(new char[] { '\t' });
-                    if (groups[0] == "0")
+                    if (groups[0] == Namespace.ToString())
                     {
                         string title = groups[1].Replace('_', ' ');
                         if (ignore.Contains(title))
                         {
                             continue;
                         }
-                        XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, new string[] { title });
+                        string fullTitle = title;
+                        if (Namespace != 0)
+                        {
+                            fullTitle = wiki.GetNamespace(Namespace) + ":" + title;
+                        }
+                        XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, new string[] { fullTitle });
                         XmlNode node = xml.SelectSingleNode("//rev");
                         if (node != null)
                         {
-                            title = xml.SelectSingleNode("//page").Attributes["title"].Value;
+                            fullTitle = xml.SelectSingleNode("//page").Attributes["title"].Value;
                             string content = node.FirstChild == null ? "" : node.FirstChild.Value;
                             Match m = _regex.Match(content);
                             if (m.Success)
@@ -126,7 +135,8 @@ namespace Claymore.NewPagesWikiBot
                                     continue;
                                 }
                                 result.Add(string.Format(Format,
-                                    title, fileName));
+                                    Namespace != 0 ? fullTitle.Substring(wiki.GetNamespace(Namespace).Length + 1) : fullTitle,
+                                    fileName));
                             }
                         }
                     }

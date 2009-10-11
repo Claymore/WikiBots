@@ -13,6 +13,7 @@ namespace Claymore.NewPagesWikiBot
                         IEnumerable<string> categories,
                         IEnumerable<string> categoriesToIgnore,
                         string page,
+                        int ns,
                         int depth,
                         int maxItems,
                         string format,
@@ -23,6 +24,7 @@ namespace Claymore.NewPagesWikiBot
                    categories,
                    categoriesToIgnore,
                    page,
+                   ns,
                    depth,
                    192,
                    maxItems,
@@ -45,7 +47,7 @@ namespace Claymore.NewPagesWikiBot
                     while ((line = streamReader.ReadLine()) != null)
                     {
                         string[] groups = line.Split(new char[] { '\t' });
-                        if (groups[0] == "0")
+                        if (groups[0] == Namespace.ToString())
                         {
                             string title = groups[1].Replace('_', ' ');
                             ignore.Add(title);
@@ -66,12 +68,16 @@ namespace Claymore.NewPagesWikiBot
                     while ((line = streamReader.ReadLine()) != null)
                     {
                         string[] groups = line.Split(new char[] { '\t' });
-                        if (groups[0] == "0")
+                        if (groups[0] == Namespace.ToString())
                         {
                             string title = groups[1].Replace('_', ' ');
                             if (ignore.Contains(title))
                             {
                                 continue;
+                            }
+                            if (Namespace != 0)
+                            {
+                                title = wiki.GetNamespace(Namespace) + ":" + title;
                             }
                             Cache.PageInfo page = Cache.LoadPageInformation(wiki, Module.Language, title);
                             if (page != null && !pages.Contains(page.Title))
@@ -100,7 +106,7 @@ namespace Claymore.NewPagesWikiBot
                 foreach (var el in subset)
                 {
                     result.Add(string.Format(Format,
-                        el.Title,
+                        Namespace != 0 ? el.Title.Substring(wiki.GetNamespace(Namespace).Length + 1) : el.Title,
                         el.Author,
                         el.FirstEdit.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")));
                 }

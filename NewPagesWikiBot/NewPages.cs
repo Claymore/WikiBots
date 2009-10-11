@@ -20,6 +20,7 @@ namespace Claymore.NewPagesWikiBot
         public string Delimeter { get; private set; }
         public PortalModule Module { get; private set; }
         public int Depth { get; private set; }
+        public int Namespace { get; private set; }
 
         public IList<string> Categories
         {
@@ -35,6 +36,7 @@ namespace Claymore.NewPagesWikiBot
                         IEnumerable<string> categories,
                         IEnumerable<string> categoriesToIgnore,
                         string page,
+                        int ns,
                         int depth,
                         int hours,
                         int maxItems,
@@ -54,6 +56,7 @@ namespace Claymore.NewPagesWikiBot
             Depth = depth;
             Header = header;
             Footer = footer;
+            Namespace = ns;
         }
 
         public virtual string GetData(Wiki wiki)
@@ -94,7 +97,7 @@ namespace Claymore.NewPagesWikiBot
                     while ((line = streamReader.ReadLine()) != null)
                     {
                         string[] groups = line.Split(new char[] { '\t' });
-                        if (groups[0] == "0")
+                        if (groups[0] == Namespace.ToString())
                         {
                             string title = groups[1].Replace('_', ' ');
                             ignore.Add(title);
@@ -111,14 +114,19 @@ namespace Claymore.NewPagesWikiBot
                 while ((line = streamReader.ReadLine()) != null)
                 {
                     string[] groups = line.Split(new char[] { '\t' });
-                    if (groups[0] == "0")
+                    if (groups[0] == Namespace.ToString())
                     {
                         string title = groups[1].Replace('_', ' ');
                         if (ignore.Contains(title))
                         {
                             continue;
                         }
-                        Cache.PageInfo page = Cache.LoadPageInformation(wiki, Module.Language, title);
+                        string fullTitle = title;
+                        if (Namespace != 0)
+                        {
+                            fullTitle = wiki.GetNamespace(Namespace) + ":" + title;
+                        }
+                        Cache.PageInfo page = Cache.LoadPageInformation(wiki, Module.Language, fullTitle);
                         if (page != null && !pages.Contains(page.Title))
                         {
                             pages.Add(page.Title);
@@ -133,7 +141,7 @@ namespace Claymore.NewPagesWikiBot
             }
 
             List<string> result = new List<string>(pageList.Select(p => string.Format(Format,
-                p.Title,
+                Namespace != 0 ? p.Title.Substring(wiki.GetNamespace(Namespace).Length + 1) : p.Title,
                 p.Author,
                 p.FirstEdit.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"))));
 
@@ -159,7 +167,7 @@ namespace Claymore.NewPagesWikiBot
                 }
             }
 
-            return Header + "\n" + string.Join(Delimeter, result.ToArray()) + "\n" + Footer;
+            return Header + string.Join(Delimeter, result.ToArray()) + Footer;
         }
 
         public virtual string ProcessData(Wiki wiki, string text)
@@ -174,7 +182,7 @@ namespace Claymore.NewPagesWikiBot
                     while ((line = streamReader.ReadLine()) != null)
                     {
                         string[] groups = line.Split(new char[] { '\t' });
-                        if (groups[0] == "0")
+                        if (groups[0] == Namespace.ToString())
                         {
                             string title = groups[1].Replace('_', ' ');
                             ignore.Add(title);
@@ -195,12 +203,16 @@ namespace Claymore.NewPagesWikiBot
                     while ((line = streamReader.ReadLine()) != null)
                     {
                         string[] groups = line.Split(new char[] { '\t' });
-                        if (groups[0] == "0")
+                        if (groups[0] == Namespace.ToString())
                         {
                             string title = groups[1].Replace('_', ' ');
                             if (ignore.Contains(title))
                             {
                                 continue;
+                            }
+                            if (Namespace != 0)
+                            {
+                                title = wiki.GetNamespace(Namespace) + ":" + title;
                             }
                             Cache.PageInfo page = Cache.LoadPageInformation(wiki, Module.Language, title);
                             if (page != null && !pages.Contains(page.Title))
@@ -221,7 +233,7 @@ namespace Claymore.NewPagesWikiBot
             foreach (var el in pageList.Take(count))
             {
                 subset.Add(string.Format(Format,
-                    el.Title,
+                    Namespace != 0 ? el.Title.Substring(wiki.GetNamespace(Namespace).Length + 1) : el.Title,
                     el.Author,
                     el.FirstEdit.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")));
             }

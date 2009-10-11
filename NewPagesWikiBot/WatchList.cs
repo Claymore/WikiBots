@@ -13,14 +13,16 @@ namespace Claymore.NewPagesWikiBot
         public string Format { get; private set; }
         public PortalModule Module { get; private set; }
         public int Depth { get; private set; }
+        public int Namespace { get; private set; }
 
-        public WatchList(PortalModule module, string category, string page, string format, int depth)
+        public WatchList(PortalModule module, string category, string page, int ns, string format, int depth)
         {
             Category = category;
             Format = format.Replace("{", "{{").Replace("}", "}}").Replace("%(название)", "{0}");
             Page = page;
             Depth = depth;
             Module = module;
+            Namespace = ns;
         }
 
         public void Update(Wiki wiki)
@@ -55,8 +57,11 @@ namespace Claymore.NewPagesWikiBot
                 while ((line = streamReader.ReadLine()) != null)
                 {
                     string[] groups = line.Split(new char[] { '\t' });
-                    string title = groups[0].Replace('_', ' ');
-                    result.AppendLine(string.Format(Format, title));
+                    if (groups[2] == Namespace.ToString())
+                    {
+                        string title = groups[0].Replace('_', ' ');
+                        result.AppendLine(string.Format(Format, title));
+                    }
                 }
             }
             return result.ToString();

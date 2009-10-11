@@ -13,6 +13,7 @@ namespace Claymore.NewPagesWikiBot
                         IEnumerable<string> categories,
                         IEnumerable<string> categoriesToIgnore,
                         string page,
+                        int ns,
                         string archive,
                         int depth,
                         int hours,
@@ -25,6 +26,7 @@ namespace Claymore.NewPagesWikiBot
                    categories,
                    categoriesToIgnore,
                    page,
+                   ns,
                    depth,
                    hours,
                    maxItems,
@@ -60,7 +62,6 @@ namespace Claymore.NewPagesWikiBot
                     WatchFlags.None,
                     SaveFlags.Replace);
             }
-            
 
             string oldText = text;
             if (!string.IsNullOrEmpty(Header))

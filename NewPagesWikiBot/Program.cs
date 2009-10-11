@@ -47,6 +47,13 @@ namespace Claymore.NewPagesWikiBot
                         wiki.CacheCookies(cookieFile);
                     }
                 }
+
+                string namespacesFile = @"Cache\"+ args[0] + @"\namespaces.dat";
+                if (!wiki.LoadNamespaces(namespacesFile))
+                {
+                    wiki.GetNamespaces();
+                    wiki.SaveNamespaces(namespacesFile);
+                }
             }
             catch (WikiException e)
             {
@@ -248,10 +255,10 @@ namespace Claymore.NewPagesWikiBot
                 prefix = options["префикс"];
             }
 
-            string onEmpty = "";
-            if (options.ContainsKey("если пусто"))
+            int ns = 0;
+            if (options.ContainsKey("пространство имён"))
             {
-                onEmpty = options["если пусто"];
+                int.TryParse(options["пространство имён"], out ns);
             }
 
             string header = "";
@@ -343,6 +350,7 @@ namespace Claymore.NewPagesWikiBot
                             categories,
                             categoriesToIgnore,
                             title,
+                            ns,
                             depth,
                             hours,
                             maxItems,
@@ -357,6 +365,7 @@ namespace Claymore.NewPagesWikiBot
                             categories,
                             categoriesToIgnore,
                             title,
+                            ns,
                             archive,
                             depth,
                             hours,
@@ -372,6 +381,7 @@ namespace Claymore.NewPagesWikiBot
                     module = new WatchList(portal,
                         categories[0],
                         title,
+                        ns,
                         format,
                         depth);
                 }
@@ -391,6 +401,7 @@ namespace Claymore.NewPagesWikiBot
                             categories,
                             categoriesToIgnore,
                             title,
+                            ns,
                             depth,
                             hours,
                             maxItems,
@@ -406,6 +417,7 @@ namespace Claymore.NewPagesWikiBot
                             categories,
                             categoriesToIgnore,
                             title,
+                            ns,
                             depth,
                             hours,
                             maxItems,
@@ -421,6 +433,7 @@ namespace Claymore.NewPagesWikiBot
                             categories,
                             categoriesToIgnore,
                             title,
+                            ns,
                             depth,
                             maxItems,
                             format,
@@ -435,14 +448,14 @@ namespace Claymore.NewPagesWikiBot
                             categoriesToIgnore,
                             templates,
                             title,
+                            ns,
                             depth,
                             hours,
                             maxItems,
                             format,
                             delimeter,
                             header,
-                            footer,
-                            onEmpty);
+                            footer);
                 }
                 else if (t == "список страниц с заданными категориями, шаблонами и обсуждением")
                 {
@@ -452,14 +465,14 @@ namespace Claymore.NewPagesWikiBot
                             templates,
                             prefix,
                             title,
+                            ns,
                             depth,
                             hours,
                             maxItems,
                             format,
                             delimeter,
                             header,
-                            footer,
-                            onEmpty);
+                            footer);
                 }
             }
             return module != null;
