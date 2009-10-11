@@ -8,7 +8,7 @@ using Claymore.SharpMediaWiki;
 
 namespace Claymore.ArchiveWikiBot
 {
-    internal class Archive
+    internal class Archive : IArchive
     {
         protected string _cacheDir;
         protected static Regex timeRE = new Regex(@"(\d{2}:\d{2}\, \d\d? [а-я]+ \d{4}) \(UTC\)");

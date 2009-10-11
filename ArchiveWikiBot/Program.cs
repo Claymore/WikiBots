@@ -73,10 +73,14 @@ namespace Claymore.ArchiveWikiBot
             foreach (XmlNode node in doc.SelectNodes("//page"))
             {
                 string title = node.Attributes["title"].Value;
+                if (!title.Contains("Заявки на арбитраж"))
+                {
+                    continue;
+                }
                 string path = @"Cache\ru\" + Cache.EscapePath(title) + @"\";
                 Directory.CreateDirectory(path);
                 WikiPage page = Cache.Load(wiki, title, path);
-                Archive archive;
+                IArchive archive;
                 if (TryParse(page, path, pages.Contains(page.Title), out archive))
                 {
                     try
@@ -152,7 +156,7 @@ namespace Claymore.ArchiveWikiBot
         public static bool TryParse(WikiPage page,
                                     string directory,
                                     bool allowSource,
-                                    out Archive archive)
+                                    out IArchive archive)
         {
             archive = null;
             Dictionary<string, string> values;
@@ -191,6 +195,18 @@ namespace Claymore.ArchiveWikiBot
             if (allowSource && values.ContainsKey("обрабатывать"))
             {
                 pageName = values["обрабатывать"];
+            }
+
+            string accepted = "";
+            if (values.ContainsKey("решения"))
+            {
+                accepted = values["решения"];
+            }
+
+            string rejected = "";
+            if (values.ContainsKey("отклонённые заявки"))
+            {
+                rejected = values["отклонённые заявки"];
             }
 
             string format = pageName + "/Архив/%(номер)";
@@ -255,13 +271,23 @@ namespace Claymore.ArchiveWikiBot
                 {
                     archive = new ArchiveByTopicNumber(pageName, directory, days, format, header, checkForResult, newSectionsDown, topics);
                 }
+                else if (allowSource && t == "заявки на арбитраж")
+                {
+                    archive = new RequestsForArbitrationArchive(pageName,
+                        accepted,
+                        rejected,
+                        days,
+                        directory);
+                }
             }
             if (archive != null)
             {
-                if (values.ContainsKey("убирать ссылки") &&
-                        values["убирать ссылки"].ToLower() == "да")
+                Archive a = archive as Archive;
+                if (a != null &&
+                    values.ContainsKey("убирать ссылки") &&
+                    values["убирать ссылки"].ToLower() == "да")
                 {
-                    archive.Processor = RemoveHttp;
+                    a.Processor = RemoveHttp;
                 }
                 return true;
             }
@@ -272,5 +298,10 @@ namespace Claymore.ArchiveWikiBot
         {
             return title.Replace("http://", "");
         }
+    }
+
+    internal interface IArchive
+    {
+        void Archivate(Wiki wiki);
     }
 }

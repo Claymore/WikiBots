@@ -57,6 +57,7 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
+    <Compile Include="RequestsForArbitrationArchive.cs" />
     <Compile Include="ReviewArchive.cs" />
   </ItemGroup>
   <ItemGroup>

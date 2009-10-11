@@ -17,6 +17,7 @@ namespace Claymore.ArchiveWikiBot
             Regex charsRE = new Regex(@"[:/\*\?<>\|]");
             return charsRE.Replace(path, "_").Replace('"', '_').Replace('\\', '_');
         }
+
         public static WikiPage Load(Wiki wiki, string title, string directory)
         {
             ParameterCollection parameters = new ParameterCollection();
