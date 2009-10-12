@@ -149,6 +149,7 @@ namespace Claymore.ArchiveWikiBot
                 archivePage.Sections.Add(section);
                 archiveTexts.Add(pageName, archivePage.Text);
             }
+            archiveTexts.Add(arch.Title, arch.Text);
 
             foreach (var section in archivedSections)
             {

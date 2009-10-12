@@ -73,10 +73,6 @@ namespace Claymore.ArchiveWikiBot
             foreach (XmlNode node in doc.SelectNodes("//page"))
             {
                 string title = node.Attributes["title"].Value;
-                if (!title.Contains("Заявки на арбитраж"))
-                {
-                    continue;
-                }
                 string path = @"Cache\ru\" + Cache.EscapePath(title) + @"\";
                 Directory.CreateDirectory(path);
                 WikiPage page = Cache.Load(wiki, title, path);
@@ -129,7 +125,7 @@ namespace Claymore.ArchiveWikiBot
             {
                 return false;
             }
-
+            Regex commentRE = new Regex(@"<!--(.+?)-->");
             parameters = new Dictionary<string, string>();
             string parameterString = text.Substring(begin, end - begin);
             string[] ps = parameterString.Split(new char[] { '|' });
@@ -139,14 +135,16 @@ namespace Claymore.ArchiveWikiBot
                 string[] keyvalue = p.Split(new char[] { '=' });
                 if (keyvalue.Length == 2)
                 {
-                    parameters.Add(keyvalue[0].Trim().ToLower(), keyvalue[1].Trim());
+                    string value = commentRE.Replace(keyvalue[1], "").Trim();
+                    parameters.Add(keyvalue[0].Trim().ToLower(), value);
                     lastKey = keyvalue[0].Trim().ToLower();
                 }
                 else if (keyvalue.Length == 1)
                 {
                     if (!string.IsNullOrEmpty(lastKey))
                     {
-                        parameters[lastKey] = parameters[lastKey] + "|" + keyvalue[0].Trim();
+                        string value = commentRE.Replace(keyvalue[0], "").Trim();
+                        parameters[lastKey] = parameters[lastKey] + "|" + value;
                     }
                 }
             }
