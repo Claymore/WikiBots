@@ -85,7 +85,7 @@ namespace Claymore.ArchiveWikiBot
             parameters.Add("prop", "info");
             string pageName = Format;
             string pageFileName = _cacheDir + Cache.EscapePath(pageName);
-            XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, new string[] { pageName });
+            XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, pageName);
             XmlNode node = xml.SelectSingleNode("//page");
             string text;
             if (node.Attributes["missing"] == null)
@@ -96,7 +96,7 @@ namespace Claymore.ArchiveWikiBot
                 if (string.IsNullOrEmpty(text))
                 {
                     Console.Out.WriteLine("Downloading " + pageName + "...");
-                    text = wiki.LoadPage(pageName);
+                    text = WikiPage.LoadText(pageName, wiki);
                     Cache.CachePage(pageFileName, node.Attributes["lastrevid"].Value, text);
                 }
             }
@@ -132,18 +132,7 @@ namespace Claymore.ArchiveWikiBot
         public virtual void Save(Wiki wiki, WikiPage page, Dictionary<string, string> archives)
         {
             Console.Out.WriteLine("Saving " + MainPage + "...");
-            wiki.SavePage(MainPage, page.Text, "архивация");
-            string revid = wiki.SavePage(MainPage,
-                        "",
-                        page.Text,
-                        "архивация",
-                        MinorFlags.Minor,
-                        CreateFlags.NoCreate,
-                        WatchFlags.None,
-                        SaveFlags.Replace,
-                        page.BaseTimestamp,
-                        "",
-                        page.Token);
+            string revid = page.Save(wiki, "архивация");
             if (revid != null)
             {
                 string fileName = _cacheDir + Cache.EscapePath(MainPage);
@@ -151,19 +140,13 @@ namespace Claymore.ArchiveWikiBot
             }
             foreach (var archive in archives)
             {
-                Console.Out.WriteLine("Saving " + archive.Key + "...");
+                WikiPage a = new WikiPage(archive.Key, archive.Value);
+                Console.Out.WriteLine("Saving " + a.Title + "...");
                 for (int i = 0; i < 5; ++i)
                 {
                     try
                     {
-                        wiki.SavePage(archive.Key,
-                            "",
-                            archive.Value,
-                            "архивация",
-                            MinorFlags.Minor,
-                            CreateFlags.None,
-                            WatchFlags.None,
-                            SaveFlags.Replace);
+                        a.Save(wiki, "архивация");
                         break;
                     }
                     catch (WikiException)

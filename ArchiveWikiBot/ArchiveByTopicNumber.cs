@@ -109,7 +109,7 @@ namespace Claymore.ArchiveWikiBot
                 if (string.IsNullOrEmpty(text))
                 {
                     Console.Out.WriteLine("Downloading " + pageName + "...");
-                    text = wiki.LoadPage(pageName);
+                    text = WikiPage.LoadText(pageName, wiki);
                     Cache.CachePage(pageFileName, node.Attributes["lastrevid"].Value, text);
                 }
                 WikiPage archivePage = WikiPage.Parse(pageName, text);

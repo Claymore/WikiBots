@@ -12,7 +12,7 @@ namespace Claymore.ArchiveWikiBot
     {
         static int Main(string[] args)
         {
-            Wiki wiki = new Wiki("http://ru.wikipedia.org");
+            Wiki wiki = new Wiki("http://ru.wikipedia.org/w/");
             wiki.SleepBetweenQueries = 2;
             if (string.IsNullOrEmpty(Settings.Default.Login) ||
                 string.IsNullOrEmpty(Settings.Default.Password))
@@ -24,10 +24,10 @@ namespace Claymore.ArchiveWikiBot
             Console.Out.WriteLine("Logging in as " + Settings.Default.Login + "...");
             try
             {
-                if (!wiki.LoadCookies())
+                if (!WikiCache.LoadCookies(wiki))
                 {
                     wiki.Login(Settings.Default.Login, Settings.Default.Password);
-                    wiki.CacheCookies();
+                    WikiCache.CacheCookies(wiki);
                 }
                 else
                 {
@@ -36,7 +36,7 @@ namespace Claymore.ArchiveWikiBot
                     {
                         wiki.Logout();
                         wiki.Login(Settings.Default.Login, Settings.Default.Password);
-                        wiki.CacheCookies();
+                        WikiCache.CacheCookies(wiki);
                     }
                 }
             }
@@ -47,8 +47,9 @@ namespace Claymore.ArchiveWikiBot
             }
             Console.Out.WriteLine("Logged in as " + Settings.Default.Login + ".");
 
-            string listText = wiki.LoadPage("Участник:ClaymoreBot/Архивация/Список");
-            StringReader reader = new StringReader(listText);
+            WikiPage listPage = new WikiPage("Участник:ClaymoreBot/Архивация/Список");
+            listPage.Load(wiki);
+            StringReader reader = new StringReader(listPage.Text);
             HashSet<string> pages = new HashSet<string>();
             Regex pageRE = new Regex(@"^\*\s*(.+)\s*$");
             string line;

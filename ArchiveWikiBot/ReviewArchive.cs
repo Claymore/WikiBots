@@ -17,24 +17,28 @@ namespace Claymore.ArchiveWikiBot
 
         public override Dictionary<string, string> Process(Wiki wiki, WikiPage page)
         {
+            var pageTexts = new Dictionary<string, string>();
+            var talkPages = new Dictionary<string, WikiPageSection>();
+            var archivedSections = new List<WikiPageSection>();
+            Regex reviewRE = new Regex(@"\{\{рецензия(\|.+?)?\}\}", RegexOptions.IgnoreCase);
             Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
+
             ParameterCollection parameters = new ParameterCollection();
             parameters.Add("prop", "info");
-
-            var archives = new Dictionary<string, WikiPageSection>();
-            List<WikiPageSection> archivedSections = new List<WikiPageSection>();
+            parameters.Add("redirects");
+            XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, Format);
+            XmlNode node = xml.SelectSingleNode("//page");
 
             string pageFileName = _cacheDir + "archive.txt";
-            XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, new string[] { Format });
-            XmlNode node = xml.SelectSingleNode("//page");
             string text = Cache.LoadPageFromCache(pageFileName, node.Attributes["lastrevid"].Value, Format);
             if (string.IsNullOrEmpty(text))
             {
                 Console.Out.WriteLine("Downloading " + Format + "...");
-                text = wiki.LoadPage(Format);
+                text = WikiPage.LoadText(Format, wiki);
                 Cache.CachePage(pageFileName, node.Attributes["lastrevid"].Value, text);
             }
-            var arch = WikiPage.Parse(Format, text);
+
+            var archive = WikiPage.Parse(Format, text);
 
             foreach (WikiPageSection section in page.Sections)
             {
@@ -42,7 +46,7 @@ namespace Claymore.ArchiveWikiBot
                 if (m.Success)
                 {
                     string title = m.Groups[1].Value;
-                    xml = wiki.Query(QueryBy.Titles, parameters, new string[] { title });
+                    xml = wiki.Query(QueryBy.Titles, parameters, title);
                     node = xml.SelectSingleNode("//page");
                     if (node.Attributes["missing"] == null)
                     {
@@ -52,9 +56,11 @@ namespace Claymore.ArchiveWikiBot
                     {
                         continue;
                     }
+
                     MatchCollection ms = timeRE.Matches(FilterQuotes(section.Text));
                     DateTime published = DateTime.Today;
                     DateTime lastReply = DateTime.MinValue;
+                    
                     foreach (Match match in ms)
                     {
                         string value = match.Groups[1].Value;
@@ -69,7 +75,9 @@ namespace Claymore.ArchiveWikiBot
                             lastReply = time;
                         }
                     }
-                    if (lastReply != DateTime.MinValue && (DateTime.Today - lastReply).TotalHours >= Delay)
+
+                    if (lastReply != DateTime.MinValue &&
+                        (DateTime.Today - lastReply).TotalHours >= Delay)
                     {
                         string period;
                         if (published.Month == lastReply.Month && published.Year == lastReply.Year)
@@ -97,15 +105,13 @@ namespace Claymore.ArchiveWikiBot
                         {
                             section.SectionText += "{{ecs}}";
                         }
+
                         string talk = title.StartsWith("Портал:")
                                    ? "Обсуждение портала:" + title.Substring(7)
                                    : "Обсуждение:" + title;
-                        if (!archives.ContainsKey(talk))
-                        {
-                            archives.Add(talk, section);
-                        }
+
                         string archiveSectionTitle = lastReply.ToString("MMMM yyyy");
-                        var archiveSection = arch.Sections.FirstOrDefault(ss => ss.Title.Trim() == archiveSectionTitle);
+                        var archiveSection = archive.Sections.FirstOrDefault(ss => ss.Title.Trim() == archiveSectionTitle);
 
                         if (archiveSection != null)
                         {
@@ -117,145 +123,70 @@ namespace Claymore.ArchiveWikiBot
                         {
                             archiveSection = new WikiPageSection(period, 2, "# [[" + title +
                                                          "]]: [[" + talk + "#" + period + "|" + period + "]];\n");
-                            arch.Sections.Insert(0, archiveSection);
+                            archive.Sections.Insert(0, archiveSection);
                         }
                         archivedSections.Add(section);
+
+                        xml = wiki.Query(QueryBy.Titles, parameters, talk);
+                        node = xml.SelectSingleNode("//page");
+                        if (node.Attributes["missing"] == null)
+                        {
+                            Console.Out.WriteLine("Downloading " + talk + "...");
+                            text = WikiPage.LoadText(talk, wiki);
+                        }
+                        else
+                        {
+                            text = "";
+                        }
+
+                        WikiPage talkPage = WikiPage.Parse(talk, text);
+                        talkPage.Sections.Add(section);
+                        pageTexts.Add(talk, talkPage.Text);
+
+                        WikiPage article = new WikiPage(title);
+                        article.Load(wiki);
+                        string newText = reviewRE.Replace(article.Text, "");
+                        if (newText != article.Text)
+                        {
+                            pageTexts.Add(title, newText);
+                        }
                     }
                 }
             }
 
-            Dictionary<string, string> archiveTexts = new Dictionary<string, string>();
             if (archivedSections.Count == 0)
             {
-                return archiveTexts;
+                return pageTexts;
             }
-
-            foreach (string pageName in archives.Keys)
-            {
-                xml = wiki.Query(QueryBy.Titles, parameters, new string[] { pageName });
-                node = xml.SelectSingleNode("//page");
-                if (node.Attributes["missing"] == null)
-                {
-                    Console.Out.WriteLine("Downloading " + pageName + "...");
-                    text = wiki.LoadPage(pageName);
-                }
-                else
-                {
-                    text = "";
-                }
-
-                WikiPage archivePage = WikiPage.Parse(pageName, text);
-                var section = archives[pageName];
-                archivePage.Sections.Add(section);
-                archiveTexts.Add(pageName, archivePage.Text);
-            }
-            archiveTexts.Add(arch.Title, arch.Text);
+            pageTexts.Add(archive.Title, archive.Text);
 
             foreach (var section in archivedSections)
             {
                 page.Sections.Remove(section);
             }
-            return archiveTexts;
+            return pageTexts;
         }
 
         public override void Save(Wiki wiki, WikiPage page, Dictionary<string, string> archives)
         {
             Console.Out.WriteLine("Saving " + MainPage + "...");
-            wiki.SavePage(MainPage, page.Text, "архивация");
-            string revid = wiki.SavePage(MainPage,
-                        "",
-                        page.Text,
-                        "архивация",
-                        MinorFlags.Minor,
-                        CreateFlags.NoCreate,
-                        WatchFlags.None,
-                        SaveFlags.Replace,
-                        page.BaseTimestamp,
-                        "",
-                        page.Token);
+            string revid = page.Save(wiki, "архивация");
             if (revid != null)
             {
                 string fileName = _cacheDir + Cache.EscapePath(MainPage);
                 Cache.CachePage(fileName, revid, page.Text);
             }
+
+            
             foreach (var archive in archives)
             {
-                Console.Out.WriteLine("Saving " + archive.Key + "...");
+                WikiPage a = new WikiPage(archive.Key, archive.Value);
+                Console.Out.WriteLine("Saving " + a.Title + "...");
                 for (int i = 0; i < 5; ++i)
                 {
                     try
                     {
-                        wiki.SavePage(archive.Key,
-                            "",
-                            archive.Value,
-                            "архивация",
-                            MinorFlags.Minor,
-                            CreateFlags.None,
-                            WatchFlags.None,
-                            SaveFlags.Replace);
-                        break;
-                    }
-                    catch (WikiException)
-                    {
-                    }
-                }
-            }
-
-            Regex reviewRE = new Regex(@"\{\{рецензия(\|.+?)?\}\}", RegexOptions.IgnoreCase);
-
-            foreach (var archiveText in archives)
-            {
-                Console.Out.WriteLine("Saving " + archiveText.Key + "...");
-                for (int i = 0; i < 5; ++i)
-                {
-                    try
-                    {
-                        wiki.SavePage(archiveText.Key,
-                            "",
-                            archiveText.Value,
-                            "рецензия",
-                            MinorFlags.Minor,
-                            CreateFlags.None,
-                            WatchFlags.None,
-                            SaveFlags.Replace);
-                        break;
-                    }
-                    catch (WikiException)
-                    {
-                    }
-                }
-
-                string talk = archiveText.Key.StartsWith("Портал:") ? "Обсуждение портала:" : "Обсуждение:";
-                string pageName = archiveText.Key.Substring(talk.Length);
-                string text = "";
-                for (int i = 0; i < 5; ++i)
-                {
-                    try
-                    {
-                        text = wiki.LoadPage(pageName);
-                        break;
-                    }
-                    catch (WikiException)
-                    {
-                    }
-                }
-                if (string.IsNullOrEmpty(text))
-                {
-                    return;
-                }
-                Console.Out.WriteLine("Saving " + pageName + "...");
-                for (int i = 0; i < 5; ++i)
-                {
-                    try
-                    {
-                        wiki.SavePage(pageName,
-                            "",
-                            reviewRE.Replace(text, ""),
-                            "статья прошла рецензирование",
-                            MinorFlags.Minor,
-                            CreateFlags.None,
-                            WatchFlags.None,
-                            SaveFlags.Replace);
+                        a.Save(wiki, a.Title == Format ? "архивация" : "статья прошла рецензирование");
                         break;
                     }
                     catch (WikiException)

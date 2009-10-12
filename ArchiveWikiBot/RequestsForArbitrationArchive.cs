@@ -129,14 +129,8 @@ namespace Claymore.ArchiveWikiBot
                 try
                 {
                     Console.Out.WriteLine("Saving " + Title + "...");
-                    wiki.SavePage(Title,
-                        "",
-                        text,
-                        "архивация",
-                        MinorFlags.Minor,
-                        CreateFlags.None,
-                        WatchFlags.None,
-                        SaveFlags.Replace);
+                    page.Text = text;
+                    page.Save(wiki, "архивация");
                     break;
                 }
                 catch (WikiException)
@@ -155,14 +149,7 @@ namespace Claymore.ArchiveWikiBot
                     try
                     {
                         Console.Out.WriteLine("Saving " + Accepted + "...");
-                        wiki.SavePage(Accepted,
-                            "",
-                            acceptedPage.Text,
-                            "архивация",
-                            MinorFlags.Minor,
-                            CreateFlags.None,
-                            WatchFlags.None,
-                            SaveFlags.Replace);
+                        acceptedPage.Save(wiki, "архивация");
                         break;
                     }
                     catch (WikiException)
@@ -181,14 +168,7 @@ namespace Claymore.ArchiveWikiBot
                     try
                     {
                         Console.Out.WriteLine("Saving " + Rejected + "...");
-                        wiki.SavePage(Rejected,
-                            "",
-                            rejectedPage.Text,
-                            "архивация",
-                            MinorFlags.Minor,
-                            CreateFlags.None,
-                            WatchFlags.None,
-                            SaveFlags.Replace);
+                        rejectedPage.Save(wiki, "архивация");
                         break;
                     }
                     catch (WikiException)
