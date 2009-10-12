@@ -1,14 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Claymore.SharpMediaWiki;
-using AutoeditorsWikiBot.Properties;
-using System.Xml;
-using System.IO;
 using System.Globalization;
-using System.IO.Compression;
+using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
+using System.Xml;
+using AutoeditorsWikiBot.Properties;
+using Claymore.SharpMediaWiki;
 
 namespace Claymore.AutoeditorsWikiBot
 {
@@ -16,7 +14,7 @@ namespace Claymore.AutoeditorsWikiBot
     {
         static void Main(string[] args)
         {
-            Wiki wiki = new Wiki("http://ru.wikipedia.org");
+            Wiki wiki = new Wiki("http://ru.wikipedia.org/w/");
             if (string.IsNullOrEmpty(Settings.Default.Login) ||
                 string.IsNullOrEmpty(Settings.Default.Password))
             {
@@ -38,7 +36,7 @@ namespace Claymore.AutoeditorsWikiBot
             Regex sysopRE = new Regex(@"\[\[(User|Участник|user|участник):(.+?)\|.+?]\]");
             Regex userRE = new Regex(@"{{user\|(.+)}}");
             Regex timeRE = new Regex(@"(\d{1,2}:\d{2}\, \d\d? [а-я]+ \d{4})( \(UTC\))?");
-            string text = wiki.LoadPage("Википедия:Присвоение флага автопатрулируемого");
+            string text = WikiPage.LoadText("Википедия:Присвоение флага автопатрулируемого", wiki);
             string[] lines = text.Split(new char[] { '\n' });
             List<LogEvent> entries = new List<LogEvent>();
             for (int i = 0; i < lines.Length; ++i)
@@ -135,14 +133,8 @@ namespace Claymore.AutoeditorsWikiBot
             using (TextReader sr = new StreamReader("output.txt"))
             {
                 text = sr.ReadToEnd();
-                wiki.SavePage("Википедия:Присвоение флага автопатрулируемого",
-                    "1",
-                    text,
-                    "обновление",
-                    MinorFlags.Minor,
-                    CreateFlags.NoCreate,
-                    WatchFlags.None,
-                    SaveFlags.Replace);
+                WikiPage page = WikiPage.Parse("Википедия:Присвоение флага автопатрулируемого", text);
+                page.SaveSection(wiki, "1", text, "обновление");
             }
 
             wiki.Logout();
