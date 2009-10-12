@@ -12,7 +12,7 @@ namespace Claymore.DeleterWikiBot
     {
         static int Main(string[] args)
         {
-            Wiki wiki = new Wiki("http://ru.wikipedia.org");
+            Wiki wiki = new Wiki("http://ru.wikipedia.org/w/");
             wiki.SleepBetweenQueries = 2;
             if (string.IsNullOrEmpty(Settings.Default.Login) ||
                 string.IsNullOrEmpty(Settings.Default.Password))
@@ -24,10 +24,10 @@ namespace Claymore.DeleterWikiBot
             Console.Out.WriteLine("Logging in as " + Settings.Default.Login + "...");
             try
             {
-                if (!wiki.LoadCookies())
+                if (!WikiCache.LoadCookies(wiki))
                 {
                     wiki.Login(Settings.Default.Login, Settings.Default.Password);
-                    wiki.CacheCookies();
+                    WikiCache.CacheCookies(wiki);
                 }
                 else
                 {
@@ -36,7 +36,7 @@ namespace Claymore.DeleterWikiBot
                     {
                         wiki.Logout();
                         wiki.Login(Settings.Default.Login, Settings.Default.Password);
-                        wiki.CacheCookies();
+                        WikiCache.CacheCookies(wiki);
                     }
                 }
             }
@@ -50,7 +50,7 @@ namespace Claymore.DeleterWikiBot
             string listText;
             try
             {
-                listText = wiki.LoadPage("Шаблон:Список подводящих итоги");
+                listText = WikiPage.LoadText("Шаблон:Список подводящих итоги", wiki);
             }
             catch (WikiException e)
             {
@@ -102,7 +102,7 @@ namespace Claymore.DeleterWikiBot
                 XmlDocument xml;
                 try
                 {
-                    xml = wiki.Query(QueryBy.Titles, parameters, new string[] { title });
+                    xml = wiki.Query(QueryBy.Titles, parameters, title);
                 }
                 catch (WikiException e)
                 {
@@ -132,7 +132,7 @@ namespace Claymore.DeleterWikiBot
 
                     try
                     {
-                        xml = wiki.Query(QueryBy.Titles, parameters, new string[] { title });
+                        xml = wiki.Query(QueryBy.Titles, parameters, title);
                     }
                     catch (WikiException e)
                     {
@@ -154,7 +154,8 @@ namespace Claymore.DeleterWikiBot
                             string token = page.Attributes["deletetoken"].Value;
                             try
                             {
-                                wiki.DeletePage(title, reason, token);
+                                WikiPage pageForDeletion = new WikiPage(title);
+                                pageForDeletion.Delete(wiki, reason, token);
                             }
                             catch (WikiException e)
                             {
