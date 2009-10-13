@@ -1,9 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Xml;
 using Claymore.NullEditWikiBot.Properties;
 using Claymore.SharpMediaWiki;
-using System.Collections.Generic;
-using System.IO;
 
 namespace Claymore.NullEditWikiBot
 {
@@ -11,32 +11,18 @@ namespace Claymore.NullEditWikiBot
     {
         static int Main(string[] args)
         {
-            Wiki wiki = new Wiki("http://ru.wikipedia.org");
             if (string.IsNullOrEmpty(Settings.Default.Login) ||
                 string.IsNullOrEmpty(Settings.Default.Password))
             {
                 Console.Out.WriteLine("Please add login and password to the configuration file.");
                 return -1;
             }
+            Wiki wiki = new Wiki("http://ru.wikipedia.org/w/");
 
             Console.Out.WriteLine("Logging in as " + Settings.Default.Login + "...");
             try
             {
-                if (!wiki.LoadCookies())
-                {
-                    wiki.Login(Settings.Default.Login, Settings.Default.Password);
-                    wiki.CacheCookies();
-                }
-                else
-                {
-                    wiki.Login();
-                    if (!wiki.IsBot)
-                    {
-                        wiki.Logout();
-                        wiki.Login(Settings.Default.Login, Settings.Default.Password);
-                        wiki.CacheCookies();
-                    }
-                }
+                WikiCache.Login(wiki, Settings.Default.Login, Settings.Default.Password);
             }
             catch (WikiException e)
             {
@@ -110,11 +96,9 @@ namespace Claymore.NullEditWikiBot
                             pageTitle, index++, pages.Count));
                         try
                         {
-                            wiki.AppendTextToPage(pageTitle,
+                            wiki.Append(pageTitle,
                                 "\n\n",
-                                "Сброс кеша нулевой правкой",
-                                MinorFlags.None,
-                                WatchFlags.Watch);
+                                "Сброс кеша нулевой правкой");
                         }
                         catch (WikiException e)
                         {
@@ -147,6 +131,10 @@ namespace Claymore.NullEditWikiBot
                 catch (WikiException e)
                 {
                     Console.Out.WriteLine(e.Message);
+                    using (TextWriter streamWriter = new StreamWriter(errorFileName))
+                    {
+                        streamWriter.Write(taskIndex);
+                    }
                     return -1;
                 }
 
@@ -164,15 +152,17 @@ namespace Claymore.NullEditWikiBot
                         pageTitle, index++, pages.Count));
                     try
                     {
-                        wiki.AppendTextToPage(pageTitle,
+                        wiki.Append(pageTitle,
                             "\n\n",
-                            "Сброс кеша нулевой правкой",
-                            MinorFlags.None,
-                            WatchFlags.Watch);
+                            "Сброс кеша нулевой правкой");
                     }
                     catch (WikiException e)
                     {
                         Console.Out.WriteLine(e.Message);
+                        using (TextWriter streamWriter = new StreamWriter(errorFileName))
+                        {
+                            streamWriter.Write(taskIndex);
+                        }
                         break;
                     }
                 }
@@ -218,11 +208,9 @@ namespace Claymore.NullEditWikiBot
                         pageTitle, index++, pages.Count));
                     try
                     {
-                        wiki.AppendTextToPage(pageTitle,
+                        wiki.Append(pageTitle,
                             "\n\n",
-                            "Сброс кеша нулевой правкой",
-                            MinorFlags.None,
-                            WatchFlags.Watch);
+                            "Сброс кеша нулевой правкой");
                     }
                     catch (WikiException e)
                     {
