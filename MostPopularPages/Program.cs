@@ -27,7 +27,7 @@ namespace MostPopularPages
             Directory.CreateDirectory("output");
             
             WebClient client = new WebClient();
-            Wiki wiki = new Wiki("http://ru.wikipedia.org");
+            Wiki wiki = new Wiki("http://ru.wikipedia.org/w/");
             Console.Out.WriteLine("Logging in as " + Settings.Default.Login + "...");
             try
             {
@@ -341,13 +341,13 @@ namespace MostPopularPages
             using (TextWriter streamWriter =
                   new StreamWriter("input/Популярные статьи.txt", false))
             {
-                streamWriter.Write(wiki.LoadPage("Википедия:Проект:Патрулирование/Популярные статьи"));
+                streamWriter.Write(wiki.LoadText("Википедия:Проект:Патрулирование/Популярные статьи"));
             }
 
             using (TextWriter streamWriter =
                   new StreamWriter("input/Популярные в прошлом.txt", false))
             {
-                streamWriter.Write(wiki.LoadPage("Википедия:Проект:Патрулирование/Популярные в прошлом"));
+                streamWriter.Write(wiki.LoadText("Википедия:Проект:Патрулирование/Популярные в прошлом"));
             }
             Console.Out.WriteLine("Finished downloading.");
         }
@@ -362,7 +362,7 @@ namespace MostPopularPages
                             new StreamReader("output/Популярные статьи.txt"))
                 {
                     string text = sr.ReadToEnd();
-                    wiki.SavePage("Википедия:Проект:Патрулирование/Популярные статьи",
+                    wiki.Save("Википедия:Проект:Патрулирование/Популярные статьи",
                         text, comment);
                 }
             }
@@ -372,7 +372,7 @@ namespace MostPopularPages
                             new StreamReader("output/Популярные в прошлом.txt"))
                 {
                     string text = sr.ReadToEnd();
-                    wiki.SavePage("Википедия:Проект:Патрулирование/Популярные в прошлом",
+                    wiki.Save("Википедия:Проект:Патрулирование/Популярные в прошлом",
                         text, comment);
                 }
             }
