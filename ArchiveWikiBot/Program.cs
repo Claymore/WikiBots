@@ -12,8 +12,6 @@ namespace Claymore.ArchiveWikiBot
     {
         static int Main(string[] args)
         {
-            Wiki wiki = new Wiki("http://ru.wikipedia.org/w/");
-            wiki.SleepBetweenQueries = 2;
             if (string.IsNullOrEmpty(Settings.Default.Login) ||
                 string.IsNullOrEmpty(Settings.Default.Password))
             {
@@ -21,24 +19,12 @@ namespace Claymore.ArchiveWikiBot
                 return 0;
             }
 
+            Wiki wiki = new Wiki("http://ru.wikipedia.org/w/");
+            wiki.SleepBetweenQueries = 2;
             Console.Out.WriteLine("Logging in as " + Settings.Default.Login + "...");
             try
             {
-                if (!WikiCache.LoadCookies(wiki))
-                {
-                    wiki.Login(Settings.Default.Login, Settings.Default.Password);
-                    WikiCache.CacheCookies(wiki);
-                }
-                else
-                {
-                    wiki.Login();
-                    if (!wiki.IsBot)
-                    {
-                        wiki.Logout();
-                        wiki.Login(Settings.Default.Login, Settings.Default.Password);
-                        WikiCache.CacheCookies(wiki);
-                    }
-                }
+                WikiCache.Login(wiki, Settings.Default.Login, Settings.Default.Password);
             }
             catch (WikiException e)
             {

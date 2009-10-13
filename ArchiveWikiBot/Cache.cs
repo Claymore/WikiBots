@@ -40,7 +40,7 @@ namespace Claymore.ArchiveWikiBot
             if (string.IsNullOrEmpty(text))
             {
                 Console.Out.WriteLine("Downloading " + title + "...");
-                text = WikiPage.LoadText(title, wiki);
+                text = wiki.LoadText(title);
                 CachePage(pageFileName, node.Attributes["lastrevid"].Value, text);
             }
 

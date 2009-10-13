@@ -34,7 +34,7 @@ namespace Claymore.ArchiveWikiBot
             if (string.IsNullOrEmpty(text))
             {
                 Console.Out.WriteLine("Downloading " + Format + "...");
-                text = WikiPage.LoadText(Format, wiki);
+                text = wiki.LoadText(Format);
                 Cache.CachePage(pageFileName, node.Attributes["lastrevid"].Value, text);
             }
 
@@ -132,7 +132,7 @@ namespace Claymore.ArchiveWikiBot
                         if (node.Attributes["missing"] == null)
                         {
                             Console.Out.WriteLine("Downloading " + talk + "...");
-                            text = WikiPage.LoadText(talk, wiki);
+                            text = wiki.LoadText(talk);
                         }
                         else
                         {
