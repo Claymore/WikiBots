@@ -33,14 +33,7 @@ namespace Claymore.NewPagesWikiBot
             if (!string.IsNullOrEmpty(text))
             {
                 Console.Out.WriteLine("Updating " + Page);
-                wiki.SavePage(Page,
-                    "",
-                    text,
-                    Module.UpdateComment,
-                    MinorFlags.Minor,
-                    CreateFlags.None,
-                    WatchFlags.None,
-                    SaveFlags.Replace);
+                wiki.Save(Page, text, Module.UpdateComment);
             }
         }
 

@@ -122,7 +122,7 @@ namespace Claymore.NewPagesWikiBot
             if (string.IsNullOrEmpty(text))
             {
                 Console.Out.WriteLine("Downloading " + title + "...");
-                text = wiki.LoadPage(title);
+                text = wiki.LoadText(title);
                 CachePage(pageFileName, node.Attributes["lastrevid"].Value, text);
             }
 

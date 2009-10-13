@@ -19,7 +19,7 @@ namespace Claymore.NewPagesWikiBot
             }
             Directory.CreateDirectory(@"Cache\" + args[0]);
 
-            Wiki wiki = new Wiki(string.Format("http://{0}.wikipedia.org/", args[0]));
+            Wiki wiki = new Wiki(string.Format("http://{0}.wikipedia.org/w/", args[0]));
             wiki.SleepBetweenQueries = 2;
             if (string.IsNullOrEmpty(Settings.Default.Login) ||
                 string.IsNullOrEmpty(Settings.Default.Password))
@@ -32,27 +32,13 @@ namespace Claymore.NewPagesWikiBot
             try
             {
                 string cookieFile = @"Cache\"+ args[0] + @"\cookie.jar";
-                if (!wiki.LoadCookies(cookieFile))
-                {
-                    wiki.Login(Settings.Default.Login, Settings.Default.Password);
-                    wiki.CacheCookies(cookieFile);
-                }
-                else
-                {
-                    wiki.Login();
-                    if (!wiki.IsBot)
-                    {
-                        wiki.Logout();
-                        wiki.Login(Settings.Default.Login, Settings.Default.Password);
-                        wiki.CacheCookies(cookieFile);
-                    }
-                }
+                WikiCache.Login(wiki, Settings.Default.Login, Settings.Default.Password, cookieFile);
 
                 string namespacesFile = @"Cache\"+ args[0] + @"\namespaces.dat";
-                if (!wiki.LoadNamespaces(namespacesFile))
+                if (!WikiCache.LoadNamespaces(wiki, namespacesFile))
                 {
                     wiki.GetNamespaces();
-                    wiki.SaveNamespaces(namespacesFile);
+                    WikiCache.CacheNamespaces(wiki, namespacesFile);
                 }
             }
             catch (WikiException e)
@@ -60,7 +46,7 @@ namespace Claymore.NewPagesWikiBot
                 Console.Out.WriteLine(e.Message);
                 return 0;
             }
-            Console.Out.WriteLine("Logged in as " + Settings.Default.Login + ".");
+            Console.Out.WriteLine("Logged in as " + wiki.User + ".");
 
             PortalModule portal = new PortalModule(args[0], args[1]);
             Directory.CreateDirectory("Cache\\" + args[0] + "\\NewPages\\");
@@ -90,20 +76,20 @@ namespace Claymore.NewPagesWikiBot
 
             for (int i = 0; i < pages.Count; ++i)
             {
-                WikiPage page = Cache.Load(wiki, pages[i], path);
-                IPortalModule module;
-                if (TryParse(page, path, portal, out module))
+                try
                 {
-                    try
+                    WikiPage page = Cache.Load(wiki, pages[i], path);
+                    IPortalModule module;
+                    if (TryParse(page, path, portal, out module))
                     {
                         module.Update(wiki);
                     }
-                    catch (WikiException)
-                    {
-                    }
-                    catch (System.Net.WebException)
-                    {
-                    }
+                }
+                catch (WikiException)
+                {
+                }
+                catch (System.Net.WebException)
+                {
                 }
             }
 

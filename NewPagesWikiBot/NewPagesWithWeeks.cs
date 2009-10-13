@@ -138,14 +138,7 @@ namespace Claymore.NewPagesWikiBot
             foreach (var page in pages)
             {
                 Console.Out.WriteLine("Updating " + page.Key);
-                wiki.SavePage(page.Key,
-                    "",
-                    page.Value,
-                    Module.UpdateComment,
-                    MinorFlags.Minor,
-                    CreateFlags.None,
-                    WatchFlags.None,
-                    SaveFlags.Replace);
+                wiki.Save(page.Key, page.Value, Module.UpdateComment);
             }
         }
 

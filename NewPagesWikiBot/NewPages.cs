@@ -74,7 +74,7 @@ namespace Claymore.NewPagesWikiBot
 
             try
             {
-                return wiki.LoadPage(Page);
+                return wiki.LoadText(Page);
             }
             catch (WikiPageNotFound)
             {
@@ -278,14 +278,7 @@ namespace Claymore.NewPagesWikiBot
             if (!string.IsNullOrEmpty(newText) && newText != text)
             {
                 Console.Out.WriteLine("Updating " + Page);
-                wiki.SavePage(Page,
-                    "",
-                    newText,
-                    Module.UpdateComment,
-                    MinorFlags.Minor,
-                    CreateFlags.None,
-                    WatchFlags.None,
-                    SaveFlags.Replace);
+                wiki.Save(Page, newText, Module.UpdateComment);
             }
         }
 

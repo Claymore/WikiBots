@@ -33,7 +33,7 @@ namespace Claymore.NewPagesWikiBot
         public string GetData(Wiki wiki)
         {
             Console.Out.WriteLine("Downloading data " + Page + "...");
-            string text = wiki.LoadPage(Page);
+            string text = wiki.LoadText(Page);
             HashSet<string> names = new HashSet<string>();
             StringReader reader = new StringReader(text);
             string line;
@@ -216,14 +216,7 @@ namespace Claymore.NewPagesWikiBot
             if (!string.IsNullOrEmpty(text))
             {
                 Console.Out.WriteLine("Updating " + Page);
-                wiki.SavePage(Page,
-                    "",
-                    text,
-                    Module.UpdateComment,
-                    MinorFlags.Minor,
-                    CreateFlags.None,
-                    WatchFlags.None,
-                    SaveFlags.Replace);
+                wiki.Save(Page, text, Module.UpdateComment);
             }
         }
 

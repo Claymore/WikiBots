@@ -125,14 +125,7 @@ namespace Claymore.NewPagesWikiBot
             GetData(client);
             string newText = ProcessData(wiki);
             Console.Out.WriteLine("Updating " + Page);
-            wiki.SavePage(Page,
-                "",
-                newText,
-                Module.UpdateComment,
-                MinorFlags.Minor,
-                CreateFlags.None,
-                WatchFlags.None,
-                SaveFlags.Replace);
+            wiki.Save(Page, newText, Module.UpdateComment);
         }
     }
 }

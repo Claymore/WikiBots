@@ -53,14 +53,7 @@ namespace Claymore.NewPagesWikiBot
             if (!string.IsNullOrEmpty(newText) && newText != text)
             {
                 Console.Out.WriteLine("Updating " + Page);
-                wiki.SavePage(Page,
-                    "",
-                    newText,
-                    Module.UpdateComment,
-                    MinorFlags.Minor,
-                    CreateFlags.None,
-                    WatchFlags.None,
-                    SaveFlags.Replace);
+                wiki.Save(Page, newText, Module.UpdateComment);
             }
 
             string oldText = text;
@@ -103,14 +96,7 @@ namespace Claymore.NewPagesWikiBot
             {
                 Console.Out.WriteLine("Updating " + ArchivePage);
                 string archiveText = string.Join(Delimeter, archiveItems.ToArray()) + "\n";
-                wiki.SavePage(ArchivePage,
-                        "",
-                        archiveText,
-                        Module.UpdateComment,
-                        MinorFlags.Minor,
-                        CreateFlags.None,
-                        WatchFlags.None,
-                        SaveFlags.Prepend);
+                wiki.Prepend(ArchivePage, archiveText, Module.UpdateComment);
             }
         }
     }
