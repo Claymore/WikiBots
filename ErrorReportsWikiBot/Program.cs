@@ -16,7 +16,7 @@ namespace Claymore.ErrorReportsWikiBot
     {
         static void Main(string[] args)
         {
-            Wiki wiki = new Wiki("http://ru.wikipedia.org");
+            Wiki wiki = new Wiki("http://ru.wikipedia.org/w/");
             if (string.IsNullOrEmpty(Settings.Default.Login) ||
                 string.IsNullOrEmpty(Settings.Default.Password))
             {
@@ -96,7 +96,7 @@ namespace Claymore.ErrorReportsWikiBot
                     {
                         try
                         {
-                            text = wiki.LoadPage(s);
+                            text = wiki.LoadText(s);
                         }
                         catch (WikiException e)
                         {
@@ -143,7 +143,7 @@ namespace Claymore.ErrorReportsWikiBot
                     string text = sr.ReadToEnd();
                     try
                     {
-                        wiki.SavePage("User:LEMeZza/Статистика ВП:СО",
+                        wiki.Save("User:LEMeZza/Статистика ВП:СО",
                             text,
                             "обновление статистики обработки [[ВП:СО|сообщений об ошибках]]");
                     }
