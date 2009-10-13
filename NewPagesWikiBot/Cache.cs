@@ -6,6 +6,7 @@ using System.Net;
 using System.Text.RegularExpressions;
 using System.Xml;
 using Claymore.SharpMediaWiki;
+using System.Collections.Generic;
 
 namespace Claymore.NewPagesWikiBot
 {
@@ -25,11 +26,49 @@ namespace Claymore.NewPagesWikiBot
             }
         }
 
+        public static void PurgeCache(string language)
+        {
+            if (!File.Exists(string.Format(@"Cache\{0}\pages.txt", language)))
+            {
+                return;
+            }
+            List<PageInfo> pages = new List<PageInfo>();
+            using (TextReader streamReader = new StreamReader(string.Format(@"Cache\{0}\pages.txt", language)))
+            {
+                string line;
+                while ((line = streamReader.ReadLine()) != null)
+                {
+                    string[] groups = line.Split(new char[] { '\t' });
+                    DateTime time = DateTime.Parse(groups[2],
+                                    null,
+                                    DateTimeStyles.AssumeUniversal);
+                    if ((DateTime.Now - time).TotalHours < 720)
+                    {
+                        pages.Add(new PageInfo(groups[0], groups[1], time));
+                    }
+                    else
+                    {
+                    }
+                }
+            }
+
+            using (TextWriter streamWriter = new StreamWriter(string.Format(@"Cache\{0}\pages.txt", language), false))
+            {
+                foreach (var page in pages)
+                {
+                    streamWriter.WriteLine("{0}\t{1}\t{2}Z",
+                        page.Title,
+                        page.Author,
+                        page.FirstEdit.ToUniversalTime().ToString("s"));
+                }
+            }
+        }
+
         public static void LoadPageList(WebClient client, string category, string language, int depth, int hours)
         {
             string fileName = "Cache\\" + language + "\\NewPages\\" + Cache.EscapePath(category) + ".txt";
             if (!File.Exists(fileName) ||
-                (DateTime.Now - File.GetCreationTime(fileName)).TotalHours > 1)
+                (DateTime.Now - File.GetLastWriteTime(fileName)).TotalHours > 1)
             {
                 Console.Out.WriteLine("Downloading data for " + category);
                 string url = string.Format("http://toolserver.org/~daniel/WikiSense/CategoryIntersect.php?wikilang={0}&wikifam=.wikipedia.org&basecat={1}&basedeep={2}&mode=rc&hours={3}&onlynew=on&go=Сканировать&format=csv&userlang=ru",
@@ -168,7 +207,7 @@ namespace Claymore.NewPagesWikiBot
         {
             string fileName = "Cache\\" + language + "\\PagesInCategory\\" + Cache.EscapePath(category) + ".txt";
             if (!File.Exists(fileName) ||
-                (DateTime.Now - File.GetCreationTime(fileName)).TotalHours > 1)
+                (DateTime.Now - File.GetLastWriteTime(fileName)).TotalHours > 1)
             {
                 Console.Out.WriteLine("Downloading data for " + category);
                 string query = string.Format("language={0}&depth={2}&categories={1}&sortby=title&format=tsv&doit=submit",
@@ -187,7 +226,7 @@ namespace Claymore.NewPagesWikiBot
         {
             string fileName = "Cache\\" + language + "\\PagesInCategoryWithTemplates\\" + Cache.EscapePath(category + "-" + templates) + ".txt";
             if (!File.Exists(fileName) ||
-                (DateTime.Now - File.GetCreationTime(fileName)).TotalHours > 1)
+                (DateTime.Now - File.GetLastWriteTime(fileName)).TotalHours > 1)
             {
                 Console.Out.WriteLine("Downloading data for " + category);
                 string query = string.Format("language={0}&depth={3}&categories={1}&templates_any={2}&sortby=title&format=tsv&doit=submit",

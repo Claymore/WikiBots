@@ -17,6 +17,7 @@ namespace Claymore.NewPagesWikiBot
                 Console.Out.WriteLine("NewPagesWikiBot <language> <update comment>");
                 return 0;
             }
+            string path = @"Cache\" + args[0] + @"\";
             Directory.CreateDirectory(@"Cache\" + args[0]);
 
             Wiki wiki = new Wiki(string.Format("http://{0}.wikipedia.org/w/", args[0]));
@@ -52,6 +53,7 @@ namespace Claymore.NewPagesWikiBot
             Directory.CreateDirectory("Cache\\" + args[0] + "\\NewPages\\");
             Directory.CreateDirectory("Cache\\" + args[0] + "\\PagesInCategory\\");
             Directory.CreateDirectory("Cache\\" + args[0] + "\\PagesInCategoryWithTemplates\\");
+            Cache.PurgeCache(args[0]);
 
             ParameterCollection parameters = new ParameterCollection();
             parameters.Add("generator", "embeddedin");
@@ -60,9 +62,6 @@ namespace Claymore.NewPagesWikiBot
             parameters.Add("prop", "info");
             parameters.Add("intoken", "edit");
             parameters.Add("redirects");
-
-            string path = @"Cache\" + args[0] + @"\";
-            Directory.CreateDirectory(path);
 
             List<string> pages = new List<string>();
             XmlDocument doc = wiki.Enumerate(parameters, true);
