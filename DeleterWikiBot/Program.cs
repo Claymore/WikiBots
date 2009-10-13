@@ -24,21 +24,7 @@ namespace Claymore.DeleterWikiBot
             Console.Out.WriteLine("Logging in as " + Settings.Default.Login + "...");
             try
             {
-                if (!WikiCache.LoadCookies(wiki))
-                {
-                    wiki.Login(Settings.Default.Login, Settings.Default.Password);
-                    WikiCache.CacheCookies(wiki);
-                }
-                else
-                {
-                    wiki.Login();
-                    if (!wiki.IsBot)
-                    {
-                        wiki.Logout();
-                        wiki.Login(Settings.Default.Login, Settings.Default.Password);
-                        WikiCache.CacheCookies(wiki);
-                    }
-                }
+                WikiCache.Login(wiki, Settings.Default.Login, Settings.Default.Password);
             }
             catch (WikiException e)
             {
@@ -50,7 +36,7 @@ namespace Claymore.DeleterWikiBot
             string listText;
             try
             {
-                listText = WikiPage.LoadText("Шаблон:Список подводящих итоги", wiki);
+                listText = wiki.LoadText("Шаблон:Список подводящих итоги");
             }
             catch (WikiException e)
             {
@@ -71,14 +57,17 @@ namespace Claymore.DeleterWikiBot
                 }
             }
 
-            ParameterCollection parameters = new ParameterCollection();
-            parameters.Add("generator", "embeddedin");
-            parameters.Add("geititle", "Template:Db-discussion");
-            parameters.Add("geilimit", "max");
-            parameters.Add("prop", "info");
-            parameters.Add("intoken", "delete");
+            ParameterCollection parameters = new ParameterCollection
+            {
+                { "generator", "embeddedin" },
+                { "geititle", "Template:Db-discussion" },
+                { "geilimit", "max"},
+                { "prop", "info" },
+                { "intoken", "delete" },
+                { "inprop", "talkid" }
+            };
 
-            Regex templateRE = new Regex(@"\{\{db-discussion\|(\d+)\|(.+?)\}\}", RegexOptions.IgnoreCase);
+            Regex templateRE = new Regex(@"\{\{db-discussion\|(\d+?)\|(.+?)\}\}", RegexOptions.IgnoreCase);
             XmlDocument doc;
             try
             {
@@ -94,10 +83,12 @@ namespace Claymore.DeleterWikiBot
             foreach (XmlNode page in doc.SelectNodes("//page"))
             {
                 string title = page.Attributes["title"].Value;
-                parameters.Clear();
-                parameters.Add("prop", "revisions");
-                parameters.Add("rvprop", "content");
-                parameters.Add("rvlimit", "1");
+                parameters = new ParameterCollection
+                {
+                    { "prop", "revisions" },
+                    { "rvprop", "content" },
+                    { "rvlimit", "1" }
+                };
 
                 XmlDocument xml;
                 try
@@ -123,12 +114,14 @@ namespace Claymore.DeleterWikiBot
                 {
                     string timestamp = m.Groups[1].Value;
 
-                    parameters.Clear();
-                    parameters.Add("prop", "revisions");
-                    parameters.Add("rvprop", "timestamp|user|content");
-                    parameters.Add("rvlimit", "1");
-                    parameters.Add("rvstart", timestamp);
-                    parameters.Add("rvdir", "newer");
+                    parameters = new ParameterCollection
+                    {
+                        { "prop", "revisions" },
+                        { "rvprop", "timestamp|user|content" },
+                        { "rvlimit", "1" },
+                        { "rvstart", timestamp },
+                        { "rvdir", "newer" },
+                    };
 
                     try
                     {
@@ -154,14 +147,48 @@ namespace Claymore.DeleterWikiBot
                             string token = page.Attributes["deletetoken"].Value;
                             try
                             {
-                                WikiPage pageForDeletion = new WikiPage(title);
-                                pageForDeletion.Delete(wiki, reason, token);
+                                wiki.Delete(title, reason, token);
                             }
                             catch (WikiException e)
                             {
                                 Console.Out.WriteLine(e.Message);
                                 failed = true;
                                 continue;
+                            }
+
+                            parameters = new ParameterCollection
+                            {
+                                { "list", "backlinks" },
+                                { "blfilterredir", "redirects" },
+                                { "bllimit", "max" },
+                                { "bltitle", title },
+                            };
+
+                            try
+                            {
+                                xml = wiki.Enumerate(parameters, true);
+                            }
+                            catch (WikiException e)
+                            {
+                                Console.Out.WriteLine(e.Message);
+                                failed = true;
+                                continue;
+                            }
+
+                            foreach (XmlNode backlink in xml.SelectNodes("//bl"))
+                            {
+                                try
+                                {
+                                    wiki.Delete(backlink.Attributes["title"].Value,
+                                       "[[ВП:КБУ#П1|П1]]: перенаправление в никуда",
+                                      wiki.Token);
+                                }
+                                 catch (WikiException e)
+                                 {
+                                     Console.Out.WriteLine(e.Message);
+                                     failed = true;
+                                     continue;
+                                 }
                             }
                         }
                     }
