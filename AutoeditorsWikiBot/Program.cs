@@ -36,7 +36,16 @@ namespace Claymore.AutoeditorsWikiBot
             Regex sysopRE = new Regex(@"\[\[(User|Участник|user|участник):(.+?)\|.+?]\]");
             Regex userRE = new Regex(@"{{user\|(.+)}}");
             Regex timeRE = new Regex(@"(\d{1,2}:\d{2}\, \d\d? [а-я]+ \d{4})( \(UTC\))?");
-            string text = WikiPage.LoadText("Википедия:Присвоение флага автопатрулируемого", wiki);
+            string text;
+            try
+            {
+                text = wiki.LoadText("Википедия:Присвоение флага автопатрулируемого");
+            }
+            catch (WikiException e)
+            {
+                Console.Out.WriteLine(e.Message);
+                return;
+            }
             string[] lines = text.Split(new char[] { '\n' });
             List<LogEvent> entries = new List<LogEvent>();
             for (int i = 0; i < lines.Length; ++i)
@@ -64,14 +73,24 @@ namespace Claymore.AutoeditorsWikiBot
                 }
             }
 
-            ParameterCollection parameters = new ParameterCollection();
-            parameters.Add("list", "logevents");
-            parameters.Add("letype", "rights");
-            parameters.Add("lelimit", "max");
-            parameters.Add("lestart", "2008-09-06T00:00:00Z");
-            parameters.Add("ledir", "newer");
-            XmlDocument doc = wiki.Enumerate(parameters, true);
-            
+            ParameterCollection parameters = new ParameterCollection
+            {
+                { "list", "logevents" },
+                { "letype", "rights" },
+                { "lelimit", "max" },
+                { "lestart", "2008-09-06T00:00:00Z" },
+                { "ledir", "newer" }
+            };
+            XmlDocument doc;
+            try
+            {
+                doc = wiki.Enumerate(parameters, true);
+            }
+            catch (WikiException e)
+            {
+                Console.Out.WriteLine(e.Message);
+                return;
+            }
             XmlNodeList autoeditors = doc.SelectNodes("//rights[@new=\"autoeditor\"]");
             XmlNodeList editors = doc.SelectNodes("//rights[@new=\"editor, rollbacker\"]");
 
@@ -133,8 +152,15 @@ namespace Claymore.AutoeditorsWikiBot
             using (TextReader sr = new StreamReader("output.txt"))
             {
                 text = sr.ReadToEnd();
-                WikiPage page = WikiPage.Parse("Википедия:Присвоение флага автопатрулируемого", text);
-                page.SaveSection(wiki, "1", text, "обновление");
+                try
+                {
+                    wiki.SaveSection("Википедия:Присвоение флага автопатрулируемого", "1", text, "обновление");
+                }
+                catch (WikiException e)
+                {
+                    Console.Out.WriteLine(e.Message);
+                    return;
+                }
             }
 
             wiki.Logout();
