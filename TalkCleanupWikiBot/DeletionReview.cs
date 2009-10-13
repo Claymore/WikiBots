@@ -75,7 +75,7 @@ namespace Claymore.TalkCleanupWikiBot
                 if (string.IsNullOrEmpty(text))
                 {
                     Console.Out.WriteLine("Downloading " + pageName + "...");
-                    text = wiki.LoadPage(pageName);
+                    text = wiki.LoadText(pageName);
                     
                     using (FileStream fs = new FileStream(fileName, FileMode.Create))
                     using (GZipStream gs = new GZipStream(fs, CompressionMode.Compress))
@@ -91,7 +91,7 @@ namespace Claymore.TalkCleanupWikiBot
                 {
                     Console.Out.WriteLine("Closing " + pageName + "...");
                     text = text.Replace("{{ВПВУС-Навигация}}", "{{ВПВУС-Навигация|nocat=1}}");
-                    wiki.SavePage(pageName,
+                    wiki.Save(pageName,
                         text,
                         "обсуждение закрыто");
                     continue;
@@ -258,14 +258,10 @@ namespace Claymore.TalkCleanupWikiBot
                         new StreamReader(_cacheDir + "MainPage.txt"))
             {
                 string text = sr.ReadToEnd();
-                wiki.SavePage("Википедия:К восстановлению",
+                wiki.SaveSection("Википедия:К восстановлению",
                     "1",
                     text,
-                    "обновление",
-                    MinorFlags.Minor,
-                    CreateFlags.NoCreate,
-                    WatchFlags.Watch,
-                    SaveFlags.Replace);
+                    "обновление");
             }
         }
 
@@ -382,7 +378,7 @@ namespace Claymore.TalkCleanupWikiBot
                     if (string.IsNullOrEmpty(text))
                     {
                         Console.Out.WriteLine("Downloading " + pageName + "...");
-                        text = wiki.LoadPage(pageName);
+                        text = wiki.LoadText(pageName);
                         CachePage(pageFileName, page.Attributes["lastrevid"].Value, text);
                     }
 
@@ -466,14 +462,9 @@ namespace Claymore.TalkCleanupWikiBot
                 }
 
                 Console.Out.WriteLine("Updating " + archiveName + "...");
-                wiki.SavePage(archiveName,
-                    "",
+                wiki.Save(archiveName,
                     textBuilder.ToString(),
-                    "обновление",
-                    MinorFlags.Minor,
-                    CreateFlags.None,
-                    WatchFlags.None,
-                    SaveFlags.Replace);
+                    "обновление");
                 using (StreamWriter sw =
                         new StreamWriter(fileName))
                 {
@@ -535,7 +526,7 @@ namespace Claymore.TalkCleanupWikiBot
                     try
                     {
                         Console.Out.WriteLine("Downloading " + pageName + "...");
-                        text = wiki.LoadPage(pageName);
+                        text = wiki.LoadText(pageName);
                         starttimestamp = DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ");
                     }
                     catch (WikiPageNotFound)
@@ -735,7 +726,7 @@ namespace Claymore.TalkCleanupWikiBot
                 try
                 {
                     Console.Out.WriteLine("Updating " + pageName + "...");
-                    string revid = wiki.SavePage(pageName,
+                    string revid = wiki.Save(pageName,
                         "",
                         newText,
                         "зачёркивание заголовков" + (results > 0 ? " и подведение итогов" : ""),
@@ -743,8 +734,9 @@ namespace Claymore.TalkCleanupWikiBot
                         CreateFlags.NoCreate,
                         WatchFlags.None,
                         SaveFlags.Replace,
+                        true,
                         basetimestamp,
-                        starttimestamp,
+                        "",
                         editToken);
 
                     using (FileStream fs = new FileStream(fileName, FileMode.Create))
@@ -888,11 +880,9 @@ namespace Claymore.TalkCleanupWikiBot
                 if (node.Attributes["missing"] == null)
                 {
                     Console.Out.WriteLine("Updating " + node.Attributes["title"].Value + "...");
-                    wiki.PrependTextToPage(node.Attributes["title"].Value,
+                    wiki.Prepend(node.Attributes["title"].Value,
                         "{{ВПВУС-Навигация}}\n",
-                        "добавление навигационного шаблона",
-                        MinorFlags.Minor,
-                        WatchFlags.None);
+                        "добавление навигационного шаблона");
                 }
             }
         }

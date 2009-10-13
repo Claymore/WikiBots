@@ -30,38 +30,26 @@ namespace Claymore.TalkCleanupWikiBot
 
         private static bool UpdateUkWiki()
         {
-            Wiki wiki = new Wiki("http://uk.wikipedia.org");
-            wiki.SleepBetweenQueries = 2;
             if (string.IsNullOrEmpty(Settings.Default.Login) ||
                 string.IsNullOrEmpty(Settings.Default.Password))
             {
                 Console.Out.WriteLine("Please add login and password to the configuration file.");
                 return false;
             }
+
+            Wiki wiki = new Wiki("http://uk.wikipedia.org/w/");
+            wiki.SleepBetweenQueries = 2;
             Console.Out.WriteLine("Logging in as " + Settings.Default.Login + " to " + wiki.Uri + "...");
             try
             {
                 Directory.CreateDirectory(@"Cache\uk");
                 string cookieFile = @"Cache\uk\cookie.jar";
-                if (!wiki.LoadCookies(cookieFile))
-                {
-                    wiki.Login(Settings.Default.Login, Settings.Default.Password);
-                    wiki.CacheCookies(cookieFile);
-                }
-                else
-                {
-                    wiki.Login();
-                    if (!wiki.IsBot)
-                    {
-                        wiki.Logout();
-                        wiki.Login(Settings.Default.Login, Settings.Default.Password);
-                        wiki.CacheCookies(cookieFile);
-                    }
-                }
-                if (!wiki.LoadNamespaces(@"Cache\uk\namespaces.dat"))
+                WikiCache.Login(wiki, Settings.Default.Login, Settings.Default.Password, cookieFile);
+
+                if (!WikiCache.LoadNamespaces(wiki, @"Cache\uk\namespaces.dat"))
                 {
                     wiki.GetNamespaces();
-                    wiki.SaveNamespaces(@"Cache\uk\namespaces.dat");
+                    WikiCache.CacheNamespaces(wiki, @"Cache\uk\namespaces.dat");
                 }
             }
             catch (WikiException e)
@@ -140,39 +128,26 @@ namespace Claymore.TalkCleanupWikiBot
 
         private static bool UpdateRuWiki()
         {
-            Wiki wiki = new Wiki("http://ru.wikipedia.org");
-            wiki.SleepBetweenQueries = 2;
-
             if (string.IsNullOrEmpty(Settings.Default.Login) ||
                 string.IsNullOrEmpty(Settings.Default.Password))
             {
                 Console.Out.WriteLine("Please add login and password to the configuration file.");
                 return false;
             }
+
+            Wiki wiki = new Wiki("http://ru.wikipedia.org/w/");
+            wiki.SleepBetweenQueries = 2;
             Console.Out.WriteLine("Logging in as " + Settings.Default.Login + " to " + wiki.Uri + "...");
             try
             {
                 Directory.CreateDirectory(@"Cache\ru");
                 string cookieFile = @"Cache\ru\cookie.jar";
-                if (!wiki.LoadCookies(cookieFile))
-                {
-                    wiki.Login(Settings.Default.Login, Settings.Default.Password);
-                    wiki.CacheCookies(cookieFile);
-                }
-                else
-                {
-                    wiki.Login();
-                    if (!wiki.IsBot)
-                    {
-                        wiki.Logout();
-                        wiki.Login(Settings.Default.Login, Settings.Default.Password);
-                        wiki.CacheCookies(cookieFile);
-                    }
-                }
-                if (!wiki.LoadNamespaces(@"Cache\ru\namespaces.dat"))
+                WikiCache.Login(wiki, Settings.Default.Login, Settings.Default.Password, cookieFile);
+
+                if (!WikiCache.LoadNamespaces(wiki, @"Cache\ru\namespaces.dat"))
                 {
                     wiki.GetNamespaces();
-                    wiki.SaveNamespaces(@"Cache\ru\namespaces.dat");
+                    WikiCache.CacheNamespaces(wiki, @"Cache\ru\namespaces.dat");
                 }
             }
             catch (WikiException e)

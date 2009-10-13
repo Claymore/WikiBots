@@ -75,7 +75,7 @@ namespace Claymore.TalkCleanupWikiBot
                 if (string.IsNullOrEmpty(text))
                 {
                     Console.Out.WriteLine("Downloading " + pageName + "...");
-                    text = wiki.LoadPage(pageName);
+                    text = wiki.LoadText(pageName);
                     using (FileStream fs = new FileStream(fileName, FileMode.Create))
                     using (GZipStream gs = new GZipStream(fs, CompressionMode.Compress))
                     using (StreamWriter sw = new StreamWriter(gs))
@@ -190,7 +190,7 @@ namespace Claymore.TalkCleanupWikiBot
                 if (string.IsNullOrEmpty(text))
                 {
                     Console.Out.WriteLine("Downloading " + pageName + "...");
-                    text = wiki.LoadPage(pageName);
+                    text = wiki.LoadText(pageName);
                     using (FileStream fs = new FileStream(fileName, FileMode.Create))
                     using (GZipStream gs = new GZipStream(fs, CompressionMode.Compress))
                     using (StreamWriter sw = new StreamWriter(gs))
@@ -274,7 +274,7 @@ namespace Claymore.TalkCleanupWikiBot
                         new StreamReader(_cacheDir + "Main.txt"))
             {
                 string text = sr.ReadToEnd();
-                wiki.SavePage(_l10i.MainPage, text, _l10i.MainPageUpdateComment);
+                wiki.Save(_l10i.MainPage, text, _l10i.MainPageUpdateComment);
             }
         }
 
@@ -292,14 +292,9 @@ namespace Claymore.TalkCleanupWikiBot
                             new StreamReader(_cacheDir + "Archive-" + archiveDate + ".txt"))
                 {
                     string text = sr.ReadToEnd();
-                    wiki.SavePage(_l10i.ArchivePage + archiveDate,
-                        "",
+                    wiki.Save(_l10i.ArchivePage + archiveDate,
                         text,
-                        _l10i.MainPageUpdateComment,
-                        MinorFlags.Minor,
-                        CreateFlags.None,
-                        WatchFlags.None,
-                        SaveFlags.Replace);
+                        _l10i.MainPageUpdateComment);
                 }
                 start.AddMonths(1);
             }
@@ -366,7 +361,7 @@ namespace Claymore.TalkCleanupWikiBot
                     try
                     {
                         Console.Out.WriteLine("Downloading " + pageName + "...");
-                        text = wiki.LoadPage(pageName);
+                        text = wiki.LoadText(pageName);
                         starttimestamp = DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ");
                     }
                     catch (WikiPageNotFound)
@@ -576,7 +571,7 @@ namespace Claymore.TalkCleanupWikiBot
                 try
                 {
                     Console.Out.WriteLine("Updating " + pageName + "...");
-                    string revid = wiki.SavePage(pageName,
+                    string revid = wiki.Save(pageName,
                         "",
                         newText,
                         _l10i.StrikeOutComment + (results > 0 ? _l10i.AutoResultComment : ""),
@@ -584,8 +579,9 @@ namespace Claymore.TalkCleanupWikiBot
                         CreateFlags.NoCreate,
                         WatchFlags.None,
                         SaveFlags.Replace,
+                        true,
                         basetimestamp,
-                        starttimestamp,
+                        "",
                         editToken);
 
                     using (FileStream fs = new FileStream(fileName, FileMode.Create))
@@ -660,14 +656,10 @@ namespace Claymore.TalkCleanupWikiBot
                         }
                     }
                 }
-                wiki.SavePage(talkPage,
+                wiki.SaveSection(talkPage,
                     "0",
                     content,
-                    _l10i.MainPageUpdateComment,
-                    MinorFlags.Minor,
-                    CreateFlags.None,
-                    WatchFlags.None,
-                    SaveFlags.Replace);
+                    _l10i.MainPageUpdateComment);
             }
             catch (WikiException e)
             {

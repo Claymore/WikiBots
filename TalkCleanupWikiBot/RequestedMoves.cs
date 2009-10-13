@@ -78,7 +78,7 @@ namespace Claymore.TalkCleanupWikiBot
                 if (string.IsNullOrEmpty(text))
                 {
                     Console.Out.WriteLine("Downloading " + pageName + "...");
-                    text = wiki.LoadPage(pageName);
+                    text = wiki.LoadText(pageName);
 
                     using (FileStream fs = new FileStream(fileName, FileMode.Create))
                     using (GZipStream gs = new GZipStream(fs, CompressionMode.Compress))
@@ -95,7 +95,7 @@ namespace Claymore.TalkCleanupWikiBot
                     text = text.Replace("{{ВПКПМ-Навигация}}", "{{ВПКПМ-Навигация|nocat=1}}");
                     try
                     {
-                        string revid = wiki.SavePage(pageName,
+                        string revid = wiki.Save(pageName,
                             text,
                             "обсуждение закрыто");
 
@@ -240,7 +240,7 @@ namespace Claymore.TalkCleanupWikiBot
                         new StreamReader(_cacheDir + "MainPage.txt"))
             {
                 string text = sr.ReadToEnd();
-                wiki.SavePage("Википедия:К переименованию", text, "обновление");
+                wiki.Save("Википедия:К переименованию", text, "обновление");
             }
         }
 
@@ -293,7 +293,7 @@ namespace Claymore.TalkCleanupWikiBot
                 if (string.IsNullOrEmpty(text))
                 {
                     Console.Out.WriteLine("Downloading " + pageName + "...");
-                    text = wiki.LoadPage(pageName);
+                    text = wiki.LoadText(pageName);
                     using (FileStream fs = new FileStream(fileName, FileMode.Create))
                     using (GZipStream gs = new GZipStream(fs, CompressionMode.Compress))
                     using (StreamWriter sw = new StreamWriter(gs))
@@ -484,7 +484,7 @@ namespace Claymore.TalkCleanupWikiBot
                 try
                 {
                     Console.Out.WriteLine("Updating " + pageName + "...");
-                    string revid = wiki.SavePage(pageName,
+                    string revid = wiki.Save(pageName,
                         "",
                         newText,
                         "зачёркивание заголовков" + (results > 0 ? ", сообщение об итогах" : ""),
@@ -492,6 +492,7 @@ namespace Claymore.TalkCleanupWikiBot
                         CreateFlags.NoCreate,
                         WatchFlags.None,
                         SaveFlags.Replace,
+                        true,
                         basetimestamp,
                         "",
                         editToken);
@@ -570,14 +571,10 @@ namespace Claymore.TalkCleanupWikiBot
                     }
                 }
 
-                wiki.SavePage(talkPage,
+                wiki.SaveSection(talkPage,
                     "0",
                     content,
-                    "итог",
-                    MinorFlags.Minor,
-                    CreateFlags.None,
-                    WatchFlags.None,
-                    SaveFlags.Replace);
+                    "итог");
             }
             catch (WikiException e)
             {
@@ -677,7 +674,7 @@ namespace Claymore.TalkCleanupWikiBot
                         if (string.IsNullOrEmpty(text))
                         {
                             Console.Out.WriteLine("Downloading " + pageName + "...");
-                            text = wiki.LoadPage(pageName);
+                            text = wiki.LoadText(pageName);
                             using (FileStream fs = new FileStream(pageFileName, FileMode.Create))
                             using (GZipStream gs = new GZipStream(fs, CompressionMode.Compress))
                             using (StreamWriter sw = new StreamWriter(gs))
@@ -814,7 +811,7 @@ namespace Claymore.TalkCleanupWikiBot
                             year.ToString() + "-" + monthNumber.ToString() + ".txt"))
             {
                 string text = sr.ReadToEnd();
-                wiki.SavePage(archiveName, text, "обновление");
+                wiki.Save(archiveName, text, "обновление");
             }
         }
 
@@ -853,11 +850,9 @@ namespace Claymore.TalkCleanupWikiBot
                 if (node.Attributes["missing"] == null)
                 {
                     Console.Out.WriteLine("Updating " + node.Attributes["title"].Value + "...");
-                    wiki.PrependTextToPage(node.Attributes["title"].Value,
+                    wiki.Prepend(node.Attributes["title"].Value,
                         "{{ВПКПМ-Навигация}}\n",
-                        "добавление навигационного шаблона",
-                        MinorFlags.Minor,
-                        WatchFlags.None);
+                        "добавление навигационного шаблона");
                 }
             }
         }

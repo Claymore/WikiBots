@@ -99,7 +99,7 @@ namespace Claymore.TalkCleanupWikiBot
                 if (string.IsNullOrEmpty(text))
                 {
                     Console.Out.WriteLine("Downloading " + pageName + "...");
-                    text = wiki.LoadPage(pageName);
+                    text = wiki.LoadText(pageName);
                     using (FileStream fs = new FileStream(fileName, FileMode.Create))
                     using (GZipStream gs = new GZipStream(fs, CompressionMode.Compress))
                     using (StreamWriter sw = new StreamWriter(gs))
@@ -114,7 +114,7 @@ namespace Claymore.TalkCleanupWikiBot
                 {
                     Console.Out.WriteLine("Closing " + pageName + "...");
                     text = _l10i.ClosePage(text);
-                    wiki.SavePage(pageName,
+                    wiki.Save(pageName,
                         text,
                         _l10i.CloseComment);
                     continue;
@@ -175,14 +175,10 @@ namespace Claymore.TalkCleanupWikiBot
                         new StreamReader(_cacheDir + "MainPage.txt"))
             {
                 string text = sr.ReadToEnd();
-                wiki.SavePage(_l10i.MainPage,
+                wiki.SaveSection(_l10i.MainPage,
                     _l10i.MainPageSection,
                     text,
-                    _l10i.MainPageUpdateComment,
-                    MinorFlags.Minor,
-                    CreateFlags.NoCreate,
-                    WatchFlags.Watch,
-                    SaveFlags.Replace);
+                    _l10i.MainPageUpdateComment);
             }
         }
 
@@ -301,7 +297,7 @@ namespace Claymore.TalkCleanupWikiBot
                     if (string.IsNullOrEmpty(text))
                     {
                         Console.Out.WriteLine("Downloading " + pageName + "...");
-                        text = wiki.LoadPage(pageName);
+                        text = wiki.LoadText(pageName);
                         CachePage(pageFileName, page.Attributes["lastrevid"].Value, text);
                     }
 
@@ -374,14 +370,9 @@ namespace Claymore.TalkCleanupWikiBot
                 }
 
                 Console.Out.WriteLine("Updating " + archiveName + "...");
-                wiki.SavePage(archiveName,
-                    "",
+                wiki.Save(archiveName,
                     textBuilder.ToString(),
-                    _l10i.MainPageUpdateComment,
-                    MinorFlags.Minor,
-                    CreateFlags.None,
-                    WatchFlags.None,
-                    SaveFlags.Replace);
+                    _l10i.MainPageUpdateComment);
                 using (StreamWriter sw =
                         new StreamWriter(fileName))
                 {
@@ -424,11 +415,9 @@ namespace Claymore.TalkCleanupWikiBot
                 if (node.Attributes["missing"] == null)
                 {
                     Console.Out.WriteLine("Updating " + node.Attributes["title"].Value + "...");
-                    wiki.PrependTextToPage(node.Attributes["title"].Value,
+                    wiki.Prepend(node.Attributes["title"].Value,
                         "{{" + _l10i.NavigationTemplate + "}}\n",
-                        _l10i.MainPageUpdateComment,
-                        MinorFlags.Minor,
-                        WatchFlags.None);
+                        _l10i.MainPageUpdateComment);
                 }
             }
         }
