@@ -158,7 +158,7 @@ namespace Claymore.NewPagesWikiBot
                 }
                 string[] items = oldText.Split(new string[] { Delimeter },
                        StringSplitOptions.RemoveEmptyEntries);
-                for (int i = 0; i < items.Length && pages.Count < MaxItems; ++i)
+                for (int i = 0; i < items.Length && result.Count < MaxItems; ++i)
                 {
                     if (!result.Exists(l => l == items[i]))
                     {
