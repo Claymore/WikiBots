@@ -125,7 +125,7 @@ namespace Claymore.DeleterWikiBot
 
                     try
                     {
-                        xml = wiki.Query(QueryBy.Titles, parameters, title);
+                        xml = wiki.Query(QueryBy.Titles, parameters, new string[] { title }, 500, false);
                     }
                     catch (WikiException e)
                     {
