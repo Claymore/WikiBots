@@ -248,6 +248,10 @@ namespace Claymore.ArchiveWikiBot
                 {
                     archive = new ArchiveByHalfYear(pageName, directory, days, format, header, checkForResult, newSectionsDown);
                 }
+                else if (t == "квартал")
+                {
+                    archive = new ArchiveByQuarter(pageName, directory, days, format, header, checkForResult, newSectionsDown);
+                }
                 else if (t == "статьи для рецензирования")
                 {
                     archive = new ReviewArchive(pageName, directory, days, format, header);

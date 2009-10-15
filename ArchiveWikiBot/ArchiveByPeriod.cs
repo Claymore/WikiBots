@@ -203,4 +203,65 @@ namespace Claymore.ArchiveWikiBot
             return date.ToString(string.Format(Format, number));
         }
     }
+
+    internal class ArchiveByQuarter : ArchiveByPeriod
+    {
+        public ArchiveByQuarter(string title,
+                               string directory,
+                               int days,
+                               string format,
+                               string header,
+                               bool checkForResult,
+                               bool newSectionsDown)
+            : base(title, directory, days, format, header, checkForResult, newSectionsDown)
+        {
+            Regex escapeChars = new Regex(@"([dfFghHKmMstyYz:/OoRrsuGTU])");
+            Format = escapeChars.Replace(format, "\\$1");
+            Format = Format.Replace("%(год)", "yyyy").Replace("%(квартал)", "{0}");
+        }
+
+        protected override DateTime NormalizeDate(DateTime date)
+        {
+            int number;
+            if (date.Month < 4)
+            {
+                number = 1;
+            }
+            else if (date.Month < 7)
+            {
+                number = 4;
+            }
+            else if (date.Month < 10)
+            {
+                number = 7;
+            }
+            else
+            {
+                number = 10;
+            }
+            return new DateTime(date.Year, number, 1);
+        }
+
+        protected override string DateToPageName(DateTime date)
+        {
+            int number;
+            if (date.Month < 4)
+            {
+                number = 1;
+            }
+            else if (date.Month < 7)
+            {
+                number = 2;
+            }
+            else if (date.Month < 10)
+            {
+                number = 3;
+            }
+            else
+            {
+                number = 4;
+            }
+            return date.ToString(string.Format(Format, number));
+        }
+    }
 }
