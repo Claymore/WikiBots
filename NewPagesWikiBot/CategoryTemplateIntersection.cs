@@ -22,7 +22,8 @@ namespace Claymore.NewPagesWikiBot
                         string format,
                         string delimeter,
                         string header,
-                        string footer)
+                        string footer,
+                        bool markEdits)
             : base(module,
                    categories,
                    categoriesToIgnore,
@@ -34,7 +35,8 @@ namespace Claymore.NewPagesWikiBot
                    format,
                    delimeter,
                    header,
-                   footer)
+                   footer,
+                   markEdits)
         {
             Templates = templates;
         }
@@ -125,7 +127,7 @@ namespace Claymore.NewPagesWikiBot
             GetData(client);
             string newText = ProcessData(wiki);
             Console.Out.WriteLine("Updating " + Page);
-            wiki.Save(Page, newText, Module.UpdateComment);
+            wiki.Save(Page, newText, Module.UpdateComment, !MarkEdits ? MinorFlags.NotMinor : MinorFlags.None, MarkEdits);
         }
     }
 }

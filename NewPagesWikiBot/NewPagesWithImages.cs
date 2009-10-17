@@ -22,7 +22,8 @@ namespace Claymore.NewPagesWikiBot
                         string format,
                         string delimeter,
                         string header,
-                        string footer)
+                        string footer,
+                        bool markEdits)
             : base(module,
                    categories,
                    categoriesToIgnore,
@@ -34,7 +35,8 @@ namespace Claymore.NewPagesWikiBot
                    format,
                    delimeter,
                    header,
-                   footer)
+                   footer,
+                   markEdits)
         {
             Format = Format.Replace("%(имя файла)", "{1}");
             _regex = new Regex(@"\| *image file *= *(?'fileName'.+?) *\n");
@@ -52,7 +54,8 @@ namespace Claymore.NewPagesWikiBot
                         string delimeter,
                         string header,
                         string footer,
-                        Regex regex)
+                        Regex regex,
+                        bool markEdits)
             : base(module,
                    categories,
                    categoriesToIgnore,
@@ -64,7 +67,8 @@ namespace Claymore.NewPagesWikiBot
                    format,
                    delimeter,
                    header,
-                   footer)
+                   footer,
+                   markEdits)
         {
             Format = Format.Replace("%(имя файла)", "{1}");
             _regex = regex;

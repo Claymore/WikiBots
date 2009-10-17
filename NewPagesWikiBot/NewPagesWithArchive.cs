@@ -21,7 +21,8 @@ namespace Claymore.NewPagesWikiBot
                         string format,
                         string delimeter,
                         string header,
-                        string footer)
+                        string footer,
+                        bool markEdits)
             : base(module,
                    categories,
                    categoriesToIgnore,
@@ -33,7 +34,8 @@ namespace Claymore.NewPagesWikiBot
                    format,
                    delimeter,
                    header,
-                   footer)
+                   footer,
+                   markEdits)
         {
             ArchivePage = archive;
         }
@@ -53,7 +55,7 @@ namespace Claymore.NewPagesWikiBot
             if (!string.IsNullOrEmpty(newText) && newText != text)
             {
                 Console.Out.WriteLine("Updating " + Page);
-                wiki.Save(Page, newText, Module.UpdateComment);
+                wiki.Save(Page, newText, Module.UpdateComment, !MarkEdits ? MinorFlags.NotMinor : MinorFlags.None, MarkEdits);
             }
 
             string oldText = text;

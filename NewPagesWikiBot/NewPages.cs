@@ -21,6 +21,7 @@ namespace Claymore.NewPagesWikiBot
         public PortalModule Module { get; private set; }
         public int Depth { get; private set; }
         public int Namespace { get; private set; }
+        public bool MarkEdits { get; private set; }
 
         public IList<string> Categories
         {
@@ -43,7 +44,8 @@ namespace Claymore.NewPagesWikiBot
                         string format,
                         string delimeter,
                         string header,
-                        string footer)
+                        string footer,
+                        bool markEdits)
         {
             _categories = new List<string>(categories);
             _categoriesToIgnore = new List<string>(categoriesToIgnore);
@@ -57,6 +59,7 @@ namespace Claymore.NewPagesWikiBot
             Header = header;
             Footer = footer;
             Namespace = ns;
+            MarkEdits = markEdits;
         }
 
         public virtual string GetData(Wiki wiki)
@@ -278,7 +281,7 @@ namespace Claymore.NewPagesWikiBot
             if (!string.IsNullOrEmpty(newText) && newText != text)
             {
                 Console.Out.WriteLine("Updating " + Page);
-                wiki.Save(Page, newText, Module.UpdateComment);
+                wiki.Save(Page, newText, Module.UpdateComment, !MarkEdits ? MinorFlags.NotMinor : MinorFlags.None, MarkEdits);
             }
         }
 

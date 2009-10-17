@@ -24,7 +24,8 @@ namespace Claymore.NewPagesWikiBot
                         string format,
                         string delimeter,
                         string header,
-                        string footer)
+                        string footer,
+                        bool markEdits)
             : base(module,
                    categories,
                    categoriesToIgnore,
@@ -37,7 +38,8 @@ namespace Claymore.NewPagesWikiBot
                    format,
                    delimeter,
                    header,
-                   footer)
+                   footer,
+                   markEdits)
         {
             Prefix = prefix;
         }

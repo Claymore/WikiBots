@@ -240,6 +240,12 @@ namespace Claymore.NewPagesWikiBot
                 prefix = options["префикс"];
             }
 
+            bool markEdits = true;
+            if (options.ContainsKey("помечать правки") && options["помечать правки"].ToLower() == "нет")
+            {
+                markEdits = false;
+            }
+
             int ns = 0;
             if (options.ContainsKey("пространство имён"))
             {
@@ -342,7 +348,8 @@ namespace Claymore.NewPagesWikiBot
                             format,
                             delimeter,
                             header,
-                            footer);
+                            footer,
+                            markEdits);
                     }
                     else
                     {
@@ -358,7 +365,8 @@ namespace Claymore.NewPagesWikiBot
                             format,
                             delimeter,
                             header,
-                            footer);
+                            footer,
+                            markEdits);
                     }
                 }
                 else if (t == "список наблюдения")
@@ -393,7 +401,8 @@ namespace Claymore.NewPagesWikiBot
                             format,
                             delimeter,
                             header,
-                            footer);
+                            footer,
+                            markEdits);
                 }
                 else if (t == "список новых статей с изображениями")
                 {
@@ -410,7 +419,8 @@ namespace Claymore.NewPagesWikiBot
                             delimeter,
                             header,
                             footer,
-                            regex);
+                            regex,
+                            markEdits);
                 }
                 else if (t == "списки новых статей по дням")
                 {
@@ -424,7 +434,8 @@ namespace Claymore.NewPagesWikiBot
                             format,
                             delimeter,
                             header,
-                            footer);
+                            footer,
+                            markEdits);
                 }
                 else if (t == "список страниц с заданными категориями и шаблонами")
                 {
@@ -440,7 +451,8 @@ namespace Claymore.NewPagesWikiBot
                             format,
                             delimeter,
                             header,
-                            footer);
+                            footer,
+                            markEdits);
                 }
                 else if (t == "список страниц с заданными категориями, шаблонами и обсуждением")
                 {
@@ -457,7 +469,8 @@ namespace Claymore.NewPagesWikiBot
                             format,
                             delimeter,
                             header,
-                            footer);
+                            footer,
+                            markEdits);
                 }
             }
             return module != null;
