@@ -53,7 +53,7 @@ namespace Claymore.DeleterWikiBot
                 Match m = userRE.Match(line);
                 if (m.Success)
                 {
-                    users.Add(m.Groups[2].Value);
+                    users.Add(m.Groups[2].Value.ToLower());
                 }
             }
 
@@ -134,7 +134,7 @@ namespace Claymore.DeleterWikiBot
                         continue;
                     }
                     node = xml.SelectSingleNode("//rev");
-                    if (node != null && users.Contains(node.Attributes["user"].Value))
+                    if (node != null && users.Contains(node.Attributes["user"].Value.ToLower()))
                     {
                         content = node.FirstChild.Value;
                         m = templateRE.Match(content);
