@@ -34,7 +34,7 @@ namespace Claymore.AutoeditorsWikiBot
             }
             Console.Out.WriteLine("Logged in as " + Settings.Default.Login + ".");
             Regex sysopRE = new Regex(@"\[\[(User|Участник|user|участник):(.+?)\|.+?]\]");
-            Regex userRE = new Regex(@"{{user\|(.+)}}");
+            Regex userRE = new Regex(@"{{user\|(1=)?(.+)}}");
             Regex timeRE = new Regex(@"(\d{1,2}:\d{2}\, \d\d? [а-я]+ \d{4})( \(UTC\))?");
             string text;
             try
@@ -54,7 +54,7 @@ namespace Claymore.AutoeditorsWikiBot
                 {
                     LogEvent logEntry = new LogEvent();
                     Match m = userRE.Match(lines[i + 2]);
-                    logEntry.User = m.Groups[1].Value;
+                    logEntry.User = m.Groups[2].Value;
                     string line = lines[i + 3];
                     m = sysopRE.Match(lines[i + 3]);
                     if (!m.Success)
