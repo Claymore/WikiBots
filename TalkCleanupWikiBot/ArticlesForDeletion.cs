@@ -20,6 +20,7 @@ namespace Claymore.TalkCleanupWikiBot
         {
             _l10i = l10i;
             _cacheDir = "Cache\\" + _l10i.Language + "\\ArticlesForDeletion\\";
+            Directory.CreateDirectory(_cacheDir);
         }
 
         public void Analyse(Wiki wiki)
@@ -387,7 +388,8 @@ namespace Claymore.TalkCleanupWikiBot
                     StrikeOutSection(section);
                     if (section.Subsections.Count(s => _l10i.Processor != null
                         ? _l10i.Results.Any(r => r == _l10i.Processor(s).Trim())
-                        : _l10i.Results.Any(r => r == s.Title.Trim())) == 0)
+                        : _l10i.Results.Any(r => r == s.Title.Trim())) == 0 &&
+                        section.Subsections.Count(s => s.Title.Trim() == _l10i.ChallengedResult) == 0)
                     {
                         Match m = wikiLinkRE.Match(section.Title);
                         if (m.Success)
@@ -422,6 +424,7 @@ namespace Claymore.TalkCleanupWikiBot
                             }
                             if (m.Success &&
                                 !subsection.Title.Contains("<s>") &&
+                                subsection.Subsections.Count(s => s.Title.Trim() == _l10i.ChallengedResult) == 0 &&
                                 subsection.Subsections.Count(s => _l10i.Processor != null
                                     ? _l10i.Results.Any(r => r == _l10i.Processor(s).Trim())
                                     : _l10i.Results.Any(r => r == s.Title.Trim())) == 0)

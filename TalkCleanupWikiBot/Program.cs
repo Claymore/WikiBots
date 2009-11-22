@@ -80,6 +80,7 @@ namespace Claymore.TalkCleanupWikiBot
             l10i.AutoResultSection = "Підсумок";
             l10i.NotificationTemplate = "Залишено";
             l10i.EmptyResult = "Підсумок";
+            l10i.ChallengedResult = "Оспоренный итог";
 
             Cleanup.Localization cleanupL10i = new Cleanup.Localization();
             cleanupL10i.Language = "uk";
@@ -200,6 +201,7 @@ namespace Claymore.TalkCleanupWikiBot
             l10i.AutoResultSection = "Автоитог";
             l10i.NotificationTemplate = "Оставлено";
             l10i.EmptyResult = "Пустой итог";
+            l10i.ChallengedResult = "Оспоренный итог";
 
             List<IModule> modules = new List<IModule>()
             {
@@ -324,6 +326,7 @@ namespace Claymore.TalkCleanupWikiBot
         public string AutoResultComment;
         public string NotificationTemplate;
         public string EmptyResult;
+        public string ChallengedResult;
     }
 
     internal interface IModule

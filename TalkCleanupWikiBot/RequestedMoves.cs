@@ -1017,13 +1017,16 @@ namespace Claymore.TalkCleanupWikiBot
             UpdatePages(wiki);
             Analyze(wiki);
             UpdateMainPage(wiki);
-            //rm.UpdateArchive(wiki, 2009, 7);
-            //rm.UpdateArchive(wiki, 2009, 6);
-            //rm.UpdateArchive(wiki, 2009, 5);
-            //rm.UpdateArchive(wiki, 2009, 4);
-            //rm.UpdateArchive(wiki, 2009, 3);
-            //rm.UpdateArchive(wiki, 2009, 2);
-            //rm.UpdateArchive(wiki, 2009, 1);
+            UpdateArchive(wiki, 2009, 10);
+            UpdateArchive(wiki, 2009, 9);
+            UpdateArchive(wiki, 2009, 8);
+            UpdateArchive(wiki, 2009, 7);
+            UpdateArchive(wiki, 2009, 6);
+            UpdateArchive(wiki, 2009, 5);
+            UpdateArchive(wiki, 2009, 4);
+            UpdateArchive(wiki, 2009, 3);
+            UpdateArchive(wiki, 2009, 2);
+            UpdateArchive(wiki, 2009, 1);
         }
 
         #endregion
