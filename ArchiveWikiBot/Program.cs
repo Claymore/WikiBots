@@ -170,16 +170,18 @@ namespace Claymore.ArchiveWikiBot
                 {
                     checkForResult = true;
                 }
-                else
-                {
-                    checkForResult = true;
-                }
             }
 
             string pageName = page.Title;
             if (allowSource && values.ContainsKey("обрабатывать"))
             {
                 pageName = values["обрабатывать"];
+            }
+
+            string removeFromText = "";
+            if (values.ContainsKey("убирать из архива"))
+            {
+                removeFromText = values["убирать из архива"];
             }
 
             string accepted = "";
@@ -229,28 +231,122 @@ namespace Claymore.ArchiveWikiBot
                     newSectionsDown = false;
                 }
             }
+
+            var onHold = new List<string>();
+            if (values.ContainsKey("пропускать с"))
+            {
+                string[] separators;
+                if (values["пропускать с"].Contains("\""))
+                {
+                    separators = new string[] { "\"," };
+                }
+                else
+                {
+                    separators = new string[] { "," };
+                }
+                string[] cats = values["пропускать с"].Split(separators,
+                    StringSplitOptions.RemoveEmptyEntries);
+                for (int i = 0; i < cats.Length; ++i)
+                {
+                    string cat = cats[i].Replace("\"", "").Trim();
+                    if (!string.IsNullOrEmpty(cat))
+                    {
+                        onHold.Add(cat);
+                    }
+                }
+            }
+
+            var lookForLine = new List<string>();
+            if (values.ContainsKey("архивировать с"))
+            {
+                string[] separators;
+                if (values["архивировать с"].Contains("\""))
+                {
+                    separators = new string[] { "\"," };
+                }
+                else
+                {
+                    separators = new string[] { "," };
+                }
+                string[] cats = values["архивировать с"].Split(separators,
+                    StringSplitOptions.RemoveEmptyEntries);
+                for (int i = 0; i < cats.Length; ++i)
+                {
+                    string cat = cats[i].Replace("\"", "").Trim();
+                    if (!string.IsNullOrEmpty(cat))
+                    {
+                        lookForLine.Add(cat);
+                    }
+                }
+            }
+
             if (values.ContainsKey("тип"))
             {
                 string t = values["тип"].ToLower();
                 if (t == "страница")
                 {
-                    archive = new Archive(pageName, directory, days, format, header, checkForResult, newSectionsDown);
+                    archive = new Archive(pageName,
+                        directory,
+                        days,
+                        format,
+                        header,
+                        lookForLine,
+                        onHold,
+                        removeFromText,
+                        checkForResult,
+                        newSectionsDown);
                 }
                 else if (t == "месяц")
                 {
-                    archive = new ArchiveByMonth(pageName, directory, days, format, header, checkForResult, newSectionsDown);
+                    archive = new ArchiveByMonth(pageName,
+                        directory,
+                        days,
+                        format,
+                        header,
+                        lookForLine,
+                        onHold,
+                        removeFromText,
+                        checkForResult,
+                        newSectionsDown);
                 }
                 else if (t == "год")
                 {
-                    archive = new ArchiveByYear(pageName, directory, days, format, header, checkForResult, newSectionsDown);
+                    archive = new ArchiveByYear(pageName,
+                        directory,
+                        days,
+                        format,
+                        header,
+                        lookForLine,
+                        onHold,
+                        removeFromText,
+                        checkForResult,
+                        newSectionsDown);
                 }
                 else if (t == "полгода")
                 {
-                    archive = new ArchiveByHalfYear(pageName, directory, days, format, header, checkForResult, newSectionsDown);
+                    archive = new ArchiveByHalfYear(pageName,
+                        directory,
+                        days,
+                        format,
+                        header,
+                        lookForLine,
+                        onHold,
+                        removeFromText,
+                        checkForResult,
+                        newSectionsDown);
                 }
                 else if (t == "квартал")
                 {
-                    archive = new ArchiveByQuarter(pageName, directory, days, format, header, checkForResult, newSectionsDown);
+                    archive = new ArchiveByQuarter(pageName,
+                        directory,
+                        days,
+                        format,
+                        header,
+                        lookForLine,
+                        onHold,
+                        removeFromText,
+                        checkForResult,
+                        newSectionsDown);
                 }
                 else if (t == "статьи для рецензирования")
                 {
@@ -258,7 +354,17 @@ namespace Claymore.ArchiveWikiBot
                 }
                 else if (t == "нумерация" && topics > 0)
                 {
-                    archive = new ArchiveByTopicNumber(pageName, directory, days, format, header, checkForResult, newSectionsDown, topics);
+                    archive = new ArchiveByTopicNumber(pageName,
+                        directory,
+                        days,
+                        format,
+                        header,
+                        lookForLine,
+                        onHold,
+                        removeFromText,
+                        checkForResult,
+                        newSectionsDown,
+                        topics);
                 }
                 else if (allowSource && t == "заявки на арбитраж")
                 {

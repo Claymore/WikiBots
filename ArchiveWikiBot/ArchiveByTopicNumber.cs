@@ -17,10 +17,13 @@ namespace Claymore.ArchiveWikiBot
                                int days,
                                string format,
                                string header,
+                               IEnumerable<string> lookForLines,
+                               IEnumerable<string> onHold,
+                               string removeFromText,
                                bool checkForResult,
                                bool newSectionsDown,
                                int topics)
-            : base(title, directory, days, format, header, checkForResult, newSectionsDown)
+            : base(title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown)
         {
             Topics = topics;
             Format = format.Replace("%(номер)", "{0}");
@@ -32,7 +35,11 @@ namespace Claymore.ArchiveWikiBot
             foreach (WikiPageSection section in page.Sections)
             {
                 WikiPageSection result = section.Subsections.FirstOrDefault(ss => ss.Title.Trim().ToLower() == "итог");
-                if ((result != null && !string.IsNullOrEmpty(result.SectionText.Trim())) || !CheckForResult)
+                bool forceArchivation = LookForLines.Any(s => section.Text.ToLower().Contains(s.ToLower()));
+                if (!OnHold.Any(s => section.Text.ToLower().Contains(s.ToLower())) &&
+                    ((result != null && !string.IsNullOrEmpty(result.SectionText.Trim())) ||
+                     forceArchivation ||
+                     !CheckForResult))
                 {
                     MatchCollection ms = timeRE.Matches(FilterQuotes(section.Text));
                     DateTime published = DateTime.Today;
@@ -51,7 +58,8 @@ namespace Claymore.ArchiveWikiBot
                             lastReply = time;
                         }
                     }
-                    if (lastReply != DateTime.MinValue && (DateTime.Today - lastReply).TotalHours >= Delay)
+                    if (lastReply != DateTime.MinValue &&
+                        (forceArchivation || (DateTime.Today - lastReply).TotalHours >= Delay))
                     {
                         archivedSections.Add(section);
                     }
@@ -130,6 +138,10 @@ namespace Claymore.ArchiveWikiBot
                     {
                         archivePage.Sections.Sort(SectionsUp);
                     }
+                    if (!string.IsNullOrEmpty(RemoveFromText))
+                    {
+                        archivePage.Text = archivePage.Text.Replace(RemoveFromText, "");
+                    }
                     archiveTexts.Add(pageName, archivePage.Text);
                 }
             }
@@ -145,6 +157,10 @@ namespace Claymore.ArchiveWikiBot
                     archivePage.Sections.Add(section);
                 }
                 archivePage.Sections.Sort(SectionsUp);
+                if (!string.IsNullOrEmpty(RemoveFromText))
+                {
+                    archivePage.Text = archivePage.Text.Replace(RemoveFromText, "");
+                }
                 archiveTexts.Add(pageName, archivePage.Text);
             }
 

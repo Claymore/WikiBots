@@ -21,12 +21,18 @@ namespace Claymore.ArchiveWikiBot
         protected bool NewSectionsDown { get; set; }
         protected string Header { get; set; }
         public TitleProcessor Processor;
-
+        protected IEnumerable<string> LookForLines { get; set; }
+        protected IEnumerable<string> OnHold { get; set; }
+        protected string RemoveFromText { get; set; }
+        
         public Archive(string title,
                        string directory,
                        int days,
                        string format,
                        string header,
+                       IEnumerable<string> lookForLines,
+                       IEnumerable<string> onHold,
+                       string removeFromText,
                        bool checkForResult,
                        bool newSectionsDown)
         {
@@ -37,6 +43,9 @@ namespace Claymore.ArchiveWikiBot
             CheckForResult = checkForResult;
             NewSectionsDown = newSectionsDown;
             Header = header;
+            LookForLines = lookForLines;
+            OnHold = onHold;
+            RemoveFromText = removeFromText;
         }
 
         public virtual Dictionary<string, string> Process(Wiki wiki, WikiPage page)
@@ -46,7 +55,11 @@ namespace Claymore.ArchiveWikiBot
             foreach (WikiPageSection section in page.Sections)
             {
                 WikiPageSection result = section.Subsections.FirstOrDefault(ss => ss.Title.Trim().ToLower() == "итог");
-                if ((result != null && !string.IsNullOrEmpty(result.SectionText.Trim())) || !CheckForResult)
+                bool forceArchivation = LookForLines.Any(s => section.Text.ToLower().Contains(s.ToLower()));
+                if (!OnHold.Any(s => section.Text.ToLower().Contains(s.ToLower())) &&
+                    ((result != null && !string.IsNullOrEmpty(result.SectionText.Trim())) ||
+                     forceArchivation ||
+                     !CheckForResult))
                 {
                     MatchCollection ms = timeRE.Matches(FilterQuotes(section.Text));
                     DateTime published = DateTime.Today;
@@ -65,7 +78,8 @@ namespace Claymore.ArchiveWikiBot
                             lastReply = time;
                         }
                     }
-                    if (lastReply != DateTime.MinValue && (DateTime.Today - lastReply).TotalHours >= Delay)
+                    if (lastReply != DateTime.MinValue &&
+                        (forceArchivation || (DateTime.Today - lastReply).TotalHours >= Delay))
                     {
                         archivedSections.Add(section);
                     }
@@ -119,13 +133,17 @@ namespace Claymore.ArchiveWikiBot
             {
                 archivePage.Sections.Sort(SectionsUp);
             }
+            if (!string.IsNullOrEmpty(RemoveFromText))
+            {
+                archivePage.Text = archivePage.Text.Replace(RemoveFromText, "");
+            }
             results.Add(pageName, archivePage.Text);
             
             foreach (var section in archivedSections)
             {
                 page.Sections.Remove(section);
             }
-            
+
             return results;
         }
 
@@ -186,7 +204,7 @@ namespace Claymore.ArchiveWikiBot
 
         protected static string FilterQuotes(string text)
         {
-            Regex re = new Regex(@"(<blockquote>.+?</blockquote>)|(\{{2}(н|Н)ачало цитаты\|?.*?\}{2}.+?\{{2}(к|К)онец цитаты\|?.*?\}{2})");
+            Regex re = new Regex(@"(<blockquote>.+?</blockquote>)|(\{{2}(н|Н)ачало цитаты\|?.*?\}{2}.+?\{{2}(к|К)онец цитаты\|?.*?\}{2})", RegexOptions.Singleline);
             return re.Replace(text, "");
         }
 

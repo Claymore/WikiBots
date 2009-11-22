@@ -15,9 +15,12 @@ namespace Claymore.ArchiveWikiBot
                                int days,
                                string format,
                                string header,
+                               IEnumerable<string> lookForLines,
+                               IEnumerable<string> onHold,
+                               string removeFromText,
                                bool checkForResult,
                                bool newSectionsDown)
-            : base(title, directory, days, format, header, checkForResult, newSectionsDown)
+            : base(title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown)
         {
             Regex escapeChars = new Regex(@"([dfFghHKmMstyYz:/OoRrsuGTU])");
             Format = escapeChars.Replace(format, "\\$1");
@@ -32,7 +35,11 @@ namespace Claymore.ArchiveWikiBot
             foreach (WikiPageSection section in page.Sections)
             {
                 WikiPageSection result = section.Subsections.FirstOrDefault(ss => ss.Title.Trim().ToLower() == "итог");
-                if ((result != null && !string.IsNullOrEmpty(result.SectionText.Trim())) || !CheckForResult)
+                bool forceArchivation = LookForLines.Any(s => section.Text.ToLower().Contains(s.ToLower()));
+                if (!OnHold.Any(s => section.Text.ToLower().Contains(s.ToLower())) &&
+                    ((result != null && !string.IsNullOrEmpty(result.SectionText.Trim())) ||
+                     forceArchivation ||
+                     !CheckForResult))
                 {
                     MatchCollection ms = timeRE.Matches(FilterQuotes(section.Text));
                     DateTime published = NormalizeDate(DateTime.Today);
@@ -51,7 +58,8 @@ namespace Claymore.ArchiveWikiBot
                             lastReply = time;
                         }
                     }
-                    if (lastReply != DateTime.MinValue && (DateTime.Today - lastReply).TotalHours >= Delay)
+                    if (lastReply != DateTime.MinValue &&
+                        (forceArchivation || (DateTime.Today - lastReply).TotalHours >= Delay))
                     {
                         if (archives.ContainsKey(published))
                         {
@@ -117,6 +125,10 @@ namespace Claymore.ArchiveWikiBot
                 {
                     archivePage.Sections.Sort(SectionsUp);
                 }
+                if (!string.IsNullOrEmpty(RemoveFromText))
+                {
+                    archivePage.Text = archivePage.Text.Replace(RemoveFromText, "");
+                }
                 results.Add(pageName, archivePage.Text);
             }
 
@@ -141,13 +153,16 @@ namespace Claymore.ArchiveWikiBot
     internal class ArchiveByMonth : ArchiveByPeriod
     {
         public ArchiveByMonth(string title,
-                               string directory,
-                               int days,
-                               string format,
-                               string header,
-                               bool checkForResult,
-                               bool newSectionsDown)
-            : base(title, directory, days, format, header, checkForResult, newSectionsDown)
+                              string directory,
+                              int days,
+                              string format,
+                              string header,
+                              IEnumerable<string> lookForLines,
+                              IEnumerable<string> onHold,
+                              string removeFromText,
+                              bool checkForResult,
+                              bool newSectionsDown)
+            : base(title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown)
         {
         }
 
@@ -164,9 +179,12 @@ namespace Claymore.ArchiveWikiBot
                                int days,
                                string format,
                                string header,
+                               IEnumerable<string> lookForLines,
+                               IEnumerable<string> onHold,
+                               string removeFromText,
                                bool checkForResult,
                                bool newSectionsDown)
-            : base(title, directory, days, format, header, checkForResult, newSectionsDown)
+            : base(title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown)
         {
         }
 
@@ -183,9 +201,12 @@ namespace Claymore.ArchiveWikiBot
                                int days,
                                string format,
                                string header,
+                               IEnumerable<string> lookForLines,
+                               IEnumerable<string> onHold,
+                               string removeFromText,
                                bool checkForResult,
                                bool newSectionsDown)
-            : base(title, directory, days, format, header, checkForResult, newSectionsDown)
+            : base(title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown)
         {
             Regex escapeChars = new Regex(@"([dfFghHKmMstyYz:/OoRrsuGTU])");
             Format = escapeChars.Replace(format, "\\$1");
@@ -194,7 +215,7 @@ namespace Claymore.ArchiveWikiBot
 
         protected override DateTime NormalizeDate(DateTime date)
         {
-            return new DateTime(date.Year, date.Month < 7 ? 1 : date.Month, 1);
+            return new DateTime(date.Year, date.Month < 7 ? 1 : 7, 1);
         }
 
         protected override string DateToPageName(DateTime date)
@@ -211,9 +232,12 @@ namespace Claymore.ArchiveWikiBot
                                int days,
                                string format,
                                string header,
+                               IEnumerable<string> lookForLines,
+                               IEnumerable<string> onHold,
+                               string removeFromText,
                                bool checkForResult,
                                bool newSectionsDown)
-            : base(title, directory, days, format, header, checkForResult, newSectionsDown)
+            : base(title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown)
         {
             Regex escapeChars = new Regex(@"([dfFghHKmMstyYz:/OoRrsuGTU])");
             Format = escapeChars.Replace(format, "\\$1");
