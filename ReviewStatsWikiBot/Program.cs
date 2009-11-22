@@ -12,7 +12,7 @@ namespace Claymore.ReviewStatsWikiBot
     {
         static void Main(string[] args)
         {
-            Wiki wiki = new Wiki("http://ru.wikipedia.org");
+            Wiki wiki = new Wiki("http://ru.wikipedia.org/w/");
             if (string.IsNullOrEmpty(Settings.Default.Login) ||
                 string.IsNullOrEmpty(Settings.Default.Password))
             {
@@ -279,11 +279,9 @@ namespace Claymore.ReviewStatsWikiBot
                 DateTime previousMonth = new DateTime(now.Year, now.Month, 1).AddMonths(-1);
                 string text = sr.ReadToEnd();
                 string period = previousMonth.ToString("MMMM yyyy");
-                wiki.PrependTextToPage("Википедия:Проект:Патрулирование/Статистика/2009",
+                wiki.Save(previousMonth.ToString("Википедия:Проект:Патрулирование\\/Статистика\\/yyyy\\/MM"),
                     text,
-                    "Статистика патрулирования за " + period[0].ToString().ToLower() + period.Substring(1),
-                    MinorFlags.Minor,
-                    WatchFlags.None);
+                    "Статистика патрулирования за " + period[0].ToString().ToLower() + period.Substring(1));
             }
 
             Console.Out.WriteLine("Updating the wiki page...");
@@ -291,7 +289,7 @@ namespace Claymore.ReviewStatsWikiBot
                         new StreamReader("output.txt"))
             {
                 string text = sr.ReadToEnd();
-                wiki.SavePage("Википедия:Проект:Патрулирование/Статистика/1k+",
+                wiki.Save("Википедия:Проект:Патрулирование/Статистика/1k+",
                     text,
                     "обновление");
             }
