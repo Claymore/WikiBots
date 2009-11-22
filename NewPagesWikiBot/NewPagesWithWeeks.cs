@@ -24,6 +24,7 @@ namespace Claymore.NewPagesWikiBot
             : base(module,
                    categories,
                    categoriesToIgnore,
+                   new string[] {},
                    page,
                    ns,
                    depth,

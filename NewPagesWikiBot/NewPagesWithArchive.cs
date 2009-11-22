@@ -12,6 +12,7 @@ namespace Claymore.NewPagesWikiBot
         public NewPagesWithArchive(PortalModule module,
                         IEnumerable<string> categories,
                         IEnumerable<string> categoriesToIgnore,
+                        IEnumerable<string> usersToIgnore,
                         string page,
                         int ns,
                         string archive,
@@ -26,6 +27,7 @@ namespace Claymore.NewPagesWikiBot
             : base(module,
                    categories,
                    categoriesToIgnore,
+                   usersToIgnore,
                    page,
                    ns,
                    depth,
@@ -76,7 +78,7 @@ namespace Claymore.NewPagesWikiBot
                 {
                     oldText = oldText.Substring(0, oldText.Length - Footer.Length);
                 }
-                if (newText.EndsWith(Footer))
+                if (oldText.EndsWith(Footer))
                 {
                     newText = newText.Substring(0, oldText.Length - Footer.Length);
                 }

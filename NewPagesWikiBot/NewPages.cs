@@ -11,6 +11,7 @@ namespace Claymore.NewPagesWikiBot
     {
         private List<string> _categories;
         private List<string> _categoriesToIgnore;
+        private HashSet<string> _usersToIgnore;
         public string Page { get; private set; }
         public string Format { get; protected set; }
         public string Header { get; private set; }
@@ -33,9 +34,15 @@ namespace Claymore.NewPagesWikiBot
             get { return _categoriesToIgnore; }
         }
 
+        public HashSet<string> UsersToIgnore
+        {
+            get { return _usersToIgnore; }
+        }
+
         public NewPages(PortalModule module,
                         IEnumerable<string> categories,
                         IEnumerable<string> categoriesToIgnore,
+                        IEnumerable<string> usersToIgnore,
                         string page,
                         int ns,
                         int depth,
@@ -49,6 +56,7 @@ namespace Claymore.NewPagesWikiBot
         {
             _categories = new List<string>(categories);
             _categoriesToIgnore = new List<string>(categoriesToIgnore);
+            _usersToIgnore = new HashSet<string>(usersToIgnore);
             Page = page;
             MaxItems = maxItems;
             Format = format.Replace("%(название)", "{0}").Replace("%(автор)", "{1}").Replace("%(дата)", "{2}");
@@ -130,7 +138,9 @@ namespace Claymore.NewPagesWikiBot
                             fullTitle = wiki.GetNamespace(Namespace) + ":" + title;
                         }
                         Cache.PageInfo page = Cache.LoadPageInformation(wiki, Module.Language, fullTitle);
-                        if (page != null && !pages.Contains(page.Title))
+                        if (page != null &&
+                            !UsersToIgnore.Contains(page.Author) &&
+                            !pages.Contains(page.Title))
                         {
                             pages.Add(page.Title);
                             pageList.Add(page);
@@ -218,7 +228,9 @@ namespace Claymore.NewPagesWikiBot
                                 title = wiki.GetNamespace(Namespace) + ":" + title;
                             }
                             Cache.PageInfo page = Cache.LoadPageInformation(wiki, Module.Language, title);
-                            if (page != null && !pages.Contains(page.Title))
+                            if (page != null &&
+                                !UsersToIgnore.Contains(page.Author) &&
+                                !pages.Contains(page.Title))
                             {
                                 pages.Add(page.Title);
                                 pageList.Add(page);

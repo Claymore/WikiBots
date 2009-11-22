@@ -86,9 +86,11 @@ namespace Claymore.NewPagesWikiBot
                 }
                 catch (WikiException)
                 {
+                    return -1;
                 }
                 catch (System.Net.WebException)
                 {
+                    return -1;
                 }
             }
 
@@ -222,6 +224,30 @@ namespace Claymore.NewPagesWikiBot
                 }
             }
 
+            var usersToIgnore = new List<string>();
+            if (options.ContainsKey("игнорировать авторов"))
+            {
+                string[] separators;
+                if (options["игнорировать авторов"].Contains("\""))
+                {
+                    separators = new string[] { "\"," };
+                }
+                else
+                {
+                    separators = new string[] { "," };
+                }
+                string[] cats = options["игнорировать авторов"].Split(separators,
+                    StringSplitOptions.RemoveEmptyEntries);
+                for (int i = 0; i < cats.Length; ++i)
+                {
+                    string cat = cats[i].Replace("\"", "").Trim();
+                    if (!string.IsNullOrEmpty(cat))
+                    {
+                        usersToIgnore.Add(cat);
+                    }
+                }
+            }
+
             string title = "";
             if (options.ContainsKey("страница"))
             {
@@ -340,6 +366,7 @@ namespace Claymore.NewPagesWikiBot
                         module = new NewPages(portal,
                             categories,
                             categoriesToIgnore,
+                            usersToIgnore,
                             title,
                             ns,
                             depth,
@@ -356,6 +383,7 @@ namespace Claymore.NewPagesWikiBot
                         module = new NewPagesWithArchive(portal,
                             categories,
                             categoriesToIgnore,
+                            usersToIgnore,
                             title,
                             ns,
                             archive,
