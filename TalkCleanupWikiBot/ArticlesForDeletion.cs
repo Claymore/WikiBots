@@ -219,11 +219,7 @@ namespace Claymore.TalkCleanupWikiBot
                 using (StreamWriter sw =
                             new StreamWriter(_cacheDir + "Archive-" + archiveDate + ".txt"))
                 {
-                    sw.WriteLine("{| class=standard");
-                    sw.WriteLine("|-");
-                    sw.WriteLine("!| Дата");
-                    sw.WriteLine("!| " + _l10i.ArchiveTemplate);
-                    sw.WriteLine("|-\n");
+                    sw.WriteLine(_l10i.ArchiveHeader);
 
                     StringBuilder sb = new StringBuilder();
                     foreach (Day day in daysInMonth)
@@ -263,7 +259,7 @@ namespace Claymore.TalkCleanupWikiBot
 
                     sw.Write(sb.ToString());
 
-                    sw.WriteLine("|}");
+                    sw.WriteLine(_l10i.ArchiveFooter);
                 }
             }
         }
@@ -512,7 +508,7 @@ namespace Claymore.TalkCleanupWikiBot
                             string comment = FilterWikiMarkup(events[0].Comment);
                             string message = string.Format(_l10i.AutoResultMessage,
                                 events[0].User,
-                                events[0].Timestamp.ToUniversalTime().ToString(_l10i.DateFormat),
+                                events[0].Timestamp.ToUniversalTime().ToString(_l10i.DateFormat, CultureInfo.CreateSpecificCulture(_l10i.Culture)),
                                 comment);
                             if (!titles.ContainsKey(title))
                             {

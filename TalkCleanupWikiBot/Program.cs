@@ -81,6 +81,8 @@ namespace Claymore.TalkCleanupWikiBot
             l10i.NotificationTemplate = "Залишено";
             l10i.EmptyResult = "Підсумок";
             l10i.ChallengedResult = "Оспоренный итог";
+            l10i.ArchiveHeader = "{| class=standard\n|-\n!| Дата\n!|" + l10i.ArchiveTemplate + "\n|-\n";
+            l10i.ArchiveFooter = "|}";
 
             Cleanup.Localization cleanupL10i = new Cleanup.Localization();
             cleanupL10i.Language = "uk";
@@ -202,6 +204,8 @@ namespace Claymore.TalkCleanupWikiBot
             l10i.NotificationTemplate = "Оставлено";
             l10i.EmptyResult = "Пустой итог";
             l10i.ChallengedResult = "Оспоренный итог";
+            l10i.ArchiveHeader = "{{Навигация по архиву КУ}}\n{{Удаление статей/Начало}}\n";
+            l10i.ArchiveFooter = "{{Удаление статей/Конец}";
 
             List<IModule> modules = new List<IModule>()
             {
@@ -327,6 +331,8 @@ namespace Claymore.TalkCleanupWikiBot
         public string NotificationTemplate;
         public string EmptyResult;
         public string ChallengedResult;
+        public string ArchiveHeader;
+        public string ArchiveFooter;
     }
 
     internal interface IModule
