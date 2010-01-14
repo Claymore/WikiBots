@@ -146,11 +146,16 @@ namespace Claymore.ReviewStatsWikiBot
                     sw.WriteLine("== " + previousMonth.ToString("MMMM") + " ==");
                     sw.WriteLine("{| class=\"standard sortable\"");
                     sw.WriteLine("!№!!Участник!!всего!!статей!!категорий!!шаблонов!!файлов");
-                    for (int i = 0; i < userList.Count; ++i)
+                    for (int i = 0, j = 1; i < userList.Count; ++i)
                     {
+                        if (userList[i].Name.Contains("Lockalbot") ||
+                            userList[i].Name.Contains("Secretary"))
+                        {
+                            continue;
+                        }
                         sw.WriteLine("|-");
                         string line = string.Format("|{0}||[[User:{1}|]]||{2}||{3}||{4}||{5}||{6}",
-                            i + 1,
+                            j++,
                             userList[i].Name,
                             userList[i].Actions,
                             userList[i].ArticleActions,
@@ -158,6 +163,27 @@ namespace Claymore.ReviewStatsWikiBot
                             userList[i].TemplateActions,
                             userList[i].FileActions);
                         sw.WriteLine(line);
+                    }
+                    sw.WriteLine("|}");
+                    sw.WriteLine("; Боты");
+                    sw.WriteLine("{| class=\"standard sortable\"");
+                    sw.WriteLine("!№!!Участник!!всего!!статей!!категорий!!шаблонов!!файлов");
+                    for (int i = 0, j = 1; i < userList.Count; ++i)
+                    {
+                        if (userList[i].Name.Contains("Lockalbot") ||
+                            userList[i].Name.Contains("Secretary"))
+                        {
+                            sw.WriteLine("|-");
+                            string line = string.Format("|{0}||[[User:{1}|]]||{2}||{3}||{4}||{5}||{6}",
+                                j++,
+                                userList[i].Name,
+                                userList[i].Actions,
+                                userList[i].ArticleActions,
+                                userList[i].CategoryActions,
+                                userList[i].TemplateActions,
+                                userList[i].FileActions);
+                            sw.WriteLine(line);
+                        }
                     }
                     sw.WriteLine("|}");
                     sw.WriteLine("\n— ~~~~");
@@ -284,15 +310,19 @@ namespace Claymore.ReviewStatsWikiBot
                     "Статистика патрулирования за " + period[0].ToString().ToLower() + period.Substring(1));
             }
 
-            Console.Out.WriteLine("Updating the wiki page...");
+            Console.Out.WriteLine("Updating Википедия:Проект:Патрулирование/Статистика/1k+...");
             using (TextReader sr =
                         new StreamReader("output.txt"))
             {
                 string text = sr.ReadToEnd();
-                wiki.Save("Википедия:Проект:Патрулирование/Статистика/1k+",
+                wiki.SaveSection("Википедия:Проект:Патрулирование/Статистика/1k+",
+                    "1",
                     text,
                     "обновление");
             }
+            wiki.Save(currentMonth.ToString("Википедия:Проект:Патрулирование\\/Статистика\\/yyyy"),
+                string.Format("#REDIRECT [[{0}]]", currentMonth.ToString("Википедия:Проект:Патрулирование\\/Статистика\\/yyyy\\/MM")),
+                "обновление");
             Console.Out.WriteLine("Done.");
             wiki.Logout();
         }
