@@ -161,7 +161,7 @@ namespace Claymore.TalkCleanupWikiBot
                                 else if (moved)
                                 {
                                     result = string.Format(" ''({1}переименовано в «[[{0}]]»)''",
-                                                movedTo, hasAutoVerdict ? "де-факто " : "");
+                                        movedTo.StartsWith("Файл:") ? ":" + movedTo : movedTo, hasAutoVerdict ? "де-факто " : "");
                                 }
                                 else
                                 {
@@ -204,7 +204,7 @@ namespace Claymore.TalkCleanupWikiBot
                                     else if (moved)
                                     {
                                         result = string.Format(" ''({1}переименовано в «[[{0}]]»)''",
-                                                movedTo, hasAutoVerdict ? "де-факто " : "");
+                                                movedTo.StartsWith("Файл:") ? ":" + movedTo : movedTo, hasAutoVerdict ? "де-факто " : "");
                                     }
                                     else
                                     {
@@ -360,6 +360,7 @@ namespace Claymore.TalkCleanupWikiBot
                         }
                     }
 
+                    m = wikiLinkRE.Match(section.Title);
                     if (m.Success && section.Title.Contains("<s>"))
                     {
                         titlesWithResults.Add(m.Groups[1].Value);
@@ -729,7 +730,7 @@ namespace Claymore.TalkCleanupWikiBot
                                     else if (moved)
                                     {
                                         result = string.Format(" ''({1}переименовано в «[[{0}]]»)''",
-                                                movedTo, hasAutoVerdict ? "де-факто " : "");
+                                                movedTo.StartsWith("Файл:") ? ":" + movedTo : movedTo, hasAutoVerdict && !hasVerdict ? "де-факто " : "");
                                     }
                                     else
                                     {
@@ -767,7 +768,7 @@ namespace Claymore.TalkCleanupWikiBot
                                         else if (moved)
                                         {
                                             result = string.Format(" ''({1}переименовано в «[[{0}]]»)''",
-                                                movedTo, hasAutoVerdict ? "де-факто " : "");
+                                                movedTo.StartsWith("Файл:") ? ":" + movedTo : movedTo, hasAutoVerdict && !hasVerdict ? "де-факто " : "");
                                         }
                                         else
                                         {
@@ -1017,16 +1018,19 @@ namespace Claymore.TalkCleanupWikiBot
             UpdatePages(wiki);
             Analyze(wiki);
             UpdateMainPage(wiki);
+            UpdateArchive(wiki, 2010, 1);
+            UpdateArchive(wiki, 2009, 12);
+            UpdateArchive(wiki, 2009, 11);
             UpdateArchive(wiki, 2009, 10);
             UpdateArchive(wiki, 2009, 9);
             UpdateArchive(wiki, 2009, 8);
             UpdateArchive(wiki, 2009, 7);
-            UpdateArchive(wiki, 2009, 6);
-            UpdateArchive(wiki, 2009, 5);
-            UpdateArchive(wiki, 2009, 4);
-            UpdateArchive(wiki, 2009, 3);
-            UpdateArchive(wiki, 2009, 2);
-            UpdateArchive(wiki, 2009, 1);
+            //UpdateArchive(wiki, 2009, 6);
+            //UpdateArchive(wiki, 2009, 5);
+            //UpdateArchive(wiki, 2009, 4);
+            //UpdateArchive(wiki, 2009, 3);
+            //UpdateArchive(wiki, 2009, 2);
+            //UpdateArchive(wiki, 2009, 1);
         }
 
         #endregion
