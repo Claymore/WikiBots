@@ -12,7 +12,8 @@ namespace Claymore.ArchiveWikiBot
     {
         private int Topics { get; set; }
 
-        public ArchiveByTopicNumber(string title,
+        public ArchiveByTopicNumber(L10i l10i,
+                                    string title,
                                string directory,
                                int days,
                                string format,
@@ -23,7 +24,7 @@ namespace Claymore.ArchiveWikiBot
                                bool checkForResult,
                                bool newSectionsDown,
                                int topics)
-            : base(title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown)
+            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown)
         {
             Topics = topics;
             Format = format.Replace("%(номер)", "{0}");
@@ -47,7 +48,7 @@ namespace Claymore.ArchiveWikiBot
                     foreach (Match match in ms)
                     {
                         string value = match.Groups[1].Value;
-                        DateTime time = DateTime.Parse(value, culture,
+                        DateTime time = DateTime.Parse(value, L10i.Culture,
                             DateTimeStyles.AssumeUniversal);
                         if (time < published)
                         {

@@ -10,8 +10,8 @@ namespace Claymore.ArchiveWikiBot
 {
     internal class ReviewArchive : Archive
     {
-        public ReviewArchive(string title, string directory, int days, string archive, string header)
-            : base(title, directory, days, archive, header, new string[] {}, new string[] {}, "", false, false)
+        public ReviewArchive(L10i l10i, string title, string directory, int days, string archive, string header)
+            : base(l10i, title, directory, days, archive, header, new string[] { }, new string[] { }, "", false, false)
         {
         }
 
@@ -64,7 +64,7 @@ namespace Claymore.ArchiveWikiBot
                     foreach (Match match in ms)
                     {
                         string value = match.Groups[1].Value;
-                        DateTime time = DateTime.Parse(value, culture,
+                        DateTime time = DateTime.Parse(value, L10i.Culture,
                             DateTimeStyles.AssumeUniversal);
                         if (time < published)
                         {

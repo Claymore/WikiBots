@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Xml;
@@ -12,6 +13,12 @@ namespace Claymore.ArchiveWikiBot
     {
         static int Main(string[] args)
         {
+            if (args.Length < 3)
+            {
+                Console.Out.WriteLine("ArchiveWikiBot <language> <culture> <update comment>");
+                return 0;
+            }
+
             if (string.IsNullOrEmpty(Settings.Default.Login) ||
                 string.IsNullOrEmpty(Settings.Default.Password))
             {
@@ -19,21 +26,34 @@ namespace Claymore.ArchiveWikiBot
                 return 0;
             }
 
-            Wiki wiki = new Wiki("http://ru.wikipedia.org/w/");
+            string path = @"Cache\" + args[0] + @"\";
+            Directory.CreateDirectory(@"Cache\" + args[0]);
+
+            Wiki wiki = new Wiki(string.Format("http://{0}.wikipedia.org/w/", args[0]));
             wiki.SleepBetweenQueries = 2;
-            Console.Out.WriteLine("Logging in as " + Settings.Default.Login + "...");
+            Console.Out.WriteLine("Logging in as " + Settings.Default.Login + " to " + wiki.Uri + "...");
             try
             {
-                WikiCache.Login(wiki, Settings.Default.Login, Settings.Default.Password);
+                string cookieFile = @"Cache\" + args[0] + @"\cookie.jar";
+                WikiCache.Login(wiki, Settings.Default.Login, Settings.Default.Password, cookieFile);
+
+                string namespacesFile = @"Cache\" + args[0] + @"\namespaces.dat";
+                if (!WikiCache.LoadNamespaces(wiki, namespacesFile))
+                {
+                    wiki.GetNamespaces();
+                    WikiCache.CacheNamespaces(wiki, namespacesFile);
+                }
             }
             catch (WikiException e)
             {
                 Console.Out.WriteLine(e.Message);
                 return 0;
             }
-            Console.Out.WriteLine("Logged in as " + Settings.Default.Login + ".");
+            Console.Out.WriteLine("Logged in as " + wiki.User + ".");
 
-            WikiPage listPage = new WikiPage("Участник:ClaymoreBot/Архивация/Список");
+            L10i l10i = new L10i(args[0], args[1], args[2]);
+
+            WikiPage listPage = new WikiPage("User:ClaymoreBot/Архивация/Список");
             listPage.Load(wiki);
             StringReader reader = new StringReader(listPage.Text);
             HashSet<string> pages = new HashSet<string>();
@@ -50,7 +70,7 @@ namespace Claymore.ArchiveWikiBot
 
             ParameterCollection parameters = new ParameterCollection();
             parameters.Add("generator", "embeddedin");
-            parameters.Add("geititle", "Участник:ClaymoreBot/Архивация");
+            parameters.Add("geititle", "User:ClaymoreBot/Архивация");
             parameters.Add("geilimit", "max");
             parameters.Add("prop", "info");
             parameters.Add("intoken", "edit");
@@ -60,11 +80,11 @@ namespace Claymore.ArchiveWikiBot
             foreach (XmlNode node in doc.SelectNodes("//page"))
             {
                 string title = node.Attributes["title"].Value;
-                string path = @"Cache\ru\" + Cache.EscapePath(title) + @"\";
+                path = Cache.EscapePath(title) + @"\";
                 Directory.CreateDirectory(path);
                 WikiPage page = Cache.Load(wiki, title, path);
                 IArchive archive;
-                if (TryParse(page, path, pages.Contains(page.Title), out archive))
+                if (TryParse(page, path, pages.Contains(page.Title), l10i, out archive))
                 {
                     try
                     {
@@ -141,6 +161,7 @@ namespace Claymore.ArchiveWikiBot
         public static bool TryParse(WikiPage page,
                                     string directory,
                                     bool allowSource,
+                                    L10i l10i,
                                     out IArchive archive)
         {
             archive = null;
@@ -285,7 +306,8 @@ namespace Claymore.ArchiveWikiBot
                 string t = values["тип"].ToLower();
                 if (t == "страница")
                 {
-                    archive = new Archive(pageName,
+                    archive = new Archive(l10i,
+                        pageName,
                         directory,
                         days,
                         format,
@@ -298,7 +320,8 @@ namespace Claymore.ArchiveWikiBot
                 }
                 else if (t == "месяц")
                 {
-                    archive = new ArchiveByMonth(pageName,
+                    archive = new ArchiveByMonth(l10i,
+                        pageName,
                         directory,
                         days,
                         format,
@@ -311,7 +334,8 @@ namespace Claymore.ArchiveWikiBot
                 }
                 else if (t == "год")
                 {
-                    archive = new ArchiveByYear(pageName,
+                    archive = new ArchiveByYear(l10i,
+                        pageName,
                         directory,
                         days,
                         format,
@@ -324,7 +348,8 @@ namespace Claymore.ArchiveWikiBot
                 }
                 else if (t == "полгода")
                 {
-                    archive = new ArchiveByHalfYear(pageName,
+                    archive = new ArchiveByHalfYear(l10i,
+                        pageName,
                         directory,
                         days,
                         format,
@@ -337,7 +362,8 @@ namespace Claymore.ArchiveWikiBot
                 }
                 else if (t == "квартал")
                 {
-                    archive = new ArchiveByQuarter(pageName,
+                    archive = new ArchiveByQuarter(l10i,
+                        pageName,
                         directory,
                         days,
                         format,
@@ -350,11 +376,12 @@ namespace Claymore.ArchiveWikiBot
                 }
                 else if (t == "статьи для рецензирования")
                 {
-                    archive = new ReviewArchive(pageName, directory, days, format, header);
+                    archive = new ReviewArchive(l10i, pageName, directory, days, format, header);
                 }
                 else if (t == "нумерация" && topics > 0)
                 {
-                    archive = new ArchiveByTopicNumber(pageName,
+                    archive = new ArchiveByTopicNumber(l10i,
+                        pageName,
                         directory,
                         days,
                         format,
@@ -398,5 +425,19 @@ namespace Claymore.ArchiveWikiBot
     internal interface IArchive
     {
         void Archivate(Wiki wiki);
+    }
+
+    internal class L10i
+    {
+        public CultureInfo Culture { private set; get; }
+        public string Language { private set; get; }
+        public string UpdateComment { private set; get; }
+
+        public L10i(string language, string culture, string comment)
+        {
+            Language = language;
+            UpdateComment = comment;
+            Culture = CultureInfo.CreateSpecificCulture(culture);
+        }
     }
 }

@@ -11,8 +11,7 @@ namespace Claymore.ArchiveWikiBot
     internal class Archive : IArchive
     {
         protected string _cacheDir;
-        protected static Regex timeRE = new Regex(@"(\d{2}:\d{2}\, \d\d? [а-я]+ \d{4}) \(UTC\)");
-        protected static CultureInfo culture = CultureInfo.CreateSpecificCulture("ru-RU");
+        protected static Regex timeRE = new Regex(@"(\d{2}:\d{2}\, \d\d? \S+? \d{4}) \(UTC\)");
 
         protected string MainPage { get; set; }
         protected string Format { get; set; }
@@ -24,8 +23,10 @@ namespace Claymore.ArchiveWikiBot
         protected IEnumerable<string> LookForLines { get; set; }
         protected IEnumerable<string> OnHold { get; set; }
         protected string RemoveFromText { get; set; }
+        protected L10i L10i { get; set; }
         
-        public Archive(string title,
+        public Archive(L10i l10i,
+                       string title,
                        string directory,
                        int days,
                        string format,
@@ -46,6 +47,7 @@ namespace Claymore.ArchiveWikiBot
             LookForLines = lookForLines;
             OnHold = onHold;
             RemoveFromText = removeFromText;
+            L10i = l10i;
         }
 
         public virtual Dictionary<string, string> Process(Wiki wiki, WikiPage page)
@@ -67,7 +69,7 @@ namespace Claymore.ArchiveWikiBot
                     foreach (Match match in ms)
                     {
                         string value = match.Groups[1].Value;
-                        DateTime time = DateTime.Parse(value, culture,
+                        DateTime time = DateTime.Parse(value, L10i.Culture,
                             DateTimeStyles.AssumeUniversal);
                         if (time < published)
                         {
@@ -150,7 +152,7 @@ namespace Claymore.ArchiveWikiBot
         public virtual void Save(Wiki wiki, WikiPage page, Dictionary<string, string> archives)
         {
             Console.Out.WriteLine("Saving " + MainPage + "...");
-            string revid = page.Save(wiki, "архивация");
+            string revid = page.Save(wiki, L10i.UpdateComment);
             if (revid != null)
             {
                 string fileName = _cacheDir + Cache.EscapePath(MainPage);
@@ -164,7 +166,7 @@ namespace Claymore.ArchiveWikiBot
                 {
                     try
                     {
-                        a.Save(wiki, "архивация");
+                        a.Save(wiki, L10i.UpdateComment);
                         break;
                     }
                     catch (WikiException)
@@ -215,7 +217,7 @@ namespace Claymore.ArchiveWikiBot
             foreach (Match match in ms)
             {
                 string value = match.Groups[1].Value;
-                DateTime time = DateTime.Parse(value, culture,
+                DateTime time = DateTime.Parse(value, L10i.Culture,
                     DateTimeStyles.AssumeUniversal);
                 if (time < publishedX)
                 {
@@ -231,7 +233,7 @@ namespace Claymore.ArchiveWikiBot
             foreach (Match match in ms)
             {
                 string value = match.Groups[1].Value;
-                DateTime time = DateTime.Parse(value, culture,
+                DateTime time = DateTime.Parse(value, L10i.Culture,
                     DateTimeStyles.AssumeUniversal);
                 if (time < publishedY)
                 {
@@ -252,7 +254,7 @@ namespace Claymore.ArchiveWikiBot
             foreach (Match match in ms)
             {
                 string value = match.Groups[1].Value;
-                DateTime time = DateTime.Parse(value, culture,
+                DateTime time = DateTime.Parse(value, L10i.Culture,
                     DateTimeStyles.AssumeUniversal);
                 if (time < publishedX)
                 {
@@ -268,7 +270,7 @@ namespace Claymore.ArchiveWikiBot
             foreach (Match match in ms)
             {
                 string value = match.Groups[1].Value;
-                DateTime time = DateTime.Parse(value, culture,
+                DateTime time = DateTime.Parse(value, L10i.Culture,
                     DateTimeStyles.AssumeUniversal);
                 if (time < publishedY)
                 {

@@ -10,7 +10,8 @@ namespace Claymore.ArchiveWikiBot
 {
     internal class ArchiveByPeriod : Archive
     {
-        public ArchiveByPeriod(string title,
+        public ArchiveByPeriod(L10i l10i,
+                               string title,
                                string directory,
                                int days,
                                string format,
@@ -20,7 +21,7 @@ namespace Claymore.ArchiveWikiBot
                                string removeFromText,
                                bool checkForResult,
                                bool newSectionsDown)
-            : base(title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown)
+            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown)
         {
             Regex escapeChars = new Regex(@"([dfFghHKmMstyYz:/OoRrsuGTU])");
             Format = escapeChars.Replace(format, "\\$1");
@@ -47,7 +48,7 @@ namespace Claymore.ArchiveWikiBot
                     foreach (Match match in ms)
                     {
                         string value = match.Groups[1].Value;
-                        DateTime time = DateTime.Parse(value, culture,
+                        DateTime time = DateTime.Parse(value, L10i.Culture,
                             DateTimeStyles.AssumeUniversal);
                         if (time < published)
                         {
@@ -152,7 +153,8 @@ namespace Claymore.ArchiveWikiBot
 
     internal class ArchiveByMonth : ArchiveByPeriod
     {
-        public ArchiveByMonth(string title,
+        public ArchiveByMonth(L10i l10i,
+                              string title,
                               string directory,
                               int days,
                               string format,
@@ -162,7 +164,7 @@ namespace Claymore.ArchiveWikiBot
                               string removeFromText,
                               bool checkForResult,
                               bool newSectionsDown)
-            : base(title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown)
+            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown)
         {
         }
 
@@ -174,7 +176,8 @@ namespace Claymore.ArchiveWikiBot
 
     internal class ArchiveByYear : ArchiveByPeriod
     {
-        public ArchiveByYear(string title,
+        public ArchiveByYear(L10i l10i,
+                             string title,
                                string directory,
                                int days,
                                string format,
@@ -184,7 +187,7 @@ namespace Claymore.ArchiveWikiBot
                                string removeFromText,
                                bool checkForResult,
                                bool newSectionsDown)
-            : base(title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown)
+            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown)
         {
         }
 
@@ -196,7 +199,8 @@ namespace Claymore.ArchiveWikiBot
 
     internal class ArchiveByHalfYear : ArchiveByPeriod
     {
-        public ArchiveByHalfYear(string title,
+        public ArchiveByHalfYear(L10i l10i,
+                                 string title,
                                string directory,
                                int days,
                                string format,
@@ -206,7 +210,7 @@ namespace Claymore.ArchiveWikiBot
                                string removeFromText,
                                bool checkForResult,
                                bool newSectionsDown)
-            : base(title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown)
+            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown)
         {
             Regex escapeChars = new Regex(@"([dfFghHKmMstyYz:/OoRrsuGTU])");
             Format = escapeChars.Replace(format, "\\$1");
@@ -227,7 +231,8 @@ namespace Claymore.ArchiveWikiBot
 
     internal class ArchiveByQuarter : ArchiveByPeriod
     {
-        public ArchiveByQuarter(string title,
+        public ArchiveByQuarter(L10i l10i,
+                               string title,
                                string directory,
                                int days,
                                string format,
@@ -237,7 +242,7 @@ namespace Claymore.ArchiveWikiBot
                                string removeFromText,
                                bool checkForResult,
                                bool newSectionsDown)
-            : base(title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown)
+            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown)
         {
             Regex escapeChars = new Regex(@"([dfFghHKmMstyYz:/OoRrsuGTU])");
             Format = escapeChars.Replace(format, "\\$1");
