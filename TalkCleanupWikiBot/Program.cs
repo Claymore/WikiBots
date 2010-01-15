@@ -102,6 +102,8 @@ namespace Claymore.TalkCleanupWikiBot
             cleanupL10i.ArchivePage = "Вікіпедія:Статті, що необхідно поліпшити/Архів/";
             cleanupL10i.EmptyArchive = "обговорення не розпочато";
             cleanupL10i.NavigationTemplate = "ВППОЛ-навігація";
+            cleanupL10i.ArchiveHeader = "{| class=standard\n|-\n!| Дата\n!|" + cleanupL10i.ArchiveTemplate + "\n|-\n";
+            cleanupL10i.ArchiveFooter = "|}";
 
             List<IModule> modules = new List<IModule>()
             {
@@ -181,6 +183,8 @@ namespace Claymore.TalkCleanupWikiBot
             cleanupL10i.ArchivePage = "Википедия:К улучшению/Архив/";
             cleanupL10i.EmptyArchive = "нет обсуждений";
             cleanupL10i.NavigationTemplate = "ВПКУЛ-Навигация";
+            cleanupL10i.ArchiveFooter = "{{Улучшение статей/Конец}}";
+            cleanupL10i.ArchiveHeader = "{{Навигация по архиву КУЛ}}\n{{Улучшение статей/Начало}}";
 
             ArticlesForDeletionLocalization l10i = new ArticlesForDeletionLocalization();
             l10i.Category = "Категория:Википедия:Незакрытые обсуждения удаления страниц";
@@ -205,7 +209,7 @@ namespace Claymore.TalkCleanupWikiBot
             l10i.EmptyResult = "Пустой итог";
             l10i.ChallengedResult = "Оспоренный итог";
             l10i.ArchiveHeader = "{{Навигация по архиву КУ}}\n{{Удаление статей/Начало}}\n";
-            l10i.ArchiveFooter = "{{Удаление статей/Конец}";
+            l10i.ArchiveFooter = "{{Удаление статей/Конец}}";
 
             List<IModule> modules = new List<IModule>()
             {

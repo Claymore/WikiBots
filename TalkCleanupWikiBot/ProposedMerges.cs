@@ -270,11 +270,7 @@ namespace Claymore.TalkCleanupWikiBot
 
                 StringBuilder textBuilder = new StringBuilder();
 
-                textBuilder.AppendLine("{| class=standard");
-                textBuilder.AppendLine("|-");
-                textBuilder.AppendLine("!| Дата");
-                textBuilder.AppendLine("!| Статьи, вынесенные на объединение");
-                textBuilder.AppendLine("|-\n");
+                textBuilder.AppendLine("{{Навигация по архиву КОБ}}\n{{Объединение статей/Начало}}");
 
                 StringBuilder sb = new StringBuilder();
                 foreach (Day day in days)
@@ -326,7 +322,7 @@ namespace Claymore.TalkCleanupWikiBot
 
                 textBuilder.Append(sb.ToString());
 
-                textBuilder.AppendLine("|}");
+                textBuilder.AppendLine("{{Объединение статей/Конец}}");
 
                 if (File.Exists(fileName))
                 {

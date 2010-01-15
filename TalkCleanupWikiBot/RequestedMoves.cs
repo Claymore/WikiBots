@@ -692,9 +692,7 @@ namespace Claymore.TalkCleanupWikiBot
                     days.Sort(CompareDays);
 
                     StringBuilder textBuilder = new StringBuilder();
-
-                    textBuilder.AppendLine("== " + month.ToString("MMMM") + " ==");
-                    textBuilder.AppendLine("{{Переименование статей/Статьи, вынесенные на переименование}}");
+                    textBuilder.AppendLine("{{Навигация по архиву КПМ}}\n{{Переименование статей/Начало}}");
 
                     StringBuilder sb = new StringBuilder();
                     foreach (Day day in days)
@@ -797,7 +795,7 @@ namespace Claymore.TalkCleanupWikiBot
                     sb.Replace("</strike>", "");
 
                     textBuilder.Append(sb.ToString());
-                    textBuilder.AppendLine("|}");
+                    textBuilder.AppendLine("{{Переименование статей/Конец}}");
 
                     archiveSW.WriteLine(textBuilder.ToString());
 

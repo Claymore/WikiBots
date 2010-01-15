@@ -286,8 +286,7 @@ namespace Claymore.TalkCleanupWikiBot
                 days.Sort(CompareDays);
 
                 StringBuilder textBuilder = new StringBuilder();
-
-                textBuilder.AppendLine("{{Разделение статей/Статьи, вынесенные на разделение}}");
+                textBuilder.AppendLine("{{Навигация по архиву КР}}\n{{Разделение статей/Начало}}");
 
                 StringBuilder sb = new StringBuilder();
                 foreach (Day day in days)
@@ -337,8 +336,7 @@ namespace Claymore.TalkCleanupWikiBot
                 sb.Replace("</strike>", "");
 
                 textBuilder.Append(sb.ToString());
-
-                textBuilder.AppendLine("|}");
+                textBuilder.AppendLine("{{Разделение статей/Конец}}");
 
                 if (File.Exists(fileName))
                 {

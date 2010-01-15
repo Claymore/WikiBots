@@ -33,6 +33,8 @@ namespace Claymore.TalkCleanupWikiBot
             public string ArchivePage;
             public string EmptyArchive;
             public string NavigationTemplate;
+            public string ArchiveHeader;
+            public string ArchiveFooter;
         }
 
         public delegate string TitleProcessor(WikiPageSection section);
@@ -309,12 +311,7 @@ namespace Claymore.TalkCleanupWikiBot
                 days.Sort(CompareDays);
 
                 StringBuilder textBuilder = new StringBuilder();
-
-                textBuilder.AppendLine("{| class=standard");
-                textBuilder.AppendLine("|-");
-                textBuilder.AppendLine("!| Дата");
-                textBuilder.AppendLine("!| " + _l10i.ArchiveTemplate);
-                textBuilder.AppendLine("|-\n");
+                textBuilder.AppendLine(_l10i.ArchiveHeader);
 
                 StringBuilder sb = new StringBuilder();
                 foreach (Day day in days)
@@ -354,8 +351,7 @@ namespace Claymore.TalkCleanupWikiBot
                 sb.Replace("</strike>", "");
 
                 textBuilder.Append(sb.ToString());
-
-                textBuilder.AppendLine("|}");
+                textBuilder.AppendLine(_l10i.ArchiveFooter);
 
                 if (File.Exists(fileName))
                 {

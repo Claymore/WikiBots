@@ -390,12 +390,7 @@ namespace Claymore.TalkCleanupWikiBot
                 days.Sort(CompareDays);
 
                 StringBuilder textBuilder = new StringBuilder();
-
-                textBuilder.AppendLine("{| class=standard");
-                textBuilder.AppendLine("|-");
-                textBuilder.AppendLine("!| Дата");
-                textBuilder.AppendLine("!| Статьи, вынесенные на восстановление");
-                textBuilder.AppendLine("|-\n");
+                textBuilder.AppendLine("{{Навигация по архиву ВУС}}\n{{Восстановление статей/Начало}}");
 
                 StringBuilder sb = new StringBuilder();
                 foreach (Day day in days)
@@ -446,8 +441,7 @@ namespace Claymore.TalkCleanupWikiBot
                 sb.Replace("</strike>", "");
 
                 textBuilder.Append(sb.ToString());
-
-                textBuilder.AppendLine("|}");
+                textBuilder.AppendLine("{{Восстановление статей/Конец}}");
 
                 if (File.Exists(fileName))
                 {
