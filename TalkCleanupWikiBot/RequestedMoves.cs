@@ -246,6 +246,7 @@ namespace Claymore.TalkCleanupWikiBot
 
         public void UpdatePages(Wiki wiki)
         {
+            Regex closedRE = new Regex(@"(\{{2}ВПКПМ-Навигация\}{2}\s*\{{2}(Закрыто|Closed|закрыто|closed)\}{2})|(\{{2}(Закрыто|Closed|закрыто|closed)\}{2}\s*\{{2}ВПКПМ-Навигация\}{2})");
             Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
             Regex timeRE = new Regex(@"(\d{2}:\d{2}\, \d\d? [а-я]+ \d{4}) \(UTC\)");
 
@@ -426,53 +427,57 @@ namespace Claymore.TalkCleanupWikiBot
                     }
                 }
 
-                List<TalkResult> talkResults = new List<TalkResult>();
-                foreach (string name in titlesWithResults)
+                Match matchClosed = closedRE.Match(text);
+                if (matchClosed.Success)
                 {
-                    if (wiki.PageNamespace(name) > 0)
+                    List<TalkResult> talkResults = new List<TalkResult>();
+                    foreach (string name in titlesWithResults)
                     {
-                        continue;
-                    }
-                    string movedTo;
-                    string movedBy;
-                    DateTime movedAt;
-
-                    bool moved = MovedTo(wiki,
-                                   name,
-                                   day.Date,
-                                   out movedTo,
-                                   out movedBy,
-                                   out movedAt);
-                    talkResults.Add(new TalkResult(name, movedTo, moved));
-                }
-
-                parameters.Clear();
-                parameters.Add("prop", "info");
-                XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, talkResults.ConvertAll(r => r.Moved ? r.MovedTo : r.Title));
-                List<string> notificationList = new List<string>();
-                foreach (XmlNode node in xml.SelectNodes("//page"))
-                {
-                    if (node.Attributes["missing"] == null && node.Attributes["ns"].Value == "0")
-                    {
-                        notificationList.Add(node.Attributes["title"].Value);
-                    }
-                }
-                if (notificationList.Count > 0)
-                {
-                    parameters.Clear();
-                    parameters.Add("list", "backlinks");
-                    parameters.Add("bltitle", pageName);
-                    parameters.Add("blfilterredir", "nonredirects");
-                    parameters.Add("blnamespace", "1");
-                    parameters.Add("bllimit", "max");
-
-                    XmlDocument backlinks = wiki.Enumerate(parameters, true);
-                    foreach (string title in notificationList)
-                    {
-                        if (backlinks.SelectSingleNode("//bl[@title=\"Обсуждение:" + title + "\"]") == null)
+                        if (wiki.PageNamespace(name) > 0)
                         {
-                            TalkResult tr = talkResults.Find(r => r.Moved ? r.MovedTo == title : r.Title == title);
-                            PutNotification(wiki, tr, day.Date);
+                            continue;
+                        }
+                        string movedTo;
+                        string movedBy;
+                        DateTime movedAt;
+
+                        bool moved = MovedTo(wiki,
+                                       name,
+                                       day.Date,
+                                       out movedTo,
+                                       out movedBy,
+                                       out movedAt);
+                        talkResults.Add(new TalkResult(name, movedTo, moved));
+                    }
+
+                    parameters.Clear();
+                    parameters.Add("prop", "info");
+                    XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, talkResults.ConvertAll(r => r.Moved ? r.MovedTo : r.Title));
+                    List<string> notificationList = new List<string>();
+                    foreach (XmlNode node in xml.SelectNodes("//page"))
+                    {
+                        if (node.Attributes["missing"] == null && node.Attributes["ns"].Value == "0")
+                        {
+                            notificationList.Add(node.Attributes["title"].Value);
+                        }
+                    }
+                    if (notificationList.Count > 0)
+                    {
+                        parameters.Clear();
+                        parameters.Add("list", "backlinks");
+                        parameters.Add("bltitle", pageName);
+                        parameters.Add("blfilterredir", "nonredirects");
+                        parameters.Add("blnamespace", "1");
+                        parameters.Add("bllimit", "max");
+
+                        XmlDocument backlinks = wiki.Enumerate(parameters, true);
+                        foreach (string title in notificationList)
+                        {
+                            if (backlinks.SelectSingleNode("//bl[@title=\"Обсуждение:" + title + "\"]") == null)
+                            {
+                                TalkResult tr = talkResults.Find(r => r.Moved ? r.MovedTo == title : r.Title == title);
+                                PutNotification(wiki, tr, day.Date);
+                            }
                         }
                     }
                 }
