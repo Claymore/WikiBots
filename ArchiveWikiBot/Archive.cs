@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 using Claymore.SharpMediaWiki;
@@ -157,8 +158,14 @@ namespace Claymore.ArchiveWikiBot
 
         public virtual void Save(Wiki wiki, WikiPage page, Dictionary<string, string> archives)
         {
+            StringBuilder linksToArchives = new StringBuilder();
+            foreach (var archive in archives)
+            {
+                linksToArchives.AppendFormat(", [[{0}]]", archive.Key);
+            }
+            linksToArchives.Remove(0, 2);
             Console.Out.WriteLine("Saving " + MainPage + "...");
-            string revid = page.Save(wiki, L10i.UpdateComment);
+            string revid = page.Save(wiki, string.Format("{0} (→ {1})", L10i.UpdateComment, linksToArchives));
             if (revid != null)
             {
                 string fileName = _cacheDir + Cache.EscapePath(MainPage);
@@ -172,7 +179,7 @@ namespace Claymore.ArchiveWikiBot
                 {
                     try
                     {
-                        a.Save(wiki, L10i.UpdateComment);
+                        a.Save(wiki, string.Format("{0} (← [[{1}]])", L10i.UpdateComment, page.Title));
                         break;
                     }
                     catch (WikiException)
