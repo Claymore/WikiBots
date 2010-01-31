@@ -20,15 +20,16 @@ namespace Claymore.ArchiveWikiBot
                                IEnumerable<string> onHold,
                                string removeFromText,
                                bool checkForResult,
-                               bool newSectionsDown)
-            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown)
+                               bool newSectionsDown,
+                               int minimalSize)
+            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown, minimalSize)
         {
             Regex escapeChars = new Regex(@"([dfFghHKmMstyYz:/OoRrsuGTU])");
             Format = escapeChars.Replace(format, "\\$1");
             Format = Format.Replace("%(год)", "yyyy").Replace("%(месяц)", "MM");
         }
 
-        public override Dictionary<string, string> Process(Wiki wiki, WikiPage page)
+        public override Dictionary<string, string> Process(Wiki wiki, WikiPage page, ref int diffSize)
         {
             Dictionary<string, string> results = new Dictionary<string, string>();
             Dictionary<DateTime, List<WikiPageSection>> archives = new Dictionary<DateTime, List<WikiPageSection>>();
@@ -133,8 +134,10 @@ namespace Claymore.ArchiveWikiBot
                 results.Add(pageName, archivePage.Text);
             }
 
+            diffSize = 0;
             foreach (var section in archivedSections)
             {
+                diffSize += section.Text.Length;
                 page.Sections.Remove(section);
             }
             return results;
@@ -163,8 +166,9 @@ namespace Claymore.ArchiveWikiBot
                               IEnumerable<string> onHold,
                               string removeFromText,
                               bool checkForResult,
-                              bool newSectionsDown)
-            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown)
+                              bool newSectionsDown,
+                              int minimalSize)
+            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown, minimalSize)
         {
         }
 
@@ -186,8 +190,9 @@ namespace Claymore.ArchiveWikiBot
                                IEnumerable<string> onHold,
                                string removeFromText,
                                bool checkForResult,
-                               bool newSectionsDown)
-            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown)
+                               bool newSectionsDown,
+                               int minimalSize)
+            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown, minimalSize)
         {
         }
 
@@ -209,8 +214,9 @@ namespace Claymore.ArchiveWikiBot
                                IEnumerable<string> onHold,
                                string removeFromText,
                                bool checkForResult,
-                               bool newSectionsDown)
-            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown)
+                               bool newSectionsDown,
+                               int minimalSize)
+            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown, minimalSize)
         {
             Regex escapeChars = new Regex(@"([dfFghHKmMstyYz:/OoRrsuGTU])");
             Format = escapeChars.Replace(format, "\\$1");
@@ -241,8 +247,9 @@ namespace Claymore.ArchiveWikiBot
                                IEnumerable<string> onHold,
                                string removeFromText,
                                bool checkForResult,
-                               bool newSectionsDown)
-            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown)
+                               bool newSectionsDown,
+                               int minimalSize)
+            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown, minimalSize)
         {
             Regex escapeChars = new Regex(@"([dfFghHKmMstyYz:/OoRrsuGTU])");
             Format = escapeChars.Replace(format, "\\$1");

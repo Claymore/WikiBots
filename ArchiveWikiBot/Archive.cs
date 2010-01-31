@@ -24,6 +24,7 @@ namespace Claymore.ArchiveWikiBot
         protected IEnumerable<string> OnHold { get; set; }
         protected string RemoveFromText { get; set; }
         protected L10i L10i { get; set; }
+        protected int MinimalSize { get; set; }
         
         public Archive(L10i l10i,
                        string title,
@@ -35,7 +36,8 @@ namespace Claymore.ArchiveWikiBot
                        IEnumerable<string> onHold,
                        string removeFromText,
                        bool checkForResult,
-                       bool newSectionsDown)
+                       bool newSectionsDown,
+                       int minimalSize)
         {
             MainPage = title;
             _cacheDir = directory;
@@ -48,9 +50,10 @@ namespace Claymore.ArchiveWikiBot
             OnHold = onHold;
             RemoveFromText = removeFromText;
             L10i = l10i;
+            MinimalSize = minimalSize;
         }
 
-        public virtual Dictionary<string, string> Process(Wiki wiki, WikiPage page)
+        public virtual Dictionary<string, string> Process(Wiki wiki, WikiPage page, ref int diffSize)
         {
             var results = new Dictionary<string, string>();
             List<WikiPageSection> archivedSections = new List<WikiPageSection>();
@@ -94,6 +97,7 @@ namespace Claymore.ArchiveWikiBot
             
             if (archivedSections.Count == 0)
             {
+                diffSize = 0;
                 return results;
             }
 
@@ -140,9 +144,11 @@ namespace Claymore.ArchiveWikiBot
                 archivePage.Text = archivePage.Text.Replace(RemoveFromText, "");
             }
             results.Add(pageName, archivePage.Text);
-            
+
+            diffSize = 0;
             foreach (var section in archivedSections)
             {
+                diffSize += section.Text.Length;
                 page.Sections.Remove(section);
             }
 
@@ -179,8 +185,9 @@ namespace Claymore.ArchiveWikiBot
         public void Archivate(Wiki wiki)
         {
             WikiPage page = Cache.Load(wiki, MainPage, _cacheDir);
-            var pages = Process(wiki, page);
-            if (pages.Count > 0)
+            int diffSize = 0;
+            var pages = Process(wiki, page, ref diffSize);
+            if (pages.Count > 0 && diffSize >= MinimalSize)
             {
                 Save(wiki, page, pages);
             }

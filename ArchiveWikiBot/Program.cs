@@ -176,6 +176,12 @@ namespace Claymore.ArchiveWikiBot
             {
                 int.TryParse(values["срок"], out days);
             }
+
+            int minimalSize = 512;
+            if (values.ContainsKey("размер правки"))
+            {
+                int.TryParse(values["размер правки"], out minimalSize);
+            }
             
             int archiveSize = 70 * 1024;
             if (values.ContainsKey("размер архива"))
@@ -316,7 +322,8 @@ namespace Claymore.ArchiveWikiBot
                         onHold,
                         removeFromText,
                         checkForResult,
-                        newSectionsDown);
+                        newSectionsDown,
+                        minimalSize);
                 }
                 else if (t == "месяц")
                 {
@@ -330,7 +337,8 @@ namespace Claymore.ArchiveWikiBot
                         onHold,
                         removeFromText,
                         checkForResult,
-                        newSectionsDown);
+                        newSectionsDown,
+                        minimalSize);
                 }
                 else if (t == "год")
                 {
@@ -344,7 +352,8 @@ namespace Claymore.ArchiveWikiBot
                         onHold,
                         removeFromText,
                         checkForResult,
-                        newSectionsDown);
+                        newSectionsDown,
+                        minimalSize);
                 }
                 else if (t == "полгода")
                 {
@@ -358,7 +367,8 @@ namespace Claymore.ArchiveWikiBot
                         onHold,
                         removeFromText,
                         checkForResult,
-                        newSectionsDown);
+                        newSectionsDown,
+                        minimalSize);
                 }
                 else if (t == "квартал")
                 {
@@ -372,7 +382,8 @@ namespace Claymore.ArchiveWikiBot
                         onHold,
                         removeFromText,
                         checkForResult,
-                        newSectionsDown);
+                        newSectionsDown,
+                        minimalSize);
                 }
                 else if (t == "статьи для рецензирования")
                 {
@@ -391,7 +402,8 @@ namespace Claymore.ArchiveWikiBot
                         removeFromText,
                         checkForResult,
                         newSectionsDown,
-                        topics);
+                        topics,
+                        minimalSize);
                 }
                 else if (allowSource && t == "заявки на арбитраж")
                 {

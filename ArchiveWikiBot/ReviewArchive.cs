@@ -11,11 +11,11 @@ namespace Claymore.ArchiveWikiBot
     internal class ReviewArchive : Archive
     {
         public ReviewArchive(L10i l10i, string title, string directory, int days, string archive, string header)
-            : base(l10i, title, directory, days, archive, header, new string[] { }, new string[] { }, "", false, false)
+            : base(l10i, title, directory, days, archive, header, new string[] { }, new string[] { }, "", false, false, 0)
         {
         }
 
-        public override Dictionary<string, string> Process(Wiki wiki, WikiPage page)
+        public override Dictionary<string, string> Process(Wiki wiki, WikiPage page, ref int diffSize)
         {
             var pageTexts = new Dictionary<string, string>();
             var talkPages = new Dictionary<string, WikiPageSection>();
@@ -156,12 +156,15 @@ namespace Claymore.ArchiveWikiBot
 
             if (archivedSections.Count == 0)
             {
+                diffSize = 0;
                 return pageTexts;
             }
             pageTexts.Add(archive.Title, archive.Text);
 
+            diffSize = 0;
             foreach (var section in archivedSections)
             {
+                diffSize += section.Text.Length;
                 page.Sections.Remove(section);
             }
             return pageTexts;

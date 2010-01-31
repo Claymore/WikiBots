@@ -23,14 +23,15 @@ namespace Claymore.ArchiveWikiBot
                                string removeFromText,
                                bool checkForResult,
                                bool newSectionsDown,
-                               int topics)
-            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown)
+                               int topics,
+                               int minimalSize)
+            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown, minimalSize)
         {
             Topics = topics;
             Format = format.Replace("%(номер)", "{0}");
         }
 
-        public override Dictionary<string, string> Process(Wiki wiki, WikiPage page)
+        public override Dictionary<string, string> Process(Wiki wiki, WikiPage page, ref int diffSize)
         {
             List<WikiPageSection> archivedSections = new List<WikiPageSection>();
             foreach (WikiPageSection section in page.Sections)
@@ -75,6 +76,7 @@ namespace Claymore.ArchiveWikiBot
 
             if (archivedSections.Count == 0)
             {
+                diffSize = 0;
                 return archiveTexts;
             }
 
@@ -165,8 +167,10 @@ namespace Claymore.ArchiveWikiBot
                 archiveTexts.Add(pageName, archivePage.Text);
             }
 
+            diffSize = 0;
             foreach (var section in archivedSections)
             {
+                diffSize += section.Text.Length;
                 page.Sections.Remove(section);
             }
             return archiveTexts;
