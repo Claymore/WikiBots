@@ -28,7 +28,18 @@ namespace Claymore.ArchiveWikiBot
 
         private static int FindTemplate(string text, int offset, out string request, out bool accepted, out DateTime date)
         {
-            int begin = text.IndexOf("{{Иск", offset);
+            Regex reStart = new Regex(@"\{\{(?:Иск|Заявка)",
+                RegexOptions.Singleline);
+            Match m = reStart.Match(text, offset);
+            int begin = -1;
+            if (m.Success)
+            {
+                begin = m.Index;
+            }
+            if (begin == -1)
+            {
+                begin = text.IndexOf("{{Заявка", offset);
+            }
             if (begin == -1)
             {
                 accepted = false;
@@ -64,9 +75,9 @@ namespace Claymore.ArchiveWikiBot
             }
 
             request = text.Substring(begin, end - begin + 2);
-            Regex requestRE = new Regex(@"\{\{Иск\s*\|.+?\|\s*Статус\s*=(.+?)\|.+?\|\s*Закрыт\s*=(\d{4}-\d{1,2}-\d{1,2})\s*\}\}",
+            Regex requestRE = new Regex(@"\{\{(?:Иск|Заявка)\s*\|.+?\|\s*Статус\s*=(.+?)\|.+?\|\s*Закрыт\s*=(\d{4}-\d{1,2}-\d{1,2})\s*\}\}",
                 RegexOptions.Singleline);
-            Match m = requestRE.Match(text, begin, end - begin + 2);
+            m = requestRE.Match(text, begin, end - begin + 2);
             if (m.Success)
             {
                 request = m.Groups[0].Value;
