@@ -54,7 +54,7 @@ namespace Claymore.ArchiveWikiBot
             MinimalSize = minimalSize;
         }
 
-        public virtual Dictionary<string, string> Process(Wiki wiki, WikiPage page, ref int diffSize)
+        public virtual Dictionary<string, string> Process(Wiki wiki, WikiPage page, ref int diffSize, ref int topics)
         {
             var results = new Dictionary<string, string>();
             List<WikiPageSection> archivedSections = new List<WikiPageSection>();
@@ -147,16 +147,17 @@ namespace Claymore.ArchiveWikiBot
             results.Add(pageName, archivePage.Text);
 
             diffSize = 0;
+            topics = 0;
             foreach (var section in archivedSections)
             {
-                diffSize += section.Text.Length;
+                diffSize += Encoding.UTF8.GetByteCount(section.Text);
+                ++topics;
                 page.Sections.Remove(section);
             }
-
             return results;
         }
 
-        public virtual void Save(Wiki wiki, WikiPage page, Dictionary<string, string> archives)
+        public virtual void Save(Wiki wiki, WikiPage page, Dictionary<string, string> archives, int topics)
         {
             StringBuilder linksToArchives = new StringBuilder();
             foreach (var archive in archives)
@@ -165,7 +166,10 @@ namespace Claymore.ArchiveWikiBot
             }
             linksToArchives.Remove(0, 2);
             Console.Out.WriteLine("Saving " + MainPage + "...");
-            string revid = page.Save(wiki, string.Format("{0} (→ {1})", L10i.UpdateComment, linksToArchives));
+            string revid = page.Save(wiki, string.Format("{0} ({1}) → {2}",
+                L10i.UpdateComment,
+                topics,
+                linksToArchives));
             if (revid != null)
             {
                 string fileName = _cacheDir + Cache.EscapePath(MainPage);
@@ -179,7 +183,7 @@ namespace Claymore.ArchiveWikiBot
                 {
                     try
                     {
-                        a.Save(wiki, string.Format("{0} (← [[{1}]])", L10i.UpdateComment, page.Title));
+                        a.Save(wiki, string.Format("{0} ← [[{1}]]", L10i.UpdateComment, page.Title));
                         break;
                     }
                     catch (WikiException)
@@ -193,10 +197,11 @@ namespace Claymore.ArchiveWikiBot
         {
             WikiPage page = Cache.Load(wiki, MainPage, _cacheDir);
             int diffSize = 0;
-            var pages = Process(wiki, page, ref diffSize);
+            int topics = 0;
+            var pages = Process(wiki, page, ref diffSize, ref topics);
             if (pages.Count > 0 && diffSize >= MinimalSize)
             {
-                Save(wiki, page, pages);
+                Save(wiki, page, pages, topics);
             }
         }
 

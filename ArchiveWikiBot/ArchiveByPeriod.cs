@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml;
 using Claymore.SharpMediaWiki;
+using System.Text;
 
 namespace Claymore.ArchiveWikiBot
 {
@@ -29,7 +30,7 @@ namespace Claymore.ArchiveWikiBot
             Format = Format.Replace("%(год)", "yyyy").Replace("%(месяц)", "MM");
         }
 
-        public override Dictionary<string, string> Process(Wiki wiki, WikiPage page, ref int diffSize)
+        public override Dictionary<string, string> Process(Wiki wiki, WikiPage page, ref int diffSize, ref int topics)
         {
             Dictionary<string, string> results = new Dictionary<string, string>();
             Dictionary<DateTime, List<WikiPageSection>> archives = new Dictionary<DateTime, List<WikiPageSection>>();
@@ -134,10 +135,12 @@ namespace Claymore.ArchiveWikiBot
                 results.Add(pageName, archivePage.Text);
             }
 
+            topics = 0;
             diffSize = 0;
             foreach (var section in archivedSections)
             {
-                diffSize += section.Text.Length;
+                diffSize += Encoding.UTF8.GetByteCount(section.Text);
+                ++topics;
                 page.Sections.Remove(section);
             }
             return results;

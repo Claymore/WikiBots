@@ -177,7 +177,7 @@ namespace Claymore.ArchiveWikiBot
                 int.TryParse(values["срок"], out days);
             }
 
-            int minimalSize = 512;
+            int minimalSize = 3 * 1024;
             if (values.ContainsKey("размер правки"))
             {
                 int.TryParse(values["размер правки"], out minimalSize);

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml;
 using Claymore.SharpMediaWiki;
+using System.Text;
 
 namespace Claymore.ArchiveWikiBot
 {
@@ -15,7 +16,7 @@ namespace Claymore.ArchiveWikiBot
         {
         }
 
-        public override Dictionary<string, string> Process(Wiki wiki, WikiPage page, ref int diffSize)
+        public override Dictionary<string, string> Process(Wiki wiki, WikiPage page, ref int diffSize, ref int topics)
         {
             var pageTexts = new Dictionary<string, string>();
             var talkPages = new Dictionary<string, WikiPageSection>();
@@ -161,16 +162,18 @@ namespace Claymore.ArchiveWikiBot
             }
             pageTexts.Add(archive.Title, archive.Text);
 
+            topics = 0;
             diffSize = 0;
             foreach (var section in archivedSections)
             {
-                diffSize += section.Text.Length;
+                diffSize += Encoding.UTF8.GetByteCount(section.Text);
+                ++topics;
                 page.Sections.Remove(section);
             }
             return pageTexts;
         }
 
-        public override void Save(Wiki wiki, WikiPage page, Dictionary<string, string> archives)
+        public override void Save(Wiki wiki, WikiPage page, Dictionary<string, string> archives, int topics)
         {
             Console.Out.WriteLine("Saving " + MainPage + "...");
             string revid = page.Save(wiki, "архивация");
@@ -180,7 +183,6 @@ namespace Claymore.ArchiveWikiBot
                 Cache.CachePage(fileName, revid, page.Text);
             }
 
-            
             foreach (var archive in archives)
             {
                 WikiPage a = new WikiPage(archive.Key, archive.Value);
