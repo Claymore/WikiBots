@@ -21,7 +21,7 @@ namespace Claymore.NewPagesWikiBot
             Directory.CreateDirectory(@"Cache\" + args[0]);
 
             Wiki wiki = new Wiki(string.Format("http://{0}.wikipedia.org/w/", args[0]));
-            wiki.SleepBetweenQueries = 2;
+            wiki.SleepBetweenQueries = 10;
             if (string.IsNullOrEmpty(Settings.Default.Login) ||
                 string.IsNullOrEmpty(Settings.Default.Password))
             {
@@ -32,10 +32,10 @@ namespace Claymore.NewPagesWikiBot
             Console.Out.WriteLine("Logging in as " + Settings.Default.Login + " to " + wiki.Uri + "...");
             try
             {
-                string cookieFile = @"Cache\"+ args[0] + @"\cookie.jar";
+                string cookieFile = @"Cache\" + args[0] + @"\cookie.jar";
                 WikiCache.Login(wiki, Settings.Default.Login, Settings.Default.Password, cookieFile);
 
-                string namespacesFile = @"Cache\"+ args[0] + @"\namespaces.dat";
+                string namespacesFile = @"Cache\" + args[0] + @"\namespaces.dat";
                 if (!WikiCache.LoadNamespaces(wiki, namespacesFile))
                 {
                     wiki.GetNamespaces();
@@ -55,13 +55,31 @@ namespace Claymore.NewPagesWikiBot
             Directory.CreateDirectory("Cache\\" + args[0] + "\\PagesInCategoryWithTemplates\\");
             Cache.PurgeCache(args[0]);
 
-            ParameterCollection parameters = new ParameterCollection();
-            parameters.Add("generator", "embeddedin");
-            parameters.Add("geititle", "User:ClaymoreBot/Новые статьи");
-            parameters.Add("geilimit", "max");
-            parameters.Add("prop", "info");
-            parameters.Add("intoken", "edit");
-            parameters.Add("redirects");
+            if (!File.Exists("Cache\\" + args[0] + "\\processed.txt"))
+            {
+                FileStream stream = File.Create("Cache\\" + args[0] + "\\processed.txt");
+                stream.Close();
+            }
+
+            HashSet<string> processedPages = new HashSet<string>();
+            using (StreamReader sr = new StreamReader("Cache\\" + args[0] + "\\processed.txt"))
+            {
+                String line;
+                while ((line = sr.ReadLine()) != null)
+                {
+                    processedPages.Add(line);
+                }
+            }
+
+            ParameterCollection parameters = new ParameterCollection()
+            {
+                { "generator", "embeddedin" },
+                { "geititle", "User:ClaymoreBot/Новые статьи" },
+                { "geilimit", "max" },
+                { "prop", "info" },
+                { "intoken", "edit" },
+                { "redirects", "1" }
+            };
 
             List<string> pages = new List<string>();
             XmlDocument doc = wiki.Enumerate(parameters, true);
@@ -77,11 +95,19 @@ namespace Claymore.NewPagesWikiBot
             {
                 try
                 {
+                    if (processedPages.Contains(pages[i]))
+                    {
+                        continue;
+                    }
                     WikiPage page = Cache.Load(wiki, pages[i], path);
                     IPortalModule module;
                     if (TryParse(page, path, portal, out module))
                     {
                         module.Update(wiki);
+                        using (StreamWriter sw = new StreamWriter("Cache\\" + args[0] + "\\processed.txt", true))
+                        {
+                            sw.WriteLine(pages[i]);
+                        }
                     }
                 }
                 catch (WikiException)
@@ -93,6 +119,8 @@ namespace Claymore.NewPagesWikiBot
                     return -1;
                 }
             }
+
+            File.Delete("Cache\\" + args[0] + "\\processed.txt");
 
             Console.Out.WriteLine("Done.");
             return 0;

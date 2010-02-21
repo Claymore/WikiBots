@@ -50,7 +50,7 @@ namespace Claymore.NewPagesWikiBot
                 while ((line = streamReader.ReadLine()) != null)
                 {
                     string[] groups = line.Split(new char[] { '\t' });
-                    if (groups[2] == Namespace.ToString())
+                    if (groups.Length > 2 && groups[2] == Namespace.ToString())
                     {
                         string title = groups[0].Replace('_', ' ');
                         result.AppendLine(string.Format(Format, title));
