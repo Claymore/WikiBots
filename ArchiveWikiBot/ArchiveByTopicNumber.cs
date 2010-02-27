@@ -81,12 +81,20 @@ namespace Claymore.ArchiveWikiBot
                 return archiveTexts;
             }
 
-            string talkPrefix = "Обсуждение участника:";
-            var parameters = new ParameterCollection();
-            parameters.Add("list", "allpages");
-            parameters.Add("apprefix", MainPage.Substring(talkPrefix.Length));
-            parameters.Add("apnamespace", "3");
-            XmlDocument xml = wiki.Enumerate(parameters, true);
+            var parameters = new ParameterCollection()
+            {
+                { "prop", "info" },
+            };
+            XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, MainPage);
+            int ns = int.Parse(xml.SelectSingleNode("//page").Attributes["ns"].Value);
+            string prefix = wiki.GetNamespace(ns) + ":";
+            parameters = new ParameterCollection()
+            {
+                { "list", "allpages" },
+                { "apprefix", MainPage.Substring(prefix.Length) },
+                { "apnamespace", ns.ToString() }
+            };
+            xml = wiki.Enumerate(parameters, true);
 
             int maxNumber = 1;
             foreach (XmlNode p in xml.SelectNodes("//p"))
