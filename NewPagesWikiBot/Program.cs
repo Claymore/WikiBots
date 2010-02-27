@@ -21,7 +21,7 @@ namespace Claymore.NewPagesWikiBot
             Directory.CreateDirectory(@"Cache\" + args[0]);
 
             Wiki wiki = new Wiki(string.Format("http://{0}.wikipedia.org/w/", args[0]));
-            wiki.SleepBetweenQueries = 10;
+            wiki.SleepBetweenQueries = 5;
             if (string.IsNullOrEmpty(Settings.Default.Login) ||
                 string.IsNullOrEmpty(Settings.Default.Password))
             {
