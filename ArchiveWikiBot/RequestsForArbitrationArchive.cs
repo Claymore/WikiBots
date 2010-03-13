@@ -149,7 +149,7 @@ namespace Claymore.ArchiveWikiBot
                 }
             }
             WikiPage acceptedPage = Cache.Load(wiki, Accepted, Directory);
-            string start = "{{Иск/Заголовок таблицы}}";
+            string start = "{{Заявка/Заголовок таблицы}}";
             int index = acceptedPage.Sections[0].SectionText.IndexOf(start);
             if (acceptedRequests.Count != 0 && index != -1)
             {
