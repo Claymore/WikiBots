@@ -510,11 +510,10 @@ namespace Claymore.TalkCleanupWikiBot
                                 events[0].User,
                                 events[0].Timestamp.ToUniversalTime().ToString(_l10i.DateFormat, CultureInfo.CreateSpecificCulture(_l10i.Culture)),
                                 comment);
-                            if (!titles.ContainsKey(title))
-                            {
-                                continue;
-                            }
-                            foreach (WikiPageSection section in titles[title])
+                            var pageSections = titles.ContainsKey(title)
+                                ? titles[title]
+                                : titles[normalizedTitles[title]];
+                            foreach (WikiPageSection section in pageSections)
                             {
                                 WikiPageSection verdict = new WikiPageSection(" " + _l10i.AutoResultSection + " ",
                                     section.Level + 1,
@@ -770,6 +769,8 @@ namespace Claymore.TalkCleanupWikiBot
             Regex commentRE = new Regex(@"\[{2}(File|Файл|Image|Изображение|Category|Категория):(.+?)(\|.+)?(\]{2})?$");
             string comment = line;
             comment = comment.Replace("{{", "<nowiki>{{").Replace("}}", "}}</nowiki>").Replace("'''", "").Replace("''", "").Trim();
+            comment = comment.Replace("<ref>", "<nowiki><ref>").Replace("</ref>", "</ref></nowiki>");
+            comment = comment.Replace("<!--", "<nowiki><!--").Replace("-->", "--></nowiki>");
             comment = commentRE.Replace(comment, "<nowiki>[[</nowiki>[[:$1:$2]]<nowiki>$3]]</nowiki>");
             if (comment.Contains("<nowiki>"))
             {
