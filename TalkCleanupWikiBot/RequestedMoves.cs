@@ -588,24 +588,7 @@ namespace Claymore.TalkCleanupWikiBot
             }
         }
 
-        public void UpdateArchives(Wiki wiki)
-        {
-            DateTime end = DateTime.Today;
-            int quarter = (int)Math.Ceiling(end.Month / 3.0);
-            DateTime start;
-            int q = quarter - 1;
-            if (q == 0)
-            {
-                q = 4;
-                start = new DateTime(end.Year - 1, 10, 1);
-            }
-            else
-            {
-                start = new DateTime(end.Year, (q - 1) * 3, 1);
-            }
-        }
-
-        public void UpdateArchive(Wiki wiki, int year, int monthNumber)
+        public void UpdateArchivePages(Wiki wiki, int year, int monthNumber)
         {
             Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
 
@@ -1014,6 +997,46 @@ namespace Claymore.TalkCleanupWikiBot
             return section.Reduce(aggregator, SubsectionsList);
         }
 
+        private void UpdateArchives(Wiki wiki)
+        {
+            var parameters = new ParameterCollection()
+            {
+                {"generator", "categorymembers"},
+                {"gcmtitle", "Категория:Википедия:Незакрытые обсуждения переименования страниц"},
+                {"gcmlimit", "max"},
+                {"gcmnamespace", "4"},
+                {"prop", "info"},
+            };
+            XmlDocument doc = wiki.Enumerate(parameters, true);
+            XmlNodeList pages = doc.SelectNodes("//page");
+
+            DateTime startDate = DateTime.Today;
+            foreach (XmlNode page in pages)
+            {
+                string pageName = page.Attributes["title"].Value;
+                string dateString = pageName.Substring("Википедия:К переименованию/".Length);
+
+                DateTime date;
+                if (!DateTime.TryParse(dateString, CultureInfo.CreateSpecificCulture("ru-RU"),
+                        DateTimeStyles.AssumeUniversal, out date))
+                {
+                    continue;
+                }
+                if (date < startDate)
+                {
+                    startDate = new DateTime(date.Year, date.Month, 1);
+                }
+            }
+
+            DateTime month = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+            do
+            {
+                UpdateArchivePages(wiki, month.Year, month.Month);
+                month = month.AddMonths(-1);
+            }
+            while (month != startDate);
+        }
+
         #region IModule Members
 
         public void Run(Wiki wiki)
@@ -1021,19 +1044,7 @@ namespace Claymore.TalkCleanupWikiBot
             UpdatePages(wiki);
             Analyze(wiki);
             UpdateMainPage(wiki);
-            UpdateArchive(wiki, 2010, 1);
-            UpdateArchive(wiki, 2009, 12);
-            UpdateArchive(wiki, 2009, 11);
-            UpdateArchive(wiki, 2009, 10);
-            UpdateArchive(wiki, 2009, 9);
-            UpdateArchive(wiki, 2009, 8);
-            UpdateArchive(wiki, 2009, 7);
-            //UpdateArchive(wiki, 2009, 6);
-            //UpdateArchive(wiki, 2009, 5);
-            //UpdateArchive(wiki, 2009, 4);
-            //UpdateArchive(wiki, 2009, 3);
-            //UpdateArchive(wiki, 2009, 2);
-            //UpdateArchive(wiki, 2009, 1);
+            UpdateArchives(wiki);
         }
 
         #endregion
