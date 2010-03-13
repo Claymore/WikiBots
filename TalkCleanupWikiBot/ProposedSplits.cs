@@ -195,7 +195,7 @@ namespace Claymore.TalkCleanupWikiBot
                 }
             }
 
-            List<string> titles = new List<string>();
+            List<string> archiveTitles = new List<string>();
             minDate = new DateTime(minDate.Year, minDate.Month, 1);
             DateTime currentYear = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
             DateTime start = minDate;
@@ -203,18 +203,12 @@ namespace Claymore.TalkCleanupWikiBot
             {
                 string date = start.ToString("MMMM yyyy");
                 string pageName = "Википедия:Архив запросов на разделение/" + date;
-                titles.Add(pageName);
+                archiveTitles.Add(pageName);
                 start = start.AddMonths(1);
             }
 
-            parameters.Clear();
-            parameters.Add("prop", "info");
-
-            XmlDocument archivesDoc = wiki.Query(QueryBy.Titles, parameters, titles);
-            pages = archivesDoc.SelectNodes("//page");
-            foreach (XmlNode archivePage in pages)
+            foreach (string archiveName in archiveTitles)
             {
-                string archiveName = archivePage.Attributes["title"].Value;
                 string date = archiveName.Substring("Википедия:Архив запросов на разделение/".Length);
                 DateTime archiveDate;
                 if (!DateTime.TryParse(date,
@@ -227,7 +221,7 @@ namespace Claymore.TalkCleanupWikiBot
                 string fileName = _cacheDir + "Archive-" + date + ".txt";
                 start = archiveDate;
                 DateTime end = start.AddMonths(1);
-                titles.Clear();
+                List<string> titles = new List<string>();
                 while (start < end)
                 {
                     string pageDate = start.ToString("d MMMM yyyy",
