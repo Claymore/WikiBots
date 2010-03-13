@@ -255,6 +255,7 @@ namespace Claymore.ReviewStatsWikiBot
             using (StreamWriter sw =
                            new StreamWriter("output.txt", false))
             {
+                sw.WriteLine("== Статистика ==");
                 sw.WriteLine("{| class=\"wikitable sortable\"");
                 sw.Write("! № !! Имя !! Всего");
                 currentMonth = new DateTime(2008, 9, 1);
