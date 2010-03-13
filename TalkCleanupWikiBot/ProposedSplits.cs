@@ -290,11 +290,6 @@ namespace Claymore.TalkCleanupWikiBot
                         continue;
                     }
                     sb.Append("{{Разделение статей/День|" + day.Date.ToString("yyyy-M-d") + "|\n");
-                    if (!day.Archived && day.Exists)
-                    {
-                        sb.Append("''обсуждение не завершено''}}\n\n");
-                        continue;
-                    }
                     List<string> sectionTitles = new List<string>();
                     foreach (WikiPageSection section in day.Page.Sections)
                     {

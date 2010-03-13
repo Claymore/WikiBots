@@ -396,11 +396,6 @@ namespace Claymore.TalkCleanupWikiBot
                 foreach (Day day in days)
                 {
                     sb.Append("{{Восстановление статей/День|" + day.Date.ToString("yyyy-M-d") + "|\n");
-                    if (!day.Archived && day.Exists)
-                    {
-                        sb.Append("''обсуждение не завершено''}}\n\n");
-                        continue;
-                    }
                     if (!day.Exists)
                     {
                         sb.Append("''нет обсуждений''}}\n\n");
