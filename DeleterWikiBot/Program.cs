@@ -67,7 +67,7 @@ namespace Claymore.DeleterWikiBot
                 { "inprop", "talkid" }
             };
 
-            Regex templateRE = new Regex(@"\{\{db-discussion\|(\d+?)\|(.+?)\}\}", RegexOptions.IgnoreCase);
+            Regex templateRE = new Regex(@"\{\{db-discussion\|(\d+)\|(дата|причина)\s*=\s*(.+?)\}\}", RegexOptions.IgnoreCase);
             XmlDocument doc;
             try
             {
@@ -140,9 +140,30 @@ namespace Claymore.DeleterWikiBot
                         m = templateRE.Match(content);
                         if (m.Success && m.Groups[1].Value == timestamp)
                         {
+                            string comment;
+                            if (m.Groups[2].Value.ToLower() == "причина")
+                            {
+                                comment = m.Groups[3].Value;
+                            }
+                            else
+                            {
+                                DateTime talkDate;
+                                if (DateTime.TryParse(m.Groups[3].Value, null, System.Globalization.DateTimeStyles.AssumeUniversal,
+                                    out talkDate))
+                                {
+                                    comment = string.Format("согласно итогу обсуждения [[Википедия:К удалению/{0}#{1}]]",
+                                        talkDate.ToUniversalTime().ToString("d MMMM yyyy"),
+                                        title);
+                                }
+                                else
+                                {
+                                    continue;
+                                }
+                            }
+                            
                             string reason = string.Format("удалил [[User:{0}|{0}]]: {1}",
                                 node.Attributes["user"].Value,
-                                m.Groups[2].Value);
+                                comment);
 
                             string token = page.Attributes["deletetoken"].Value;
                             try
