@@ -48,6 +48,16 @@ namespace Claymore.NullEditWikiBot
                 }
             }
 
+            try
+            {
+                wiki.Append("Участник:Claymore/ExpiredRfD", "\n\n", "null edit");
+            }
+            catch (WikiException e)
+            {
+                Console.Out.WriteLine(e.Message);
+                return -1;
+            }
+
             Dictionary<string, string> templates = new Dictionary<string, string>();
             templates.Add("Шаблон:Deleteslow", "Категория:Википедия:К быстрому удалению");
             //templates.Add("Шаблон:К удалению", "Категория:Википедия:Просроченные подведения итогов по удалению страниц");
