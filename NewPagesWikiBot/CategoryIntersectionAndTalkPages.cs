@@ -67,7 +67,7 @@ namespace Claymore.NewPagesWikiBot
                 }
             }
 
-            var pageList = new List<string>();
+            var pageList = new List<CategoryIntersectionElement>();
             var pages = new HashSet<string>();
             foreach (var category in Categories)
             {
@@ -120,10 +120,10 @@ namespace Claymore.NewPagesWikiBot
                                 if (dates.Count > 0)
                                 {
                                     DateTime talkDate = dates.Max();
-                                    pageList.Add(string.Format(Format,
-                                        Namespace != 0 ? title.Substring(wiki.GetNamespace(Namespace).Length + 1) : title,
-                                        "",
-                                        talkDate.ToString("d MMMM yyyy")));
+                                    pageList.Add(new CategoryIntersectionElement(Namespace != 0
+                                        ? title.Substring(wiki.GetNamespace(Namespace).Length + 1)
+                                        : title,
+                                        talkDate));
                                     pages.Add(title);
                                 }
                             }
@@ -136,7 +136,36 @@ namespace Claymore.NewPagesWikiBot
             {
                 return "";
             }
-            return Header + string.Join(Delimeter, pageList.ToArray()) + Footer;
+            pageList.Sort(CompareCategoryIntersectionElements);
+            var result = new List<string>();
+            foreach (var item in pageList)
+            {
+                result.Add(string.Format(Format,
+                    item.PageTitle,
+                    "",
+                    item.Date.ToUniversalTime().ToString("d MMMM yyyy")));
+            }
+            return Header + string.Join(Delimeter, result.ToArray()) + Footer;
         }
+
+        static int CompareCategoryIntersectionElements(CategoryIntersectionElement x, CategoryIntersectionElement y)
+        {
+            if (y.Date == x.Date)
+            {
+                return x.PageTitle.CompareTo(y.PageTitle);
+            }
+            return y.Date.CompareTo(x.Date);
+        }
+    }
+
+    struct CategoryIntersectionElement
+    {
+        public CategoryIntersectionElement(string title, DateTime date)
+        {
+            PageTitle = title;
+            Date = date;
+        }
+        public string PageTitle;
+        public DateTime Date;
     }
 }
