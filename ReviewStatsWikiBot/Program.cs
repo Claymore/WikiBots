@@ -5,6 +5,7 @@ using System.Linq;
 using System.Xml;
 using Claymore.SharpMediaWiki;
 using ReviewStatsWikiBot.Properties;
+using System.Text.RegularExpressions;
 
 namespace Claymore.ReviewStatsWikiBot
 {
@@ -32,6 +33,27 @@ namespace Claymore.ReviewStatsWikiBot
             }
             Console.Out.WriteLine("Logged in as " + Settings.Default.Login + ".");
             wiki.SleepBetweenQueries = 3;
+
+            Regex re = new Regex(@"\*\s*\[\[User:(.+?)\]\]\s*→\s*\[\[User:(.+?)\]\]");
+            Dictionary<string, string> renamedUsers = new Dictionary<string, string>();
+            string renamedUsersData = wiki.LoadText("Википедия:Проект:Патрулирование/Статистика/1k+/Переименования");
+            using (TextReader sr = new StringReader(renamedUsersData))
+            {
+                string line;
+                while ((line = sr.ReadLine()) != null)
+                {
+                    Match m = re.Match(line);
+                    if (m.Success)
+                    {
+                        string oldName = m.Groups[1].Value;
+                        string newName = m.Groups[2].Value;
+                        if (!renamedUsers.ContainsKey(oldName))
+                        {
+                            renamedUsers.Add(oldName, newName);
+                        }
+                    }
+                }
+            }
 
             DateTime currentMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
             DateTime now = currentMonth;
@@ -83,7 +105,9 @@ namespace Claymore.ReviewStatsWikiBot
 
                     foreach (XmlNode entry in entries)
                     {
-                        string username = entry.Attributes["user"].Value;
+                        string username = renamedUsers.ContainsKey(entry.Attributes["user"].Value)
+                            ? renamedUsers[entry.Attributes["user"].Value]
+                            : entry.Attributes["user"].Value;
                         string ns = entry.Attributes["ns"].Value;
                         if (!users.ContainsKey(username))
                         {
