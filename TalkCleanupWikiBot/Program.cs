@@ -219,7 +219,8 @@ namespace Claymore.TalkCleanupWikiBot
                 new Cleanup(cleanupL10i),
                 new ProposedMerges(),
                 new ArticlesForDeletion(l10i),
-                new RequestedMoves(),
+                new IncubatorReview(),
+                new RequestedMoves()
             };
 
             if (!File.Exists(errorFileName))
