@@ -62,7 +62,7 @@ namespace Claymore.ArchiveWikiBot
                         }
                     }
                     if (lastReply != DateTime.MinValue &&
-                        (forceArchivation || (DateTime.Today - lastReply).TotalHours >= Delay))
+                        (forceArchivation || (DateTime.Now - lastReply).TotalHours >= Delay))
                     {
                         if (archives.ContainsKey(published))
                         {
