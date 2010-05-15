@@ -151,7 +151,7 @@ namespace Claymore.DeleterWikiBot
                                 if (DateTime.TryParse(m.Groups[3].Value, null, System.Globalization.DateTimeStyles.AssumeUniversal,
                                     out talkDate))
                                 {
-                                    comment = string.Format("согласно итогу обсуждения [[Википедия:К удалению/{0}#{1}]]",
+                                    comment = string.Format("согласно итогу обсуждения [[ВП:К удалению/{0}#{1}]]",
                                         talkDate.ToUniversalTime().ToString("d MMMM yyyy"),
                                         title);
                                 }
