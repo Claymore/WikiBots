@@ -160,27 +160,33 @@ namespace Claymore.NewPagesWikiBot
             {
                 return false;
             }
-
+            Regex commentRE = new Regex(@"<!--(.+?)-->");
             parameters = new Dictionary<string, string>();
             string parameterString = text.Substring(begin, end - begin);
             string[] ps = parameterString.Split(new char[] { '|' });
             string lastKey = "";
             foreach (var p in ps)
             {
-                int i = p.IndexOf('=');
-                if (i == -1)
+                string[] keyvalue = p.Split(new char[] { '=' });
+                if (keyvalue.Length == 2)
+                {
+                    string value = commentRE.Replace(keyvalue[1], "").Trim();
+                    parameters.Add(keyvalue[0].Trim().ToLower(), value);
+                    lastKey = keyvalue[0].Trim().ToLower();
+                }
+                else if (keyvalue.Length == 1)
                 {
                     if (!string.IsNullOrEmpty(lastKey))
                     {
-                        parameters[lastKey] = parameters[lastKey] + "|" + p.Trim();
+                        string value = commentRE.Replace(keyvalue[0], "").Trim();
+                        parameters[lastKey] = parameters[lastKey] + "|" + value;
                     }
                 }
-                else
+                else if (keyvalue.Length > 2)
                 {
-                    string[] keyvalue = new string[2];
-                    keyvalue[0] = p.Substring(0, i);
-                    keyvalue[1] = p.Substring(i + 1);
-                    parameters.Add(keyvalue[0].Trim().ToLower(), keyvalue[1].Trim());
+                    string value = string.Join("=", keyvalue, 1, keyvalue.Length - 1);
+                    value = commentRE.Replace(value, "").Trim();
+                    parameters.Add(keyvalue[0].Trim().ToLower(), value);
                     lastKey = keyvalue[0].Trim().ToLower();
                 }
             }
@@ -324,7 +330,7 @@ namespace Claymore.NewPagesWikiBot
                 templates = options["шаблоны"].Replace("\\n", "\n");
             }
 
-            string format = "";
+            string format = "* [[%(название)]]";
             if (options.ContainsKey("формат элемента"))
             {
                 format = options["формат элемента"].Replace("{", "{{").Replace("}", "}}");
@@ -342,7 +348,7 @@ namespace Claymore.NewPagesWikiBot
                 int.TryParse(options["часов"], out hours);
             }
 
-            int maxItems = int.MaxValue;
+            int maxItems = 20;
             if (options.ContainsKey("элементов"))
             {
                 int.TryParse(options["элементов"], out maxItems);

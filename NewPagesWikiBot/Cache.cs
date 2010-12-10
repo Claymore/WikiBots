@@ -17,12 +17,25 @@ namespace Claymore.NewPagesWikiBot
             public string Title;
             public string Author;
             public DateTime FirstEdit;
+            public long FirstEditId;
+            public string Redirect;
 
-            public PageInfo(string title, string author, DateTime firstEdit)
+            public PageInfo(string title, string author, DateTime firstEdit, long firstEditId)
             {
                 Title = title;
                 Author = author;
                 FirstEdit = firstEdit;
+                FirstEditId = firstEditId;
+                Redirect = "";
+            }
+
+            public PageInfo(string title, string author, DateTime firstEdit, string redirect)
+            {
+                Title = title;
+                Author = author;
+                FirstEdit = firstEdit;
+                FirstEditId = 0;
+                Redirect = redirect;
             }
         }
 
@@ -44,10 +57,7 @@ namespace Claymore.NewPagesWikiBot
                                     DateTimeStyles.AssumeUniversal);
                     if ((DateTime.Now - time).TotalHours < 720)
                     {
-                        pages.Add(new PageInfo(groups[0], groups[1], time));
-                    }
-                    else
-                    {
+                        pages.Add(new PageInfo(groups[0], groups[1], time, groups[3]));
                     }
                 }
             }
@@ -56,10 +66,11 @@ namespace Claymore.NewPagesWikiBot
             {
                 foreach (var page in pages)
                 {
-                    streamWriter.WriteLine("{0}\t{1}\t{2}Z",
+                    streamWriter.WriteLine("{0}\t{1}\t{2}Z\t{3}",
                         page.Title,
                         page.Author,
-                        page.FirstEdit.ToUniversalTime().ToString("s"));
+                        page.FirstEdit.ToUniversalTime().ToString("s"),
+                        page.Redirect);
                 }
             }
         }
@@ -94,12 +105,12 @@ namespace Claymore.NewPagesWikiBot
                 while ((line = streamReader.ReadLine()) != null)
                 {
                     string[] groups = line.Split(new char[] { '\t' });
-                    if (groups[0] == title)
+                    if (groups[0] == title || (groups.Length > 3 && groups[3] == title))
                     {
                         DateTime time = DateTime.Parse(groups[2],
                                     null,
                                     DateTimeStyles.AssumeUniversal);
-                        return new PageInfo(groups[0], groups[1], time);
+                        return new PageInfo(groups[0], groups[1], time, 0);
                     }
                 }
             }
@@ -123,12 +134,13 @@ namespace Claymore.NewPagesWikiBot
                                     DateTimeStyles.AssumeUniversal);
                 using (TextWriter streamWriter = new StreamWriter(string.Format(@"Cache\{0}\pages.txt", language), true))
                 {
-                    streamWriter.WriteLine("{0}\t{1}\t{2}",
+                    streamWriter.WriteLine("{0}\t{1}\t{2}\t{3}",
                         pageName,
                         user,
-                        timestamp);
+                        timestamp,
+                        pageName != title ? title : "");
                 }
-                return new PageInfo(pageName, user, time);
+                return new PageInfo(pageName, user, time, 0);
             }
             return null;
         }

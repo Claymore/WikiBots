@@ -137,28 +137,31 @@ namespace Claymore.NewPagesWikiBot
                         {
                             fullTitle = wiki.GetNamespace(Namespace) + ":" + title;
                         }
-                        Cache.PageInfo page = Cache.LoadPageInformation(wiki, Module.Language, fullTitle);
-                        if (page != null &&
-                            !UsersToIgnore.Contains(page.Author) &&
-                            !pages.Contains(page.Title))
+                        long firstEditId = long.Parse(groups[5]);
+                        Cache.PageInfo page = new Cache.PageInfo(title, "", DateTime.MinValue, firstEditId);
+                        if (!pages.Contains(page.Title))
                         {
                             pages.Add(page.Title);
                             pageList.Add(page);
                         }
                     }
-                    if (pageList.Count == MaxItems)
-                    {
-                        break;
-                    }
                 }
             }
 
-            List<string> result = new List<string>(pageList.Select(p => string.Format(Format,
-                Namespace != 0 ? p.Title.Substring(wiki.GetNamespace(Namespace).Length + 1) : p.Title,
-                p.Author,
-                p.FirstEdit.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"))));
+            var subset = new List<string>();
+            for (int i = 0; i < pageList.Count && subset.Count < MaxItems; ++i)
+            {
+                Cache.PageInfo page = Cache.LoadPageInformation(wiki, Module.Language, pageList[i].Title);
+                if (page != null && !UsersToIgnore.Contains(page.Author))
+                {
+                    subset.Add(string.Format(Format,
+                        Namespace != 0 ? page.Title.Substring(wiki.GetNamespace(Namespace).Length + 1) : page.Title,
+                        page.Author,
+                        page.FirstEdit.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")));
+                }
+            }
 
-            if (pageList.Count < MaxItems)
+            if (subset.Count < MaxItems)
             {
                 string oldText = text;
                 if (!string.IsNullOrEmpty(Header) && text.StartsWith(Header))
@@ -171,16 +174,16 @@ namespace Claymore.NewPagesWikiBot
                 }
                 string[] items = oldText.Split(new string[] { Delimeter },
                        StringSplitOptions.RemoveEmptyEntries);
-                for (int i = 0; i < items.Length && result.Count < MaxItems; ++i)
+                for (int i = 0; i < items.Length && subset.Count < MaxItems; ++i)
                 {
-                    if (!result.Exists(l => l == items[i]))
+                    if (!subset.Exists(l => l == items[i]))
                     {
-                        result.Add(items[i]);
+                        subset.Add(items[i]);
                     }
                 }
             }
 
-            return Header + string.Join(Delimeter, result.ToArray()) + Footer;
+            return Header + string.Join(Delimeter, subset.ToArray()) + Footer;
         }
 
         public virtual string ProcessData(Wiki wiki, string text)
@@ -227,10 +230,9 @@ namespace Claymore.NewPagesWikiBot
                             {
                                 title = wiki.GetNamespace(Namespace) + ":" + title;
                             }
-                            Cache.PageInfo page = Cache.LoadPageInformation(wiki, Module.Language, title);
-                            if (page != null &&
-                                !UsersToIgnore.Contains(page.Author) &&
-                                !pages.Contains(page.Title))
+                            long firstEditId = long.Parse(groups[5]);
+                            Cache.PageInfo page = new Cache.PageInfo(title, "", DateTime.MinValue, firstEditId);
+                            if (!pages.Contains(page.Title))
                             {
                                 pages.Add(page.Title);
                                 pageList.Add(page);
@@ -242,15 +244,21 @@ namespace Claymore.NewPagesWikiBot
 
             pageList.Sort(ComparePages);
 
-            int count = pages.Count < MaxItems ? pages.Count : MaxItems;
             var subset = new List<string>();
-
-            foreach (var el in pageList.Take(count))
+            for (int i = 0; i < pageList.Count && subset.Count < MaxItems; ++i)
             {
-                subset.Add(string.Format(Format,
-                    Namespace != 0 ? el.Title.Substring(wiki.GetNamespace(Namespace).Length + 1) : el.Title,
-                    el.Author,
-                    el.FirstEdit.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")));
+                Cache.PageInfo page = Cache.LoadPageInformation(wiki, Module.Language, pageList[i].Title);
+                if (page != null && !UsersToIgnore.Contains(page.Author))
+                {
+                    string element = string.Format(Format,
+                        Namespace != 0 ? page.Title.Substring(wiki.GetNamespace(Namespace).Length + 1) : page.Title,
+                        page.Author,
+                        page.FirstEdit.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"));
+                    if (!subset.Contains(element))
+                    {
+                        subset.Add(element);
+                    }
+                }
             }
 
             if (subset.Count < MaxItems)
@@ -299,7 +307,7 @@ namespace Claymore.NewPagesWikiBot
 
         private int ComparePages(Cache.PageInfo x, Cache.PageInfo y)
         {
-            return y.FirstEdit.CompareTo(x.FirstEdit);
+            return y.FirstEditId.CompareTo(x.FirstEditId);
         }
     }
 }
