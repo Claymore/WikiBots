@@ -254,7 +254,7 @@ namespace Claymore.ReviewStatsWikiBot
                             string[] fields = line.Split(new string[] { "||" }, StringSplitOptions.RemoveEmptyEntries);
                             string user = fields[1];
                             int actions = int.Parse(fields[2]);
-                            if (user != "Итог" && !userStatistics.ContainsKey(user) && actions >= 1000)
+                            if (user.StartsWith("[[User:") && !userStatistics.ContainsKey(user) && actions >= 1000)
                             {
                                 List<MonthStat> stats = new List<MonthStat>();
                                 userStatistics.Add(user, stats);
@@ -290,59 +290,78 @@ namespace Claymore.ReviewStatsWikiBot
                 }
                 currentMonth = currentMonth.AddMonths(1);
             }
-            
-            List<UserStat> userStats = new List<UserStat>();
-            foreach (var user in userStatistics)
-            {
-                userStats.Add(new UserStat(user.Key, user.Value));
-            }
 
-            userStats.Sort(CompareUserStat);
-            
             using (StreamWriter sw =
                            new StreamWriter("output.txt", false))
             {
                 sw.WriteLine("== Статистика ==");
-                sw.WriteLine("{| class=\"wikitable sortable\"");
-                sw.Write("! № !! Имя !! Всего");
-                currentMonth = new DateTime(2008, 9, 1);
-                while (currentMonth < now)
+
+                for (int year = DateTime.Today.Year; year >= 2008; --year)
                 {
-                    sw.Write(" !! " + currentMonth.ToString("MMM yy"));
-                    currentMonth = currentMonth.AddMonths(1);
-                }
-                sw.WriteLine();
-                for (int i = 0; i < userStats.Count; ++i)
-                {
-                    sw.WriteLine("|-");
-                    sw.WriteLine(userStats[i].IsBot ? "! Бот" : string.Format("! {0}", i + 1));
-                    sw.Write(string.Format("| {0} || '''{1}'''", userStats[i].Name, userStats[i].TotalActions));
-                    int max = userStats[i].Stat.Max(s => s.Actions);
-                    currentMonth = new DateTime(2008, 9, 1);
-                    while (currentMonth < now)
+                    DateTime currentYear = new DateTime(year, 1, 1);
+                    List<UserStat> userStats = new List<UserStat>();
+                    foreach (var user in userStatistics)
                     {
-                        int actions = 0;
-                        foreach (var item in userStats[i].Stat)
+                        var stats = user.Value.Where(s => (s.Month >= currentYear && s.Month < currentYear.AddYears(1)));
+                        UserStat userStat = new UserStat(user.Key, stats);
+                        userStat.enterDate = user.Value.Where(s => s.Actions >= 1000).Min(s => s.Month);
+                        userStat.ActionsBefore = user.Value.Where(s => s.Month < currentYear).Sum(s => s.Actions);
+                        userStat.Max = user.Value.Max(s => s.Actions);
+                        if (stats.Count() > 0 && userStat.enterDate.Year <= year)
                         {
-                            if (item.Month == currentMonth)
-                            {
-                                actions = item.Actions;
-                                break;
-                            }
+                            userStats.Add(userStat);
                         }
-                        if (actions != max)
-                        {
-                            sw.Write(" || " + actions);
-                        }
-                        else
-                        {
-                            sw.Write(string.Format(" || '''{0}'''", actions));
-                        }
+                    }
+                    userStats.Sort(CompareUserStat);
+
+                    sw.WriteLine("\n=== {0} ===", currentYear.Year);
+                    sw.WriteLine("{| class=\"wikitable sortable\"");
+                    sw.Write("! № !! Участник");
+                    currentMonth = currentYear;
+                    while (currentMonth < currentYear.AddYears(1))
+                    {
+                        sw.Write(" !! " + currentMonth.ToString("MMM yy"));
                         currentMonth = currentMonth.AddMonths(1);
                     }
+                    sw.Write(" !! За {0} !! На конец {0} ", currentYear.Year);
                     sw.WriteLine();
+
+                    for (int index = 0; index < userStats.Count; ++index)
+                    {
+                        sw.WriteLine("|-");
+                        sw.WriteLine(userStats[index].IsBot ? "! Бот" : string.Format("! {0}", index + 1));
+                        sw.Write(string.Format("| {0}", userStats[index].Name));
+                        int max = userStats[index].Stat.Max(s => s.Actions);
+                        currentMonth = currentYear;
+                        int totalActions = 0;
+                        while (currentMonth < currentYear.AddYears(1))
+                        {
+                            int actions = 0;
+                            foreach (var item in userStats[index].Stat)
+                            {
+                                if (item.Month == currentMonth)
+                                {
+                                    actions = item.Actions;
+                                    break;
+                                }
+                            }
+                            if (actions != userStats[index].Max)
+                            {
+                                sw.Write(" || " + actions);
+                            }
+                            else
+                            {
+                                sw.Write(string.Format(" || '''{0}'''", actions));
+                            }
+                            totalActions += actions;
+                            currentMonth = currentMonth.AddMonths(1);
+                        }
+                        sw.Write(string.Format(" || {0}", totalActions));
+                        sw.Write(string.Format(" || {0}", totalActions + userStats[index].ActionsBefore));
+                        sw.WriteLine();
+                    }
+                    sw.WriteLine("|}");
                 }
-                sw.WriteLine("|}");
             }
 
             currentMonth = new DateTime(now.Year, now.Month, 1).AddMonths(-1);
@@ -418,11 +437,15 @@ namespace Claymore.ReviewStatsWikiBot
             public string Name;
             private List<MonthStat> _stat;
             public bool IsBot;
+            public DateTime enterDate;
+            public int ActionsBefore;
+            public int Max;
 
             public UserStat(string name, IEnumerable<MonthStat> stat)
             {
                 Name = name;
                 _stat = new List<MonthStat>(stat);
+                enterDate = DateTime.Today;
 
                 IsBot = name.Contains("Lockalbot") || name.Contains("Secretary");
             }
@@ -441,7 +464,7 @@ namespace Claymore.ReviewStatsWikiBot
                     {
                         sum += _stat[i].Actions;
                     }
-                    return sum;
+                    return sum + ActionsBefore;
                 }
             }
         }
