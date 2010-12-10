@@ -22,8 +22,9 @@ namespace Claymore.ArchiveWikiBot
                                string removeFromText,
                                bool checkForResult,
                                bool newSectionsDown,
-                               int minimalSize)
-            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown, minimalSize)
+                               int minimalSize,
+                               int forcedArchivationDelay)
+            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown, minimalSize, forcedArchivationDelay)
         {
             Regex escapeChars = new Regex(@"([dfFghHKmMstyYz:/OoRrsuGTU])");
             Format = escapeChars.Replace(format, "\\$1");
@@ -50,8 +51,12 @@ namespace Claymore.ArchiveWikiBot
                     foreach (Match match in ms)
                     {
                         string value = match.Groups[1].Value;
-                        DateTime time = DateTime.Parse(value, L10i.Culture,
-                            DateTimeStyles.AssumeUniversal);
+                        DateTime time;
+                        if (!DateTime.TryParse(value, L10i.Culture,
+                            DateTimeStyles.AssumeUniversal, out time))
+                        {
+                            continue;
+                        }
                         if (time < published)
                         {
                             published = NormalizeDate(time);
@@ -62,7 +67,8 @@ namespace Claymore.ArchiveWikiBot
                         }
                     }
                     if (lastReply != DateTime.MinValue &&
-                        (forceArchivation || (DateTime.Now - lastReply).TotalHours >= Delay))
+                        ((forceArchivation && (DateTime.Today - lastReply).TotalHours >= ForcedArchivationDelay) ||
+                        (DateTime.Today - lastReply).TotalHours >= Delay))
                     {
                         if (archives.ContainsKey(published))
                         {
@@ -170,8 +176,9 @@ namespace Claymore.ArchiveWikiBot
                               string removeFromText,
                               bool checkForResult,
                               bool newSectionsDown,
-                              int minimalSize)
-            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown, minimalSize)
+                              int minimalSize,
+                              int forcedArchivationDelay)
+            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown, minimalSize, forcedArchivationDelay)
         {
         }
 
@@ -194,8 +201,9 @@ namespace Claymore.ArchiveWikiBot
                                string removeFromText,
                                bool checkForResult,
                                bool newSectionsDown,
-                               int minimalSize)
-            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown, minimalSize)
+                               int minimalSize,
+                               int forcedArchivationDelay)
+            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown, minimalSize, forcedArchivationDelay)
         {
         }
 
@@ -218,8 +226,9 @@ namespace Claymore.ArchiveWikiBot
                                string removeFromText,
                                bool checkForResult,
                                bool newSectionsDown,
-                               int minimalSize)
-            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown, minimalSize)
+                               int minimalSize,
+                               int forcedArchivationDelay)
+            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown, minimalSize, forcedArchivationDelay)
         {
             Regex escapeChars = new Regex(@"([dfFghHKmMstyYz:/OoRrsuGTU])");
             Format = escapeChars.Replace(format, "\\$1");
@@ -251,8 +260,9 @@ namespace Claymore.ArchiveWikiBot
                                string removeFromText,
                                bool checkForResult,
                                bool newSectionsDown,
-                               int minimalSize)
-            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown, minimalSize)
+                               int minimalSize,
+                               int forcedArchivationDelay)
+            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown, minimalSize, forcedArchivationDelay)
         {
             Regex escapeChars = new Regex(@"([dfFghHKmMstyYz:/OoRrsuGTU])");
             Format = escapeChars.Replace(format, "\\$1");

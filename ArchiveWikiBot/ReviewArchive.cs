@@ -12,7 +12,7 @@ namespace Claymore.ArchiveWikiBot
     internal class ReviewArchive : Archive
     {
         public ReviewArchive(L10i l10i, string title, string directory, int days, string archive, string header)
-            : base(l10i, title, directory, days, archive, header, new string[] { }, new string[] { }, "", false, false, 0)
+            : base(l10i, title, directory, days, archive, header, new string[] { }, new string[] { }, "", false, false, 0, 0)
         {
         }
 

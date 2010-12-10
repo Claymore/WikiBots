@@ -84,15 +84,18 @@ namespace Claymore.ArchiveWikiBot
                 Directory.CreateDirectory(path);
                 WikiPage page = Cache.Load(wiki, title, path);
                 IArchive archive;
-                if (TryParse(page, path, pages.Contains(page.Title), l10i, out archive))
+                try
                 {
-                    try
+                    if (TryParse(page, path, pages.Contains(page.Title), l10i, out archive))
                     {
                         archive.Archivate(wiki);
                     }
-                    catch (WikiException)
-                    {
-                    }
+                }
+                catch (WikiException)
+                {
+                }
+                catch (Exception)
+                {
                 }
             }
             return 0;
@@ -154,6 +157,13 @@ namespace Claymore.ArchiveWikiBot
                         parameters[lastKey] = parameters[lastKey] + "|" + value;
                     }
                 }
+                else if (keyvalue.Length > 2)
+                {
+                    string value = string.Join("=", keyvalue, 1, keyvalue.Length - 1);
+                    value = commentRE.Replace(value, "").Trim();
+                    parameters.Add(keyvalue[0].Trim().ToLower(), value);
+                    lastKey = keyvalue[0].Trim().ToLower();
+                }
             }
             return true;
         }
@@ -175,6 +185,12 @@ namespace Claymore.ArchiveWikiBot
             if (values.ContainsKey("срок"))
             {
                 int.TryParse(values["срок"], out days);
+            }
+
+            int forcedArchivationDelay = 0;
+            if (values.ContainsKey("задержка принудительной архивации"))
+            {
+                int.TryParse(values["задержка принудительной архивации"], out forcedArchivationDelay);
             }
 
             int minimalSize = 3 * 1024;
@@ -323,7 +339,8 @@ namespace Claymore.ArchiveWikiBot
                         removeFromText,
                         checkForResult,
                         newSectionsDown,
-                        minimalSize);
+                        minimalSize,
+                        forcedArchivationDelay);
                 }
                 else if (t == "месяц")
                 {
@@ -338,7 +355,8 @@ namespace Claymore.ArchiveWikiBot
                         removeFromText,
                         checkForResult,
                         newSectionsDown,
-                        minimalSize);
+                        minimalSize,
+                        forcedArchivationDelay);
                 }
                 else if (t == "год")
                 {
@@ -353,7 +371,8 @@ namespace Claymore.ArchiveWikiBot
                         removeFromText,
                         checkForResult,
                         newSectionsDown,
-                        minimalSize);
+                        minimalSize,
+                        forcedArchivationDelay);
                 }
                 else if (t == "полгода")
                 {
@@ -368,7 +387,8 @@ namespace Claymore.ArchiveWikiBot
                         removeFromText,
                         checkForResult,
                         newSectionsDown,
-                        minimalSize);
+                        minimalSize,
+                        forcedArchivationDelay);
                 }
                 else if (t == "квартал")
                 {
@@ -383,7 +403,8 @@ namespace Claymore.ArchiveWikiBot
                         removeFromText,
                         checkForResult,
                         newSectionsDown,
-                        minimalSize);
+                        minimalSize,
+                        forcedArchivationDelay);
                 }
                 else if (t == "статьи для рецензирования")
                 {
@@ -403,7 +424,8 @@ namespace Claymore.ArchiveWikiBot
                         checkForResult,
                         newSectionsDown,
                         topics,
-                        minimalSize);
+                        minimalSize,
+                        forcedArchivationDelay);
                 }
                 else if (allowSource && t == "заявки на арбитраж")
                 {

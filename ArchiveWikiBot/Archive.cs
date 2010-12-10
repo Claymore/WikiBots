@@ -26,6 +26,7 @@ namespace Claymore.ArchiveWikiBot
         protected string RemoveFromText { get; set; }
         protected L10i L10i { get; set; }
         protected int MinimalSize { get; set; }
+        protected int ForcedArchivationDelay { get; set; }
         
         public Archive(L10i l10i,
                        string title,
@@ -38,7 +39,8 @@ namespace Claymore.ArchiveWikiBot
                        string removeFromText,
                        bool checkForResult,
                        bool newSectionsDown,
-                       int minimalSize)
+                       int minimalSize,
+                       int forceArchivationDelay)
         {
             MainPage = title;
             _cacheDir = directory;
@@ -52,6 +54,7 @@ namespace Claymore.ArchiveWikiBot
             RemoveFromText = removeFromText;
             L10i = l10i;
             MinimalSize = minimalSize;
+            ForcedArchivationDelay = forceArchivationDelay * 24;
         }
 
         public virtual Dictionary<string, string> Process(Wiki wiki, WikiPage page, ref int diffSize, ref int topics)
@@ -85,7 +88,8 @@ namespace Claymore.ArchiveWikiBot
                         }
                     }
                     if (lastReply != DateTime.MinValue &&
-                        (forceArchivation || (DateTime.Today - lastReply).TotalHours >= Delay))
+                        ((forceArchivation && (DateTime.Today - lastReply).TotalHours >= ForcedArchivationDelay) ||
+                        (DateTime.Today - lastReply).TotalHours >= Delay))
                     {
                         archivedSections.Add(section);
                     }
@@ -236,9 +240,10 @@ namespace Claymore.ArchiveWikiBot
             foreach (Match match in ms)
             {
                 string value = match.Groups[1].Value;
-                DateTime time = DateTime.Parse(value, L10i.Culture,
-                    DateTimeStyles.AssumeUniversal);
-                if (time < publishedX)
+                DateTime time;
+                if (DateTime.TryParse(value, L10i.Culture,
+                    DateTimeStyles.AssumeUniversal, out time) &&
+                    time < publishedX)
                 {
                     publishedX = time;
                 }
@@ -252,9 +257,10 @@ namespace Claymore.ArchiveWikiBot
             foreach (Match match in ms)
             {
                 string value = match.Groups[1].Value;
-                DateTime time = DateTime.Parse(value, L10i.Culture,
-                    DateTimeStyles.AssumeUniversal);
-                if (time < publishedY)
+                DateTime time;
+                if (DateTime.TryParse(value, L10i.Culture,
+                    DateTimeStyles.AssumeUniversal, out time) &&
+                    time < publishedY)
                 {
                     publishedY = time;
                 }

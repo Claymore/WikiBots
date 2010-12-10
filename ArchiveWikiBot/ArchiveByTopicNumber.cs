@@ -25,8 +25,9 @@ namespace Claymore.ArchiveWikiBot
                                bool checkForResult,
                                bool newSectionsDown,
                                int topics,
-                               int minimalSize)
-            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown, minimalSize)
+                               int minimalSize,
+                               int forcedArchivationDelay)
+            : base(l10i, title, directory, days, format, header, lookForLines, onHold, removeFromText, checkForResult, newSectionsDown, minimalSize, forcedArchivationDelay)
         {
             Topics = topics;
             Format = format.Replace("%(номер)", "{0}");
@@ -62,7 +63,8 @@ namespace Claymore.ArchiveWikiBot
                         }
                     }
                     if (lastReply != DateTime.MinValue &&
-                        (forceArchivation || (DateTime.Today - lastReply).TotalHours >= Delay))
+                        ((forceArchivation && (DateTime.Today - lastReply).TotalHours >= ForcedArchivationDelay) ||
+                        (DateTime.Today - lastReply).TotalHours >= Delay))
                     {
                         archivedSections.Add(section);
                     }
