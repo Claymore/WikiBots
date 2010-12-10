@@ -219,7 +219,9 @@ namespace Claymore.TalkCleanupWikiBot
                 new Cleanup(cleanupL10i),
                 new ProposedMerges(),
                 new ArticlesForDeletion(l10i),
-                new IncubatorReview(),
+                new IncubatorReview("Википедия:Проект:Инкубатор/Мини-рецензирование"),
+                new IncubatorReview("Википедия:Проект:Инкубатор/Мини-рецензирование/Наука"),
+                new IncubatorReview("Википедия:Проект:Инкубатор/Стабы"),
                 new RequestedMoves()
             };
 

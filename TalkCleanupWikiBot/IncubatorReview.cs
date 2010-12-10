@@ -13,10 +13,12 @@ namespace Claymore.TalkCleanupWikiBot
     internal class IncubatorReview : IModule
     {
         private string _cacheDir;
+        private string _page;
 
-        public IncubatorReview()
+        public IncubatorReview(string page)
         {
             _cacheDir = "Cache\\ru\\IncubatorReview\\";
+            _page = page;
             Directory.CreateDirectory(_cacheDir);
         }
 
@@ -24,14 +26,14 @@ namespace Claymore.TalkCleanupWikiBot
         {
             Directory.CreateDirectory(_cacheDir);
 
-            Console.Out.WriteLine("Updating Incubator review...");
+            Console.Out.WriteLine("Updating " + _page);
             Regex wikiLinkRE = new Regex(@"\[{2}(.+?)(\|.+?)?]{2}");
             Regex timeRE = new Regex(@"(\d{2}:\d{2}\, \d\d? [а-я]+ \d{4}) \(UTC\)");
 
             ParameterCollection parameters = new ParameterCollection();
             parameters.Add("prop", "info|revisions");
             parameters.Add("intoken", "edit");
-            XmlDocument doc = wiki.Query(QueryBy.Titles, parameters, "Википедия:Проект:Инкубатор/Мини-рецензирование");
+            XmlDocument doc = wiki.Query(QueryBy.Titles, parameters, _page);
             XmlNode page = doc.SelectSingleNode("//page");
             string queryTimestamp = DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ");
             string pageName = page.Attributes["title"].Value;
@@ -40,7 +42,7 @@ namespace Claymore.TalkCleanupWikiBot
             string starttimestamp = queryTimestamp;
 
             string text = "";
-            string fileName = _cacheDir + "IncubatorReview.bin";
+            string fileName = _cacheDir + WikiCache.EscapePath(_page);
             if (File.Exists(fileName))
             {
                 using (FileStream fs = new FileStream(fileName, FileMode.Open))
