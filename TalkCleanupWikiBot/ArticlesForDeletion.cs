@@ -553,7 +553,7 @@ namespace Claymore.TalkCleanupWikiBot
                         foreach (string title in notificationList)
                         {
                             string talkPage = wiki.GetNamespace(1) + ":" + title;
-                            if (backlinks.SelectSingleNode("//bl[@title='" + talkPage + "']") == null)
+                            if (backlinks.SelectSingleNode("//bl[@title=" + GenerateConcatForXPath(talkPage) + "]") == null)
                             {
                                 PutNotification(wiki, title, date);
                             }
@@ -787,6 +787,42 @@ namespace Claymore.TalkCleanupWikiBot
                 }
             }
             return comment;
+        }
+
+        private static string GenerateConcatForXPath(string a_xPathQueryString)
+        {
+            string returnString = string.Empty;
+            string searchString = a_xPathQueryString;
+            char[] quoteChars = new char[] { '\'', '"' };
+
+            int quotePos = searchString.IndexOfAny(quoteChars);
+            if (quotePos == -1)
+            {
+                returnString = "'" + searchString + "'";
+            }
+            else
+            {
+                returnString = "concat(";
+                while (quotePos != -1)
+                {
+                    string subString = searchString.Substring(0, quotePos);
+                    returnString += "'" + subString + "', ";
+                    if (searchString.Substring(quotePos, 1) == "'")
+                    {
+                        returnString += "\"'\", ";
+                    }
+                    else
+                    {
+                        //must be a double quote
+                        returnString += "'\"', ";
+                    }
+                    searchString = searchString.Substring(quotePos + 1,
+                                     searchString.Length - quotePos - 1);
+                    quotePos = searchString.IndexOfAny(quoteChars);
+                }
+                returnString += "'" + searchString + "')";
+            }
+            return returnString;
         }
 
         #region IModule Members
