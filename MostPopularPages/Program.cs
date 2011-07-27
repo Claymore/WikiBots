@@ -50,9 +50,11 @@ namespace MostPopularPages
                 Select(p => p.Title).Concat(tablePages.Values.Select(p => p.Title)));
             Console.Out.WriteLine("Finished processing tables.");
             Console.Out.WriteLine("Quering...");
-            ParameterCollection parameters = new ParameterCollection();
-            parameters.Add("prop", "flagged");
-            parameters.Add("redirects");
+            ParameterCollection parameters = new ParameterCollection()
+            {
+                { "prop", "flagged" },
+                { "redirects", "1" }
+            };
             XmlDocument doc;
             try
             {
@@ -70,7 +72,8 @@ namespace MostPopularPages
             foreach (XmlNode node in nodes)
             {
                 string key = node.Attributes["title"].Value;
-                if (node.Attributes["missing"] != null && currentPages.ContainsKey(key))
+                if ((node.Attributes["missing"] != null || node.Attributes["invalid"] != null || node.Attributes["ns"].Value != "0")
+                     && currentPages.ContainsKey(key))
                 {
                     currentPages.Remove(key);
                 }
@@ -207,16 +210,16 @@ namespace MostPopularPages
                 streamWriter.Write(", " + Articles(currentPages.Values.Count(p => p.Patrolled)) + " прошли первичное патрулирование");
                 streamWriter.Write(" и " + Articles(currentPages.Values.Count(p => p.Pending && (DateTime.Now - p.PendingSince).Days >= 14)) + " с лагом патрулирования более двух недель.\r\n");
 
-                PrintTable(streamWriter, "Более 2000 хитов", currentPages.Values.Where(p => p.Hits >= 2000));
-                PrintTable(streamWriter, "1400—1999 хитов", currentPages.Values.Where(p => p.Hits >= 1400 && p.Hits < 2000));
-                PrintTable(streamWriter, "1100—1399 хитов", currentPages.Values.Where(p => p.Hits >= 1100 && p.Hits < 1400));
-                PrintTable(streamWriter, "1000—1099 хитов", currentPages.Values.Where(p => p.Hits >= 1000 && p.Hits < 1100));
-                PrintTable(streamWriter, "900—999 хитов", currentPages.Values.Where(p => p.Hits >= 900 && p.Hits < 1000));
-                PrintTable(streamWriter, "800—899 хитов", currentPages.Values.Where(p => p.Hits >= 800 && p.Hits < 900));
-                PrintTable(streamWriter, "700—799 хитов", currentPages.Values.Where(p => p.Hits >= 700 && p.Hits < 800));
-                PrintTable(streamWriter, "600—699 хитов", currentPages.Values.Where(p => p.Hits >= 600 && p.Hits < 700));
-                PrintTable(streamWriter, "500—599 хитов", currentPages.Values.Where(p => p.Hits >= 500 && p.Hits < 600));
-                PrintTable(streamWriter, "Менее 500 хитов", currentPages.Values.Where(p => p.Hits < 500));
+                PrintTable(streamWriter, "Более 100 000 хитов", currentPages.Values.Where(p => p.Hits >= 100000));
+                PrintTable(streamWriter, "80 000 — 99 999 хитов", currentPages.Values.Where(p => p.Hits >= 80000 && p.Hits < 100000));
+                PrintTable(streamWriter, "65 000 — 79 999 хитов", currentPages.Values.Where(p => p.Hits >= 65000 && p.Hits < 80000));
+                PrintTable(streamWriter, "55 000 — 64 999 хитов", currentPages.Values.Where(p => p.Hits >= 55000 && p.Hits < 65000));
+                PrintTable(streamWriter, "50 000 — 54 999 хитов", currentPages.Values.Where(p => p.Hits >= 50000 && p.Hits < 55000));
+                PrintTable(streamWriter, "45 000 — 49 999 хитов", currentPages.Values.Where(p => p.Hits >= 45000 && p.Hits < 50000));
+                PrintTable(streamWriter, "40 000 — 34 999 хитов", currentPages.Values.Where(p => p.Hits >= 40000 && p.Hits < 45000));
+                PrintTable(streamWriter, "30 000 — 39 999 хитов", currentPages.Values.Where(p => p.Hits >= 30000 && p.Hits < 40000));
+                PrintTable(streamWriter, "27 000 — 29 999 хитов", currentPages.Values.Where(p => p.Hits >= 27000 && p.Hits < 30000));
+                PrintTable(streamWriter, "Менее 27 000 хитов", currentPages.Values.Where(p => p.Hits < 27000));
                 streamWriter.WriteLine(post);
             }
 
@@ -337,7 +340,7 @@ namespace MostPopularPages
         static void DownloadResources(WebClient client, Wiki wiki)
         {
             Console.Out.WriteLine("Downloading resources...");
-            client.DownloadFile("http://wikistics.falsikon.de/latest/wikipedia/ru/", "input/Monthly wiki page Hits for ru.wikipedia.htm");
+            client.DownloadFile("http://stats.grok.se/ru/top", "input/Monthly wiki page Hits for ru.wikipedia.htm");
             using (TextWriter streamWriter =
                   new StreamWriter("input/Популярные статьи.txt", false))
             {
@@ -422,11 +425,7 @@ namespace MostPopularPages
                         if (line.StartsWith("|- align=\"center\""))
                         {
                             PageInfo page = new PageInfo();
-                            page.Hits = int.Parse(streamReader.ReadLine().Substring(1));
-                            if (!double.TryParse(streamReader.ReadLine().Substring(1), out page.Percent))
-                            {
-                                page.Percent = 0;
-                            }
+                            page.Hits = long.Parse(streamReader.ReadLine().Substring(1));
                             string title = streamReader.ReadLine();
                             int index = title.IndexOf("<!--");
                             if (index != -1)
@@ -458,7 +457,6 @@ namespace MostPopularPages
                             {
                                 PageInfo info = pages[page.Title];
                                 info.Hits += page.Hits;
-                                info.Percent += page.Percent;
                                 List<string> pats = new List<string>(page.Patrollers.Where(s => !string.IsNullOrEmpty(s)));
                                 pats.AddRange(info.Patrollers.Where(s => !string.IsNullOrEmpty(s)));
                                 pats = new List<string>(pats.Distinct());
@@ -614,7 +612,6 @@ namespace MostPopularPages
             streamWriter.WriteLine("=== " + title + " ===");
             streamWriter.WriteLine("{| class=\"sortable wikitable\" width=\"100%\"");
             streamWriter.WriteLine("! style=\"background:#efefef\" | Хитов");
-            streamWriter.WriteLine("! style=\"background:#efefef\" | Процент");
             streamWriter.WriteLine("! style=\"background:#efefef\" | Название");
             streamWriter.WriteLine("! style=\"background:#efefef\" | Патрулирование");
             streamWriter.WriteLine("! style=\"background:#efefef\" | Первый патрулирующий");
@@ -637,7 +634,6 @@ namespace MostPopularPages
                 }
                 streamWriter.WriteLine(style);
                 streamWriter.WriteLine("|" + page.Hits);
-                streamWriter.WriteLine(string.Format("|{0:N2}", page.Percent));
                 streamWriter.WriteLine("|[[" + page.Title + "]]");
                 streamWriter.WriteLine("|" + page.Status);
                 PrintUser(streamWriter, page.Patrollers[0]);
@@ -667,9 +663,8 @@ namespace MostPopularPages
             Dictionary<string, PageInfo> pages = new Dictionary<string, PageInfo>();
             string[] exceptions = new string[] { "Main Page",
                 "Заглавная страница",
-                "ÐÐ°Ð³Ð»Ð°Ð²Ð½Ð°Ñ ÑÑÑÐ°Ð½Ð¸ÑÐ°",
-                "%s" };
-            Regex re = new Regex(@"<li.*><b.+>([,0-9]+)</b> \[.+<small>(.+) %</small>\]: <a href=.+><b>(.+)</b></a>.*</li>");
+                "w/index.php"};
+            Regex re = new Regex(@"<tr><td>\d+</td><td><a href=""[^""]+"">(.+?)</a></td><td>(\d+)</td></tr>");
             using (TextReader streamReader =
                 new StreamReader(filename))
             {
@@ -682,16 +677,14 @@ namespace MostPopularPages
                         continue;
                     }
                     PageInfo pageInfo = new PageInfo();
-                    pageInfo.Title = m.Groups[3].Value;
-                    if (exceptions.Any(s => pageInfo.Title == s))
+                    pageInfo.Title = m.Groups[1].Value;
+                    if (exceptions.Any(s => pageInfo.Title == s) ||
+                        pageInfo.Title.StartsWith("Служебная:") ||
+                        pageInfo.Title.StartsWith("Special:"))
                     {
                         continue;
                     }
-                    pageInfo.Hits = int.Parse(m.Groups[1].Value.Replace(",", ""));
-                    if (!double.TryParse(m.Groups[2].Value.Replace(".", ","), out pageInfo.Percent))
-                    {
-                        pageInfo.Percent = 0;
-                    }
+                    pageInfo.Hits = int.Parse(m.Groups[2].Value);
                     pageInfo.Patrollers = new string[3];
                     pageInfo.Patrolled = false;
                     pageInfo.Pending = false;
@@ -704,8 +697,8 @@ namespace MostPopularPages
         struct PageInfo
         {
             public string Title;
-            public double Percent;
-            public int Hits;
+            public long Percent;
+            public long Hits;
             public string[] Patrollers;
             public string Status;
             public bool IsRedirect;
