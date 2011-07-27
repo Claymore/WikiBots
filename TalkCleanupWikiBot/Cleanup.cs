@@ -429,6 +429,7 @@ namespace Claymore.TalkCleanupWikiBot
 
             if (section.Title.ToLower(_l10i.Culture).Contains("{{ok}}") ||
                 section.Title.ToLower(_l10i.Culture).Contains("{{ок}}") ||
+                section.Title.ToLower(_l10i.Culture).Contains("{{x}}") ||
                 section.Subsections.Count(s => s.Title.Trim() == "Итог") > 0)
             {
                 if (!section.Title.Contains("<s>"))
@@ -454,6 +455,7 @@ namespace Claymore.TalkCleanupWikiBot
         {
             if (!section.Title.ToLower(_l10i.Culture).Contains("{{ok}}") &&
                 !section.Title.ToLower(_l10i.Culture).Contains("{{ок}}") &&
+                !section.Title.ToLower(_l10i.Culture).Contains("{{x}}") &&
                 section.Subsections.Count(s => s.Title.Trim() == "Итог") == 0)
             {
                 if (section.Title.Contains("<s>"))
