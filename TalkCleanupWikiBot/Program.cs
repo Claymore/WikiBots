@@ -201,7 +201,7 @@ namespace Claymore.TalkCleanupWikiBot
             l10i.EmptyArchive = "нет обсуждений";
             l10i.Processor = null;
             l10i.StrikeOutComment = "зачёркивание заголовков";
-            l10i.AutoResultMessage = "Страница была удалена {1} администратором [[User:{0}|]]. Была указана следующая причина: «{2}». Данное сообщение было автоматически сгенерировано ботом ~~~~.\n";
+            l10i.AutoResultMessage = "Страница была удалена {1} участником [[User:{0}|]]. Была указана следующая причина: «{2}». Данное сообщение было автоматически сгенерировано ботом ~~~~.\n";
             l10i.DateFormat = "d MMMM yyyy в HH:mm (UTC)";
             l10i.AutoResultComment = " и подведение итогов";
             l10i.AutoResultSection = "Автоитог";
@@ -281,7 +281,7 @@ namespace Claymore.TalkCleanupWikiBot
 
         static string RemoveOK(WikiPageSection section)
         {
-            Regex re = new Regex(@"^\s*(<s>)?\s*{{(ok|OK|Ok|oK|ОК|ок|Ок|оК)}}\s*(.+?)(</s>)?\s*$");
+            Regex re = new Regex(@"^\s*(<s>)?\s*{{(ok|OK|Ok|oK|ОК|ок|Ок|оК|x|X)}}\s*(.+?)(</s>)?\s*$");
             return re.Replace(section.Title, "$1$3</s>");
         }
 
