@@ -99,7 +99,7 @@ namespace Claymore.ArchiveWikiBot
                 ParameterCollection parameters = new ParameterCollection();
                 parameters.Add("prop", "info");
                 string pageName = DateToPageName(period);
-                string pageFileName = _cacheDir + Cache.EscapePath(period.ToString(Format));
+                string pageFileName = _cacheDir + Cache.GenerateCachePath(period.ToString(Format));
                 XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, new string[] { pageName });
                 XmlNode node = xml.SelectSingleNode("//page");
                 string text;
@@ -112,7 +112,7 @@ namespace Claymore.ArchiveWikiBot
                     {
                         Console.Out.WriteLine("Downloading " + pageName + "...");
                         text = wiki.LoadText(pageName);
-                        Cache.CachePage(pageFileName, node.Attributes["lastrevid"].Value, text);
+                        Cache.CachePage(period.ToString(Format), _cacheDir, node.Attributes["lastrevid"].Value, text);
                     }
                 }
                 else

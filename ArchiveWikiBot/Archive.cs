@@ -109,7 +109,7 @@ namespace Claymore.ArchiveWikiBot
             ParameterCollection parameters = new ParameterCollection();
             parameters.Add("prop", "info");
             string pageName = Format;
-            string pageFileName = _cacheDir + Cache.EscapePath(pageName);
+            string pageFileName = _cacheDir + Cache.GenerateCachePath(pageName);
             XmlDocument xml = wiki.Query(QueryBy.Titles, parameters, pageName);
             XmlNode node = xml.SelectSingleNode("//page");
             string text;
@@ -122,7 +122,7 @@ namespace Claymore.ArchiveWikiBot
                 {
                     Console.Out.WriteLine("Downloading " + pageName + "...");
                     text = wiki.LoadText(pageName);
-                    Cache.CachePage(pageFileName, node.Attributes["lastrevid"].Value, text);
+                    Cache.CachePage(pageName, _cacheDir, node.Attributes["lastrevid"].Value, text);
                 }
             }
             else
@@ -176,8 +176,7 @@ namespace Claymore.ArchiveWikiBot
                 linksToArchives));
             if (revid != null)
             {
-                string fileName = _cacheDir + Cache.EscapePath(MainPage);
-                Cache.CachePage(fileName, revid, page.Text);
+                Cache.CachePage(MainPage, _cacheDir, revid, page.Text);
             }
             foreach (var archive in archives)
             {

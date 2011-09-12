@@ -7,19 +7,21 @@ using System.Xml;
 using System.IO;
 using System.IO.Compression;
 using System.Text.RegularExpressions;
+using System.Security.Cryptography;
 
 namespace Claymore.ArchiveWikiBot
 {
     internal class Cache
     {
-        public static string EscapePath(string path)
+        public static string GenerateCachePath(string pagename)
         {
-            Regex charsRE = new Regex(@"[:/\*\?<>\|]");
-            return charsRE.Replace(path, "_").Replace('"', '_').Replace('\\', '_');
+            SHA1CryptoServiceProvider sha1 = new SHA1CryptoServiceProvider();
+            string titleHash = BitConverter.ToString(sha1.ComputeHash(UnicodeEncoding.Unicode.GetBytes(pagename))).Replace("-", "");
+            return titleHash.Substring(0, 2) + "\\" + titleHash.Substring(2);
         }
 
         public static WikiPage Load(Wiki wiki, string title, string directory)
-        {
+        {   
             ParameterCollection parameters = new ParameterCollection();
             parameters.Add("prop", "info|revisions");
             parameters.Add("intoken", "edit");
@@ -34,14 +36,14 @@ namespace Claymore.ArchiveWikiBot
             node = xml.SelectSingleNode("//page");
             string editToken = node.Attributes["edittoken"].Value;
 
-            string pageFileName = directory + EscapePath(title);
+            string pageFileName = directory + GenerateCachePath(title);
             string text = LoadPageFromCache(pageFileName, node.Attributes["lastrevid"].Value, title);
 
             if (string.IsNullOrEmpty(text))
             {
                 Console.Out.WriteLine("Downloading " + title + "...");
                 text = wiki.LoadText(title);
-                CachePage(pageFileName, node.Attributes["lastrevid"].Value, text);
+                CachePage(title, directory, node.Attributes["lastrevid"].Value, text);
             }
 
             WikiPage page = WikiPage.Parse(title, text);
@@ -71,7 +73,7 @@ namespace Claymore.ArchiveWikiBot
             return null;
         }
 
-        public static void CachePage(string fileName, string revisionId, string text)
+        private static void CachePage(string fileName, string revisionId, string text)
         {
             using (FileStream fs = new FileStream(fileName, FileMode.Create))
             using (GZipStream gs = new GZipStream(fs, CompressionMode.Compress))
@@ -80,6 +82,14 @@ namespace Claymore.ArchiveWikiBot
                 sw.WriteLine(revisionId);
                 sw.Write(text);
             }
+        }
+
+        public static void CachePage(string title, string cacheDir, string revisionId, string text)
+        {
+            string path = GenerateCachePath(title);
+            string filename = cacheDir + path;
+            Directory.CreateDirectory(cacheDir + path.Substring(0, 2));
+            CachePage(filename, revisionId, text);
         }
     }
 }

@@ -80,8 +80,6 @@ namespace Claymore.ArchiveWikiBot
             foreach (XmlNode node in doc.SelectNodes("//page"))
             {
                 string title = node.Attributes["title"].Value;
-                path = Cache.EscapePath(title) + @"\";
-                Directory.CreateDirectory(path);
                 WikiPage page = Cache.Load(wiki, title, path);
                 IArchive archive;
                 try
@@ -405,10 +403,6 @@ namespace Claymore.ArchiveWikiBot
                         newSectionsDown,
                         minimalSize,
                         forcedArchivationDelay);
-                }
-                else if (t == "статьи для рецензирования")
-                {
-                    archive = new ReviewArchive(l10i, pageName, directory, days, format, header);
                 }
                 else if (t == "нумерация" && topics > 0)
                 {

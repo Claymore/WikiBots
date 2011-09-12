@@ -124,7 +124,7 @@ namespace Claymore.ArchiveWikiBot
             XmlNode node = xml.SelectSingleNode("//page");
             if (node.Attributes["missing"] == null)
             {
-                string pageFileName = _cacheDir + Cache.EscapePath(pageName);
+                string pageFileName = _cacheDir + Cache.GenerateCachePath(pageName);
                 string text = Cache.LoadPageFromCache(pageFileName,
                                 node.Attributes["lastrevid"].Value, pageName);
 
@@ -132,7 +132,7 @@ namespace Claymore.ArchiveWikiBot
                 {
                     Console.Out.WriteLine("Downloading " + pageName + "...");
                     text = wiki.LoadText(pageName);
-                    Cache.CachePage(pageFileName, node.Attributes["lastrevid"].Value, text);
+                    Cache.CachePage(pageName, _cacheDir, node.Attributes["lastrevid"].Value, text);
                 }
                 WikiPage archivePage = WikiPage.Parse(pageName, text);
                 if (archivePage.Sections.Count < Topics)
